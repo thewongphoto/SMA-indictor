@@ -1,0 +1,9 @@
+"""Small, explicit prototype configuration. No credentials or network services."""
+
+TRADING_SESSIONS_PER_YEAR = 252
+TARGET_FREQUENCIES = (12, 6, 1)
+# Set False to offer presets only. The calculation engine accepts any positive integer.
+ALLOW_CUSTOM_TARGET = True
+COUNTERS = ("DEMO-SGX", "DEMO-US")
+SCENARIOS = ("Trending", "Oscillating", "Sideways")
+DATA_VERSION = 1

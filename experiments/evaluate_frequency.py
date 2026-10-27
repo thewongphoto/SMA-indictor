@@ -1,4 +1,4 @@
-"""Reproducible comparison on current data; no app configuration is changed.
+"""Verify active/reference agreement on current data; no configuration changes.
 
 Run: python -m experiments.evaluate_frequency --output artifacts/frequency-evaluation.json
 Optional longer histories are isolated test inputs, not a new generator default.
@@ -31,6 +31,11 @@ def run_evaluation():
                 normalized = best_candidate(dataset.prices, target, range(2, len(dataset.prices)))
                 proposed = optimize_proposed(dataset.prices, target)
 
+                if (existing.period, existing.comparisons, existing.frequency, existing.events) != (
+                    proposed.period, proposed.comparisons, proposed.frequency, proposed.events
+                ):
+                    raise RuntimeError("Active optimizer differs from independent reference.")
+
                 def summary(result):
                     return {"period": result.period, "crossings": result.crossing_count,
                             "observable_comparisons": result.comparisons,
@@ -42,7 +47,7 @@ def run_evaluation():
                     "target": target, "proposed_cap": proposed_cap(len(dataset.prices)),
                     "current_app": {"period": existing.period, "crossings": existing.crossing_count,
                                     "displayed_annual_frequency": existing.actual_annual_frequency},
-                    "normalization_only_existing_candidate_range": summary(normalized),
+                    "normalization_only_uncapped_control": summary(normalized),
                     "complete_proposal": summary(proposed),
                 })
 
@@ -59,7 +64,7 @@ def run_evaluation():
     after = _fingerprints(root)
     if before != after:
         raise RuntimeError("Application source changed during evaluation.")
-    return {"simulated_data_only": True, "application_source_unchanged": True,
+    return {"active_policy_verified": True, "simulated_data_only": True, "application_source_unchanged": True,
             "application_source_sha256": before, "current_mock_history_sessions": 252,
             "cases": cases, "isolated_longer_history_checks": boundaries}
 
@@ -75,6 +80,6 @@ if __name__ == "__main__":
     for case in report["cases"]:
         new = case["complete_proposal"]
         print(f"{case['counter']} {case['scenario']:<11} target={case['target']:>2}: "
-              f"proposed SMA={new['period']:>3}, crossings={new['crossings']:>2}, "
+              f"active SMA={new['period']:>3}, crossings={new['crossings']:>2}, "
               f"usable={new['observable_comparisons']:>3}, annual={new['annual_frequency']:.4f}")
-    print("Verified: application source unchanged; current mock history remains 252 sessions.")
+    print("Verified: active policy matches reference; evaluation changed no app source; mock history remains 252 sessions.")

@@ -67,6 +67,11 @@ you use the app.
    on the right. Click **Zoom out** beside the chart title to see all sessions
    again. The zoom-out button appears only while zoomed.
 
+The actual frequency now excludes the SMA's warm-up and missing observations.
+For example, DEMO-SGX Sideways at target 12 should show SMA 22 and 36.16/year,
+with 33 crossings over 230 usable comparisons. That is the closest eligible
+result, even though it does not match 12. The app still has 252 mock sessions.
+
 Every price is simulated. These are fictional counters, not real market data.
 Matching crossing frequency does not demonstrate a profitable strategy.
 
@@ -82,8 +87,9 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 36 tests, including 15 tests of an experimental
-frequency policy that is not yet used by the app. Successful output ends with `OK`.
+The current test suite contains 39 tests, including checks that the active app
+uses the agreed warm-up-adjusted frequency and automatic SMA cap. Successful
+output ends with `OK`.
 
 ## Getting a newer version from GitHub
 

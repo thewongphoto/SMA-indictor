@@ -1,4 +1,4 @@
-"""Acceptance checks for a proposal not yet connected to the application."""
+"""Independent reference checks for the policy now used by the application."""
 from fractions import Fraction
 import math
 from pathlib import Path
@@ -128,18 +128,18 @@ class ObservableFrequencyProposalTests(unittest.TestCase):
                 self.assertEqual(dataset.prices, original)
                 self.assertEqual(dataset, generate_mock_data(counter, scenario))
 
-    def test_existing_app_optimizer_keeps_its_current_behavior(self):
+    def test_app_optimizer_matches_preintegration_reference(self):
         prices = generate_mock_data("DEMO-SGX", "Sideways").prices
         existing = optimize_sma(prices, 12)
         proposed = optimize_proposed(prices, 12)
-        self.assertEqual((existing.period, existing.crossing_count), (192, 12))
-        self.assertEqual(existing.actual_annual_frequency, 12)
+        self.assertEqual((existing.period, existing.crossing_count, existing.comparisons), (22, 33, 230))
+        self.assertEqual(existing.frequency, proposed.frequency)
         self.assertEqual((proposed.period, proposed.crossing_count, proposed.comparisons), (22, 33, 230))
         self.assertEqual(proposed.frequency, Fraction(4158, 115))
         self.assertEqual(optimize_sma(prices, 12), existing)
 
     def test_app_has_no_import_of_experimental_policy(self):
-        # Enforce the requested staging boundary until application integration.
+        # Production must remain independent of the frozen research reference.
         app_root = Path(__file__).resolve().parents[1] / "sma_analyzer"
         import ast
         for path in app_root.glob("*.py"):
@@ -148,3 +148,15 @@ class ObservableFrequencyProposalTests(unittest.TestCase):
                     self.assertFalse(any(n.name.startswith("experiments") for n in node.names))
                 elif isinstance(node, ast.ImportFrom):
                     self.assertFalse((node.module or "").startswith("experiments"))
+
+    def test_production_matches_reference_across_targets_and_boundary_histories(self):
+        for history in [252, 503, 504, 505, 755, 756, 757, 1008]:
+            prices = generate_mock_data("DEMO-SGX", "Sideways", history).prices
+            targets = [12, 6, 1] if history == 252 else [12]
+            for target in targets:
+                actual = optimize_sma(prices, target)
+                reference = optimize_proposed(prices, target)
+                self.assertEqual((actual.period, actual.comparisons, actual.frequency),
+                                 (reference.period, reference.comparisons, reference.frequency))
+                self.assertEqual(actual.sma, reference.sma)
+                self.assertEqual(actual.events, reference.events)

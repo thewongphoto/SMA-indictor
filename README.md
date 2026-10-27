@@ -13,10 +13,11 @@ Read [the app summary and calculation conditions](APP_SUMMARY.md) for the record
 rules, limitations, implementation status, and material for a future printed
 summary.
 
-The proposed warm-up-adjusted frequency and history-dependent cap have been
-tested separately in [the proposal evaluation](docs/observable-frequency-evaluation.md).
-They are **not connected to the app**: its mock series remain 252 sessions and
-its existing candidate range and displayed frequency remain unchanged.
+The app now uses the agreed **warm-up-adjusted annual frequency**, automatic
+history-dependent SMA cap, and minimum observable-history requirement. It shows
+one actual annual frequency. The mock datasets remain 252 sessions. The
+[pre-integration evaluation](docs/observable-frequency-evaluation.md) records why
+these rules were chosen; the production code is in `engine.py` and `policy.py`.
 
 ## Install and launch
 
@@ -130,30 +131,39 @@ For period `N`, `SMA[t] = sum(P[t-N+1:t+1]) / N`.
   values; `count_crossings(prices, sma)` returns the count. UI session numbers
   are one-based, **not calendar dates**.
 
-The default optimizer searches **every period from 2 to `history length - 1`**,
-inclusive. N=1 is excluded because it always equals the price. Each candidate
-requires at least two adjacent valid SMA observations. Every candidate uses its
-own valid observations across the **entire history**, after its warm-up.
+The optimizer searches every integer period from 2 through an automatic cap.
+For input length H, the cap is `min(floor(H/2),252)` through 756 sessions and
+`H-504` above 756 sessions. It is not user-configurable. Each candidate must have
+at least `H-cap` actual observable comparisons. Histories over three years
+therefore retain at least two usable trading years; shorter histories can have
+less. At least four input sessions are needed to admit SMA 2.
+
+A usable comparison requires finite prices and SMA values on two consecutive
+observations. Warm-up, gaps, and re-warm-up are excluded. With complete history
+and period N there are **H-N comparisons**: the first SMA supplies a baseline.
 
 ```text
-years = number of input trading sessions / 252
-target count = selected crossings/year × years
-error = abs(actual crossing count - target count)
-actual crossings/year = actual crossing count / years
+usable years = observable comparisons / 252
+actual crossings/year = crossing count / usable years
+error = abs(actual crossings/year - selected target/year)
 ```
 
-For 756 sessions and a target of 12/year, the target count is 36. Fractional
-targets for partial years are compared directly without rounding. The smallest
-error wins; ties always choose the **shorter SMA**, independent of candidate
-order. For Test B's `[10, 12, 10, 12, 10, 12]`, period **2** gives events at
-zero-based indices **3 and 5** (displayed sessions 4 and 6).
+All observable history contributes, not just the last year or the zoomed region.
+Smallest annual-frequency error wins; exact rational ties choose the shorter
+SMA. Explicit candidate lists used in tests obey the same cap and coverage rules.
+If no candidate has enough valid coverage, optimization gives a helpful error.
 
-The full history, including warm-up and missing sessions, supplies the year
-denominator. **This deliberately follows the requested whole-history method**.
-Long SMAs have fewer eligible observations and may be favored when targeting
-rare crossings. No warm-up extrapolation or trading-session calendar inference
-is performed. A future common-window or valid-exposure method would be a
-different optimization objective and should be added as an explicit option.
+The interface shows only the adjusted annual frequency, with crossing count,
+usable comparisons/years, candidate cap, and annual target difference for context.
+A target may be unattainable. With the current DEMO-SGX Sideways data and target
+12, the closest eligible result is **SMA 22: 33 crossings over 230 comparisons,
+36.16/year**. Oscillating selects SMA 42: 10 crossings over 210 comparisons,
+exactly 12/year. Annualization does not guarantee future frequency or profits.
+
+Saved lines from earlier versions remain available and retain their original
+period and target. Lines above the current cap are labelled as previously saved
+and outside the current search limit; they are not silently retuned or deleted.
+The database needs no migration because it stores parameters, not derived rates.
 
 ## Run automated checks
 
@@ -209,8 +219,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **36 passed** (21 existing + 15 proposal tests), 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **13 groups passed**, 0 failed |
+| Standard-library test suite | **39 passed**, including production/reference integration checks, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **14 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
@@ -246,7 +256,8 @@ main.py                    # Launches the Kivy application
 requirements.txt           # Kivy only; unittest/SQLite need no package
 sma_analyzer/
   settings.py              # Frequency presets, mock choices, version
-  engine.py                # Pure SMA, events, and exhaustive optimizer
+  engine.py                # SMA, events, capped annual-frequency optimizer
+  policy.py                # Automatic cap, observable coverage, exact annual rates
   mock_data.py             # Seeded 252-session synthetic series
   storage.py               # Local SQLite saved-line repository
   model.py                 # Shared chart/card/table presentation state

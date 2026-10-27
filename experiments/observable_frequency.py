@@ -1,4 +1,4 @@
-"""Proposed frequency scoring and history cap, isolated from the running app.
+"""Independent pre-integration reference for the now-active frequency policy.
 
 This module reuses the current SMA arithmetic and crossing events unchanged.
 It measures exposure in adjacent valid price/SMA observations. For complete
@@ -20,7 +20,7 @@ def _integer(value, name, minimum=1):
 
 
 def proposed_cap(history_sessions: int) -> int:
-    """The agreed continuous cap; this is not used by the application yet."""
+    """Reference cap; production has the matching rule in policy.py."""
     _integer(history_sessions, "History length")
     if history_sessions <= 3 * YEAR:
         return min(history_sessions // 2, YEAR)
@@ -127,7 +127,7 @@ def best_candidate(prices, target, candidates, minimum_comparisons=1):
 
 
 def optimize_proposed(prices, target) -> CandidateEvaluation:
-    """Test the proposed cap/rate together without changing the app optimizer.
+    """Evaluate the independent reference without invoking the app optimizer.
 
     Missing data can invalidate the duration promised by a cap based on raw
     history length. Require the actual exposure to reach H-cap as well: at least

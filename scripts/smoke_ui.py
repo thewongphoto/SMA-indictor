@@ -127,6 +127,19 @@ class SmokeApp(SMAStockAnalyzerApp):
             yield from self.wait_for_calculation()
             assert ui.chart.marker_events["active"] == crossover_events(
                 ui.chart.prices, ui.model.result.sma)
+        ui.scenario.text = "Sideways"
+        ui.target.text = "12"
+        ui.optimize_button.dispatch("on_release")
+        yield from self.wait_for_calculation()
+        assert ui.card_values["period"].text == "22 sessions"
+        assert ui.card_values["actual"].text == "36.16 / yr"
+        assert ui.card_values["count"].text == "33"
+        assert "230 usable comparisons" in ui.explanation.text
+        assert "SMA search: 2–126" in ui.explanation.text
+        assert "Warm-up is included" not in ui.explanation.text
+        assert "not matched exactly" in ui.explanation.text
+        self.check("active adjusted-frequency policy: known sideways result, coverage, cap, unreachable target")
+        ui.scenario.text = "Oscillating"
         ui.counter.text = "DEMO-US"
         assert ui.chart.prices == ui.model.dataset.prices
         assert "DEMO-US" in ui.plot_title.text
@@ -325,7 +338,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         while ui.busy:
             assert time.monotonic() < deadline
             yield
-        assert "At least 3 sessions" in ui.status.text
+        assert "At least 4 sessions" in ui.status.text
         assert ui.model.result is None
         self.check("remove line, empty chart, insufficient-data error without crash")
 

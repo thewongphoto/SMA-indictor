@@ -1,13 +1,13 @@
-# Observable-frequency proposal: evaluation only
+# Observable-frequency proposal: pre-integration evaluation record
 
 The policy conditions, interpretation limits, and current implementation status
 are recorded together in [the app summary](../APP_SUMMARY.md).
 
-The application is unchanged. This is an isolated, opt-in experiment; the live
-prototype still uses its original frequency formula and candidate range, and
-all six UI datasets still contain 252 simulated sessions. No runtime settings
-or mock generator code were changed. No live market data or new dependencies
-were introduced.
+This report records the experiment run **before** production integration. At
+that time, the application was deliberately left unchanged. The agreed policy
+is now active in the app: see [the current summary](../APP_SUMMARY.md). The mock
+history still contains 252 sessions. Historical references to the "current app"
+below mean the app version at the time of this evaluation.
 
 ## Tested rules
 
@@ -112,8 +112,9 @@ python -m unittest discover -s tests -v
 python -m experiments.evaluate_frequency --output artifacts/frequency-evaluation.json
 ```
 
-These commands need only the Python standard library. The JSON output includes
-all three comparison modes and source fingerprints. The application does not
-import `experiments`, so running the normal app continues to use its original
-behavior. Integrating the proposal into its cards, optimizer, persistence
-semantics, and mock-history defaults is a separate subsequent step.
+These commands need only the Python standard library. The runner now verifies
+that the active engine agrees with the independent reference implementation;
+it also retains an uncapped normalization-only diagnostic. Its source fingerprints
+verify that running the comparison itself does not mutate application files.
+The app does not import the research reference. Current validation is 39 unit
+tests and 14 running UI smoke groups; see the summary for active behavior.

@@ -28,6 +28,7 @@ from kivy.uix.textinput import TextInput
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
+from .policy import maximum_sma_period
 from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
@@ -332,10 +333,13 @@ class AnalyzerScreen(AnchorLayout):
         self.hide_button.text = "Hide selected SMA" if self.model.active_visible else "Show selected SMA"
         result = self.model.result
         self.explanation.text = (
-            f"Whole-history target: {result.target_crossings:g} crossings over {result.history_sessions} sessions. "
-            f"Actual: {result.crossing_count}; absolute difference: {result.count_error:g}. "
-            "Warm-up is included in the year length. Ties choose the shorter SMA."
-            if result else "No optimization yet. Every candidate uses its available observations across the full history.")
+            f"{result.crossing_count} crossings over {result.comparisons} usable comparisons "
+            f"({result.usable_years:.2f} trading years) from {result.history_sessions} sessions. "
+            f"Target difference: {float(result.frequency_error):.2f}/yr. "
+            f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. "
+            "Warm-up and gaps are excluded. Ties choose the shorter SMA. "
+            + ("Closest eligible result; target not matched exactly." if result.frequency_error else "Target matched.")
+            if result else "Optimize across all observable history. Warm-up and gaps are excluded from annual frequency.")
         self._refresh_saved()
         self._refresh_table()
 
@@ -358,7 +362,10 @@ class AnalyzerScreen(AnchorLayout):
         if not saved:
             self.saved_panel.add_widget(WrappedLabel(text="No saved lines for this simulation. Optimize, then tap Save SMA line.", color=MUTED))
         for line in saved:
-            self.saved_panel.add_widget(WrappedLabel(text=f"SMA {line.period} · target {line.target_frequency}/yr"))
+            label = f"SMA {line.period} · target {line.target_frequency}/yr"
+            if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
+                label += " · saved previously; outside current search limit"
+            self.saved_panel.add_widget(WrappedLabel(text=label))
             row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
             visible = line.visible
             if self.model.result and line.period == self.model.result.period:

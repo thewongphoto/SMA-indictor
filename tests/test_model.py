@@ -21,7 +21,7 @@ class ModelTests(unittest.TestCase):
             self.model.set_target(str(frequency))
             self.assertIsNone(self.model.result)
             result = self.model.calculate()
-            self.assertEqual(result.target_crossings, frequency)
+            self.assertAlmostEqual(result.target_crossings, frequency * result.comparisons / 252)
             self.assertEqual(result.target_frequency, frequency)
             self.assertEqual(self.model.summary()["target"], f"{frequency} / yr")
             self.assertEqual(self.model.summary()["count"], str(result.crossing_count))
@@ -81,7 +81,7 @@ class ModelTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "positive|at least"):
                 self.model.set_target(invalid)
         self.model.dataset = Dataset("DEMO-SGX", "Trending", ())
-        with self.assertRaisesRegex(ValueError, "At least 3"):
+        with self.assertRaisesRegex(ValueError, "At least 4"):
             self.model.calculate()
         with self.assertRaisesRegex(ValueError, "before saving"):
             self.model.save_current()
@@ -95,3 +95,14 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(len(self.model.saved_lines()), 1)
         with self.assertRaisesRegex(ValueError, "SQLite"):
             self.model.set_target(str(2**63))
+
+    def test_active_policy_updates_display_and_preserves_older_saved_lines(self):
+        self.model.select_dataset("DEMO-SGX", "Sideways")
+        self.model.store.save("DEMO-SGX", "Sideways", 192, 12)
+        result = self.model.calculate()
+        self.assertEqual((result.period, result.crossing_count, result.comparisons), (22, 33, 230))
+        self.assertEqual(self.model.summary()["actual"], "36.16 / yr")
+        self.assertEqual({line.period for line in self.model.plot_lines()}, {22, 192})
+        restored = AnalyzerModel(LineStore(self.path))
+        restored.select_dataset("DEMO-SGX", "Sideways")
+        self.assertEqual(restored.saved_lines()[0].period, 192)

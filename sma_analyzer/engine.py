@@ -13,6 +13,7 @@ import math
 from numbers import Real
 from typing import Iterable, Sequence
 
+from .policy import annual_frequency, maximum_sma_period, observable_comparisons
 from .settings import TRADING_SESSIONS_PER_YEAR
 
 Price = float | None
@@ -98,7 +99,7 @@ class OptimizationResult:
     period: int
     target_frequency: int
     history_sessions: int
-    target_crossings: float
+    comparisons: int
     sma: tuple[Price, ...]
     events: tuple[Crossover, ...]
 
@@ -107,47 +108,61 @@ class OptimizationResult:
         return len(self.events)
 
     @property
-    def actual_annual_frequency(self) -> float:
-        return self.crossing_count * TRADING_SESSIONS_PER_YEAR / self.history_sessions
+    def frequency(self):
+        return annual_frequency(self.crossing_count, self.comparisons)
 
     @property
-    def count_error(self) -> float:
-        return abs(self.crossing_count - self.target_crossings)
+    def actual_annual_frequency(self) -> float:
+        return float(self.frequency)
+
+    @property
+    def frequency_error(self):
+        return abs(self.frequency - self.target_frequency)
+
+    @property
+    def usable_years(self) -> float:
+        return self.comparisons / TRADING_SESSIONS_PER_YEAR
+
+    @property
+    def target_crossings(self) -> float:
+        return self.target_frequency * self.usable_years
 
 
 def optimize_sma(
     prices: Sequence[Price], target_frequency: int, candidates: Iterable[int] | None = None,
 ) -> OptimizationResult:
-    """Search the entire history; minimize count error, then choose shorter N.
+    """Minimize annual-frequency error across all observable history.
 
-    The default candidate set is 2..len(history)-1, inclusive. Each candidate
-    uses all its valid observations after its own warm-up (no common trimmed
-    window). The target is frequency * len(history) / 252, including warm-up
-    and missing sessions in the denominator. This follows the requested whole-
-    history frequency, and can favor long periods with little usable history.
-    Candidates require at least two adjacent valid price/SMA observations.
+    The automatic cap is min(floor(H/2),252) through H=756, then H-504.
+    Each candidate must have at least H-cap actual observable comparisons,
+    excluding warm-up, gaps, and re-warm-up. Explicit candidate lists are useful
+    for tests but must obey the same cap and coverage rules as the app.
+    Exact annual-rate ties choose the shorter SMA.
     """
     _positive_integer(target_frequency, "Target frequency")
     values = _prices(prices)
-    if len(values) < 3:
-        raise ValueError("At least 3 sessions are needed to optimize an SMA.")
-    periods = list(range(2, len(values))) if candidates is None else list(candidates)
+    if len(values) < 4:
+        raise ValueError("At least 4 sessions are needed to optimize an SMA.")
+    cap = maximum_sma_period(len(values))
+    minimum = len(values) - cap
+    periods = list(range(2, cap + 1)) if candidates is None else list(candidates)
     if not periods:
         raise ValueError("Choose at least one candidate SMA period.")
     for period in periods:
         _positive_integer(period, "Candidate period")
-        if not 2 <= period < len(values):
-            raise ValueError(f"Candidate periods must be between 2 and {len(values) - 1}.")
-    target = target_frequency * len(values) / TRADING_SESSIONS_PER_YEAR
-    results = []
+        if not 2 <= period <= cap:
+            raise ValueError(f"Candidate periods must be between 2 and {cap} for this history.")
+    best = None
     for period in sorted(set(periods)):
         average = simple_moving_average(values, period)
-        if not any(a is not None and b is not None for a, b in zip(average, average[1:])):
+        comparisons = observable_comparisons(values, average)
+        if comparisons < minimum:
             continue
-        results.append(OptimizationResult(
-            period, target_frequency, len(values), target, tuple(average),
-            crossover_events(values, average),
-        ))
-    if not results:
-        raise ValueError("Not enough consecutive valid prices. Provide at least 3 without gaps.")
-    return min(results, key=lambda result: (result.count_error, result.period))
+        result = OptimizationResult(period, target_frequency, len(values), comparisons,
+                                    tuple(average), crossover_events(values, average))
+        if best is None or (result.frequency_error, result.period) < (best.frequency_error, best.period):
+            best = result
+    if best is None:
+        raise ValueError(f"Insufficient valid history: need at least {minimum} observable "
+                         "price/SMA comparisons after warm-up and gaps.")
+    return best

@@ -36,7 +36,7 @@ class EngineTests(unittest.TestCase):
     def test_f_optimizer_correctness_and_tie_break(self):
         prices = [10, 12, 10, 12, 10, 12]
         # Whole history = 6/252 years; target 42/year means exactly one event.
-        # N=2 -> 2 crossings, N=3 -> 2, N=4 -> 1, N=5 -> 0.
+        # N=2 -> 2 crossings, N=3 -> 2, N=4 -> 1, N=5 -> 1 (tie selects 4).
         result = optimize_sma(prices, 42, [2, 3, 4, 5])
         self.assertEqual(result.period, 4)
         self.assertEqual(result.crossing_count, 1)

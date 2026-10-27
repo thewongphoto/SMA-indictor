@@ -44,6 +44,29 @@
 - Active result/dropdown selections reset on restart; saved lines persist.
 - Future genuine histories need performance profiling and schema migrations.
 
+## Frequency proposal: tested separately, not activated
+
+- `experiments/observable_frequency.py` tests the proposed usable-comparison
+  annualization and cap: min(floor(H/2), 252) through 756 sessions, then H-504.
+- Usable exposure excludes the initial SMA baseline, gaps, and re-warm-up.
+  Candidates must actually satisfy the minimum coverage promised by the cap;
+  missing data can produce a helpful insufficient-history error.
+- Annual-frequency error determines the winner; exact rational ties select the
+  shorter period. No application code imports the experimental module.
+- All 36 unit tests passed: 21 existing checks and 15 new proposal checks.
+- Evaluated all six current 252-session series at targets 12, 6, and 1. Longer
+  series were generated only as isolated boundary fixtures, not as UI data.
+- Main result: DEMO-SGX Sideways target 12 selects SMA 22, 33 crossings over 230
+  comparisons, 36.1565/year. DEMO-SGX Oscillating selects SMA 42, exactly 12/year.
+- Normalization alone, without a coverage rule, can select SMA 251 with zero
+  events and just one comparison. The complete proposed policy rejects that
+  short-exposure result. Several simulated targets remain unattainable.
+- See `docs/observable-frequency-evaluation.md` and reproduce with
+  `python -m experiments.evaluate_frequency` (no Kivy required).
+- Pending: user review of these findings, followed by a separate application
+  integration step. The optimizer, UI frequency, saved-line behavior, settings,
+  mock generator, 252-session default, and active SMA limits remain unchanged.
+
 ## Stop point
 
 The mock-only prototype and requested range zoom are complete. Wait for user approval before

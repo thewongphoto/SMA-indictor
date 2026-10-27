@@ -82,7 +82,8 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 21 tests. Successful output ends with `OK`.
+The current test suite contains 36 tests, including 15 tests of an experimental
+frequency policy that is not yet used by the app. Successful output ends with `OK`.
 
 ## Getting a newer version from GitHub
 

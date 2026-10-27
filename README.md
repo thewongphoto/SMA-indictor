@@ -9,6 +9,11 @@ The app makes no network requests and needs no account, credentials, or backend.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
+The proposed warm-up-adjusted frequency and history-dependent cap have been
+tested separately in [the proposal evaluation](docs/observable-frequency-evaluation.md).
+They are **not connected to the app**: its mock series remain 252 sessions and
+its existing candidate range and displayed frequency remain unchanged.
+
 ## Install and launch
 
 Use Python **3.12** (tested with 3.12.14) and a desktop with graphics support.
@@ -200,7 +205,7 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **21 passed**, 0 failed, 0 skipped |
+| Standard-library test suite | **36 passed** (21 existing + 15 proposal tests), 0 failed, 0 skipped |
 | Real Kivy UI smoke checks | **13 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |

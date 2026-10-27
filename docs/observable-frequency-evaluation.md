@@ -1,5 +1,8 @@
 # Observable-frequency proposal: evaluation only
 
+The policy conditions, interpretation limits, and current implementation status
+are recorded together in [the app summary](../APP_SUMMARY.md).
+
 The application is unchanged. This is an isolated, opt-in experiment; the live
 prototype still uses its original frequency formula and candidate range, and
 all six UI datasets still contain 252 simulated sessions. No runtime settings

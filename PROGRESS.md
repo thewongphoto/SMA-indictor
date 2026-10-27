@@ -63,9 +63,20 @@
   short-exposure result. Several simulated targets remain unattainable.
 - See `docs/observable-frequency-evaluation.md` and reproduce with
   `python -m experiments.evaluate_frequency` (no Kivy required).
-- Pending: user review of these findings, followed by a separate application
-  integration step. The optimizer, UI frequency, saved-line behavior, settings,
+- Remaining: a separate application integration step. The optimizer, UI
+  frequency, saved-line behavior, settings,
   mock generator, 252-session default, and active SMA limits remain unchanged.
+
+## Recorded summary for later printing
+
+- `APP_SUMMARY.md` records the calculation and crossing definitions, agreed
+  experimental cap/coverage/frequency rules, single-average display requirement,
+  unreachable-target and short-history limitations, evidence, zoom/persistence
+  behavior, and current prototype constraints.
+- It explicitly separates active app behavior from the tested proposal so a
+  printed summary does not imply that the policy or longer mock data is active.
+- The README and evaluation report link to this summary. Saving these records
+  does not activate the experimental policy or change application defaults.
 
 ## Stop point
 

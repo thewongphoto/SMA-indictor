@@ -9,6 +9,10 @@ The app makes no network requests and needs no account, credentials, or backend.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
+Read [the app summary and calculation conditions](APP_SUMMARY.md) for the recorded
+rules, limitations, implementation status, and material for a future printed
+summary.
+
 The proposed warm-up-adjusted frequency and history-dependent cap have been
 tested separately in [the proposal evaluation](docs/observable-frequency-evaluation.md).
 They are **not connected to the app**: its mock series remain 252 sessions and

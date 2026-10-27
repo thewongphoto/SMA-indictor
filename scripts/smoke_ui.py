@@ -21,6 +21,38 @@ from sma_analyzer.engine import crossover_events, simple_moving_average
 from sma_analyzer.mock_data import Dataset
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.base import EventLoop
+from kivy.graphics import Color, Line, Rectangle, Triangle
+from kivy.input.motionevent import MotionEvent
+from kivy.metrics import dp
+
+from sma_analyzer.chart import START_COLOR, END_COLOR
+
+
+class Pointer(MotionEvent):
+    """Synthetic finger sent through the real window/scroll/touch-grab pipeline."""
+    def __init__(self, x, y):
+        super().__init__("smoke", id(self), self.coordinates(x, y), is_touch=True, type_id="touch")
+        self.profile = ["pos"]
+
+    @staticmethod
+    def coordinates(x, y):
+        return {"x": x / (Window.width - 1), "y": y / (Window.height - 1)}
+
+    def depack(self, args):
+        self.sx, self.sy = args["x"], args["y"]
+        super().depack(args)
+
+    def down(self):
+        EventLoop.post_dispatch_input("begin", self)
+
+    def move_to(self, x, y, dispatch=True):
+        self.move(self.coordinates(x, y))
+        if dispatch:
+            EventLoop.post_dispatch_input("update", self)
+
+    def up(self):
+        EventLoop.post_dispatch_input("end", self)
 
 
 class SmokeApp(SMAStockAnalyzerApp):
@@ -148,6 +180,140 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.content.export_to_png("artifacts/prototype-full.png")
         self.check("three portrait sizes render and screenshots export")
 
+        # Scroll first so the real event pipeline must transform coordinates.
+        ui.scroll.scroll_to(ui.chart, animate=False)
+        for _ in range(6):
+            yield
+        chart = ui.chart
+
+        def location(fraction, y_fraction=0.5):
+            left, bottom, width, height = chart.plot_rect
+            return chart.to_window(left + fraction * width, bottom + y_fraction * height)
+
+        def assert_guides():
+            colors = [instruction.rgba for instruction in chart.canvas.children
+                      if isinstance(instruction, Color)]
+            for actual, expected in zip(colors[-2:], (START_COLOR, END_COLOR)):
+                assert all(abs(a - b) < 1e-6 for a, b in zip(actual, expected))
+            guides = [instruction for instruction in chart.canvas.children if isinstance(instruction, Line)][-2:]
+            assert guides[0].points[0] < guides[1].points[0]
+            shade = [instruction for instruction in chart.canvas.children if isinstance(instruction, Rectangle)][-1]
+            assert shade.size[0] > 0
+
+        assert not chart.is_zoomed and ui.zoom_out_button.parent is None
+        full_sma = ui.model.result.sma
+        full_events = ui.model.result.events
+        full_summary = ui.model.summary()
+        full_limits = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
+        scroll_position = ui.scroll.scroll_y
+        finger = Pointer(*location(0.25))
+        finger.down()
+        assert chart.selection is not None, "Plot selection must start immediately, without scroll timeout"
+        assert chart.selection.anchor == chart.selection.cursor
+        finger.move_to(*location(0.75, 0.6))
+        assert chart.selection.cursor > chart.selection.anchor
+        assert_guides()
+        assert ui.scroll.scroll_y == scroll_position
+        # Crossing the original touch position reverses which boundary moves.
+        finger.move_to(*location(0.1))
+        assert chart.selection.cursor < chart.selection.anchor
+        assert_guides()
+        chart.parent.export_to_png("artifacts/zoom-select-left.png")
+        finger.move_to(*location(0.75))
+        assert_guides()
+        chart.parent.export_to_png("artifacts/zoom-select-right.png")
+        second = Pointer(*location(0.5))
+        second.down()
+        assert chart._drag_touch is finger
+        second.up()
+        finger.up()
+        assert chart.selection is None and chart._drag_touch is None
+        assert chart.viewport.bounds == (62, 189), chart.viewport.bounds
+        assert chart.is_zoomed and ui.zoom_out_button.parent is ui.plot_header
+        zoom_limits = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
+        assert zoom_limits != full_limits
+        assert ui.model.result.sma is full_sma and ui.model.result.events is full_events
+        assert ui.model.summary() == full_summary
+        assert "Viewing sessions 63–190" in ui.plot_subtitle.text
+        triangles = [item for item in chart.canvas.children if isinstance(item, Triangle)]
+        expected_markers = sum(62 <= event.index <= 189
+                               for events in chart.marker_events.values() for event in events)
+        assert len(triangles) == expected_markers
+        for _ in range(4):
+            yield
+        chart.parent.export_to_png("artifacts/zoom-active.png")
+        self.check("real touch routing, immediate guides, both colors, shading, crossing anchor, y rescale, unchanged calculations")
+
+        Window.size = (320, 640)
+        for _ in range(6):
+            yield
+        assert chart.viewport.bounds == (62, 189)
+        assert ui.zoom_out_button.right <= chart.parent.right
+        chart.parent.export_to_png("artifacts/zoom-phone-320.png")
+        Window.size = (440, 920)
+        for _ in range(6):
+            yield
+        ui.scroll.scroll_to(chart, animate=False)
+        for _ in range(4):
+            yield
+
+        finger = Pointer(*location(0.8))
+        finger.profile.append("button")
+        finger.button = "left"
+        finger.down()
+        # Release coordinates also work without a provider sending a final move.
+        finger.move_to(*location(0.2), dispatch=False)
+        finger.up()
+        assert chart.viewport.bounds == (87, 164), chart.viewport.bounds
+        ui.hide_button.dispatch("on_release")
+        assert chart.viewport.bounds == (87, 164)
+        ui.hide_button.dispatch("on_release")
+        # Use actual window touches for the top-right button, not its callback.
+        for _ in range(4):
+            yield
+        button = Pointer(*ui.zoom_out_button.to_window(*ui.zoom_out_button.center))
+        button.down()
+        button.up()
+        for _ in range(12):
+            yield
+        assert chart.viewport.bounds == (0, 251)
+        assert not chart.is_zoomed and ui.zoom_out_button.parent is None
+        self.check("leftward nested zoom, overlays preserve view, zoom-out button restores full range and disappears")
+
+        for movement in [0, dp(2)]:
+            finger = Pointer(*location(0.4))
+            finger.down()
+            x, y = location(0.4)
+            finger.move_to(x + movement, y)
+            finger.up()
+            assert not chart.is_zoomed
+        finger = Pointer(*location(0.5))
+        finger.down()
+        finger.move_to(*location(1.3, 1.2))
+        finger.up()
+        assert chart.viewport.bounds == (125, 251)
+        ui.scenario.text = "Trending"
+        assert chart.viewport.bounds == (0, 251) and not chart.is_zoomed
+        assert ui.zoom_out_button.parent is None
+        self.check("taps/jitter ignored, outside-plot release clamped, new scenario resets zoom")
+
+        # Page scrolling is still available when the gesture starts outside the plot.
+        before = ui.scroll.scroll_y
+        x = ui.scroll.x + dp(5)
+        finger = Pointer(x, ui.scroll.center_y)
+        finger.down()
+        for _ in range(3):
+            yield
+        finger.move_to(x, ui.scroll.center_y + dp(70))
+        for _ in range(3):
+            yield
+        finger.up()
+        for _ in range(3):
+            yield
+        assert ui.scroll.scroll_y != before
+        self.check("page scroll still works outside the plot")
+
+        ui.scenario.text = "Oscillating"
         ui.on_delete(ui.model.saved_lines()[0])
         assert len(ui.model.saved_lines()) == 1
         ui.model.dataset = Dataset("DEMO-US", "Oscillating", ())

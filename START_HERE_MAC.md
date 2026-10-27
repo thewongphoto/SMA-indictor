@@ -62,6 +62,10 @@ you use the app.
 4. Scroll down to see the statistics and crossover table.
 5. Click **Save SMA line**. Try a different target and optimize again to compare
    lines. Use the Hide/Show buttons to control which lines appear.
+6. To zoom, click and hold inside the chart, drag left or right, then release.
+   The selected range is shaded, with a green line on the left and a red line
+   on the right. Click **Zoom out** beside the chart title to see all sessions
+   again. The zoom-out button appears only while zoomed.
 
 Every price is simulated. These are fictional counters, not real market data.
 Matching crossing frequency does not demonstrate a profitable strategy.
@@ -78,7 +82,16 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 16 tests. Successful output ends with `OK`.
+The current test suite contains 21 tests. Successful output ends with `OK`.
+
+## Getting a newer version from GitHub
+
+If you downloaded the project as a ZIP, edits on GitHub do not automatically
+update your Mac's copy. Download the ZIP again using step 2 and extract it to
+a new folder, keeping the old copy until the new one opens successfully. Then
+repeat steps 3–5 for the new folder. Choose **Keep Both** if Finder asks about
+an existing folder. Saved SMA lines live in your Mac's application data folder,
+so they remain available when the updated app opens under the same Mac account.
 
 ## If something goes wrong
 

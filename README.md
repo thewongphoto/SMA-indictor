@@ -59,7 +59,31 @@ Changing a scenario, counter, or target clears the selected statistics. Press
 Optimize again to compute the new result; saved overlays remain available.
 The event table always describes the **selected result**, even when its line
 is hidden. The chart's triangles describe **all currently visible SMA lines**.
-There is no pan/zoom in this first prototype.
+
+### Zoom into a chart range
+
+Press and hold inside the plot, then drag left or right (on a Mac, click and
+hold with the mouse or trackpad). A vertical line appears immediately. While
+dragging, the **left/start boundary is green**, the **right/end boundary is red**,
+and the selected area is shaded. If you cross your original touch point, the
+moving boundary changes color to keep that ordering.
+
+Release to zoom to the selected sessions. The y-axis automatically scales to
+the visible prices and displayed SMA lines, with a little padding. The small
+**Zoom out** button appears at the top right beside the counter/scenario title;
+click it to restore all 252 sessions. It disappears in the full-history view.
+
+You can drag again for a closer zoom. Selections round outward to include both
+bordering sessions; taps or horizontal movements under 6 display-independent
+pixels do not zoom. A drag that leaves the plot is clamped to the plot's x-range.
+Scroll the page by starting a swipe outside the plot, or use the mouse wheel.
+Changing the counter or scenario resets zoom. Optimizing a new target or
+hiding/showing a line keeps the current range and updates the y-axis.
+
+Zoom changes only the view: SMAs are still calculated from the full history,
+including prices before the visible range. Crossing statistics and the table
+still describe the full-history analysis; only visible crossover markers are
+drawn on the chart. There is no panning or pinch zoom in this stage.
 
 The window starts at 440 × 920 and supports narrower portrait sizes down to
 320 pixels wide. Content scrolls vertically. On wider desktops the portrait
@@ -133,7 +157,9 @@ python -m unittest discover -s tests -v
 The real-widget smoke runner starts Kivy, dispatches button/selector events,
 waits for asynchronous calculations, and checks the displayed cards, actual
 chart arrays/markers, table cells, saving, visibility, input errors, empty data,
-and 320×640, 440×920, and 560×1000 portrait sizes:
+and 320×640, 440×920, and 560×1000 portrait sizes. It also sends synthetic
+touches through the real window/scroll-view pipeline to test range selection,
+boundary colors/shading, nested zoom, outside-plot release, and the zoom-out button:
 
 ```sh
 python -m scripts.smoke_ui
@@ -141,7 +167,8 @@ python -m scripts.smoke_ui
 
 It uses an isolated temporary database and exits on completion. It writes
 `artifacts/ui-smoke.json`, `artifacts/prototype-phone.png`, and
-`artifacts/prototype-full.png`. Reports and screenshots are generated outputs,
+`artifacts/prototype-full.png`, plus `artifacts/zoom-*.png` for selection and
+zoomed views. Reports and screenshots are generated outputs,
 ignored by Git. This is a running-widget integration check; it does not replace
 manual touchscreen testing on Android.
 
@@ -173,8 +200,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **16 passed**, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **9 groups passed**, 0 failed |
+| Standard-library test suite | **21 passed**, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **13 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
@@ -183,6 +210,10 @@ SDL2, and Mesa llvmpipe software OpenGL:
 Tests include requested A–G, missing data, invalid inputs, a 3-year target,
 all six counter/scenario combinations, SQLite reload and deduplication,
 visibility, and empty history with saved lines. See `PROGRESS.md` for the handoff.
+Zoom checks cover both drag directions, crossing the anchor, immediate visual
+feedback, nested ranges, visible y-limits including SMA values, tap/jitter
+rejection, release beyond the plot, a second finger, page scrolling, reset on
+new data, unchanged full-history calculations, and the actual zoom-out control.
 
 ## Local data and project layout
 
@@ -211,10 +242,12 @@ sma_analyzer/
   storage.py               # Local SQLite saved-line repository
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
+  viewport.py              # Inclusive zoom ranges and visible y-axis scaling
   app.py                   # Portrait UI and asynchronous button actions
 tests/
   test_engine.py           # Arithmetic and algorithm rules
   test_model.py            # Mock data, controls, chart/table data, SQLite
+  test_viewport.py         # Drag direction, nested ranges, reset, y-limits
 scripts/
   smoke_ui.py              # Running-widget integration checks and PNGs
 PROGRESS.md                # Completed work, known issues, next stage
@@ -229,7 +262,7 @@ to reproduce unverified details from that article. Pasted article text can be
 compared with these rules in a later session.
 
 Known limits: synthetic 252-session datasets, no date axis or exchange calendar,
-no price adjustments, no return/backtest analysis, basic unzoomed canvas chart,
+no price adjustments, no return/backtest analysis, no panning or pinch zoom,
 one calculation worker, and no Android device/keyboard/lifecycle validation.
 An exhaustive search is suitable for this prototype but will need profiling for
 long genuine histories. Saved-line visibility is persistent; the active analysis

@@ -23,11 +23,10 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.textinput import TextInput
 
-from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, PriceChart
+from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
 from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
@@ -109,7 +108,7 @@ class AnalyzerScreen(AnchorLayout):
         self.busy = False
         self.closed = False
         self._job = 0
-        self.scroll = ScrollView(do_scroll_x=False, bar_width=dp(3), size_hint=(None, 1))
+        self.scroll = ChartScrollView(do_scroll_x=False, bar_width=dp(3), size_hint=(None, 1))
         self.add_widget(self.scroll)
         self.bind(width=self._resize)
         self._resize()
@@ -149,11 +148,20 @@ class AnalyzerScreen(AnchorLayout):
 
         plot_panel = Panel()
         self.content.add_widget(plot_panel)
+        self.plot_header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
         self.plot_title = WrappedLabel(text="", bold=True, font_size=sp(15))
-        plot_panel.add_widget(self.plot_title)
+        self.plot_title.pos_hint = {"center_y": 0.5}
+        self.plot_header.add_widget(self.plot_title)
+        self.zoom_out_button = LabButton(text="Zoom out", size_hint_x=None, width=dp(92),
+                                         pos_hint={"center_y": 0.5})
+        self.zoom_out_button.height = dp(36)
+        plot_panel.add_widget(self.plot_header)
         self.plot_subtitle = WrappedLabel(text="", color=MUTED, font_size=sp(11))
         plot_panel.add_widget(self.plot_subtitle)
         self.chart = PriceChart(size_hint_y=None, height=dp(245))
+        self.scroll.chart = self.chart
+        self.zoom_out_button.bind(on_release=self.chart.reset_zoom)
+        self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
         self.legend = WrappedLabel(text="", font_size=sp(11), color=MUTED)
         plot_panel.add_widget(self.legend)
@@ -312,10 +320,10 @@ class AnalyzerScreen(AnchorLayout):
     def refresh(self):
         data = self.model.dataset
         self.plot_title.text = f"{data.counter} · {data.scenario}"
-        self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units"
         lines = self.model.plot_lines()
         self.chart.update(data.prices, lines)
-        self.legend.text = "Teal: simulated close   •   Triangles: upward crossings\n" + (
+        self._refresh_chart_header()
+        self.legend.text = "Drag left or right across the plot to zoom.\nTeal: simulated close   •   Triangles: upward crossings\n" + (
             "   /   ".join(f"{'Gold' if line.active else 'Saved'}: SMA {line.period}" for line in lines)
             if lines else "No SMA displayed. Optimize or show a saved line.")
         for key, value in self.model.summary().items():
@@ -330,6 +338,18 @@ class AnalyzerScreen(AnchorLayout):
             if result else "No optimization yet. Every candidate uses its available observations across the full history.")
         self._refresh_saved()
         self._refresh_table()
+
+    def _refresh_chart_header(self, *_):
+        if self.chart.is_zoomed:
+            if self.zoom_out_button.parent is None:
+                self.plot_header.add_widget(self.zoom_out_button)
+        elif self.zoom_out_button.parent is not None:
+            self.plot_header.remove_widget(self.zoom_out_button)
+        data = self.model.dataset
+        self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units"
+        if self.chart.is_zoomed:
+            start, end = self.chart.view_range
+            self.plot_subtitle.text += f"\nViewing sessions {start + 1}–{end + 1}"
 
     def _refresh_saved(self):
         self.saved_panel.clear_widgets()

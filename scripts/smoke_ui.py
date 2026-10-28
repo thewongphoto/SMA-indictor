@@ -112,7 +112,13 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.optimal_panel.top > ui.chart.parent.top
         assert ui.save_button.disabled
         assert not ui.save_button.selected and ui.save_button.text == ""
-        self.check("initial unoptimized state")
+        assert ui.manager.current == "parameters"
+        assert ui.controls.parent is ui.parameter_content
+        assert ui.optimal_panel.parent is ui.content
+        assert not ui.saved_sheet.is_open
+        for _ in range(4): yield
+        ui.export_to_png("artifacts/screen-1-parameters.png")
+        self.check("initial parameters screen; result, settings and saved-sheet separation")
 
         for target in [12, 6, 1]:
             ui.target.text = str(target)
@@ -132,10 +138,38 @@ class SmokeApp(SMAStockAnalyzerApp):
             # Inspect the rendered table, not just the model's row list.
             rows = ui.model.event_rows()
             if rows:
-                table = ui.table_panel.children[0]
+                table = ui.crossover_table
                 rendered = [cell.text for cell in reversed(table.children)]
-                assert rendered[3:] == [value for row in rows for value in row]
+                assert rendered[3:] == [value for row in rows[:5] for value in row]
+            assert ui.manager.current == "results"
+            assert len(ui.rendered_crossover_rows) == min(5,len(rows))
             self.check(f"target {target}: button, loading, engine, cards, chart markers, table")
+
+        # A short history of events stops at its actual count, with no Show all.
+        assert len(ui.model.event_rows()) == 26
+        for expected in (15,25,26):
+            assert ui.more_crossings_button.kind == "down"
+            ui.more_crossings_button.dispatch("on_release")
+            assert len(ui.rendered_crossover_rows) == expected
+        assert ui.more_crossings_button is None
+        ui.hide_button.dispatch("on_release")
+        assert len(ui.rendered_crossover_rows) == 26
+        ui.hide_button.dispatch("on_release")
+        old_result = ui.model.result
+        ui.scroll.scroll_to(ui.optimal_panel,animate=False)
+        for _ in range(6): yield
+        pointer = Pointer(*ui.change_parameters_button.to_window(*ui.change_parameters_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(8): yield
+        assert ui.manager.current == "parameters"
+        assert ui.model.result is old_result
+        assert ui.target.text == "1" and ui.counter.text == "DEMO-SGX"
+        assert ui.scenario.text == "Oscillating"
+        # Normal successful calculation returns to Results with a fresh five rows.
+        ui.optimize_button.dispatch("on_release")
+        yield from self.wait_for_calculation()
+        assert ui.manager.current == "results" and len(ui.rendered_crossover_rows)==5
+        self.check("short crossover list ends cleanly; Change parameters preserves form and reoptimization resets five rows")
 
         result_before = ui.model.result
         summary_before = ui.model.summary()
@@ -179,6 +213,35 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "Warm-up is included" not in ui.explanation.text
         assert "not matched exactly" in ui.explanation.text
         self.check("active adjusted-frequency policy: known sideways result, coverage, cap, unreachable target")
+        # Five rows initially; arrows reveal ten more, then Show all after 35.
+        original_result = ui.model.result
+        for expected in (15,25,35):
+            assert ui.more_crossings_button.kind == "down"
+            ui.more_crossings_button.dispatch("on_release")
+            assert len(ui.rendered_crossover_rows) == expected
+            assert ui.rendered_crossover_rows == ui.model.event_rows()[:expected]
+        assert ui.more_crossings_button.text == "Show all"
+        ui.scroll.scroll_y = .35
+        original_offset = ui.scroll.scroll_y
+        ui.more_crossings_button.dispatch("on_release")
+        assert ui.manager.current == "crossovers"
+        cells = [cell.text for cell in reversed(ui.full_crossover_table.children)]
+        assert cells[3:] == [value for row in ui.model.event_rows() for value in row]
+        assert len(ui.model.event_rows()) == 125
+        for _ in range(6): yield
+        ui.export_to_png("artifacts/screen-2a-expanded.png")
+        ui.full_crossovers_scroll.scroll_y = 0
+        for _ in range(6): yield
+        # Back stays fixed at the top even after scrolling all 125 events.
+        assert ui.crossovers_back_button.to_window(*ui.crossovers_back_button.center)[1] > ui.height-dp(60)
+        pointer = Pointer(*ui.crossovers_back_button.to_window(*ui.crossovers_back_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(6): yield
+        assert ui.manager.current == "results" and ui.model.result is original_result
+        assert ui.scroll.scroll_y == original_offset
+        assert len(ui.rendered_crossover_rows) == 35
+        self.check("crossovers 5/15/25/35, Show all exact events and full-screen back preserves state")
+
         ui.scenario.text = "Oscillating"
         ui.counter.text = "DEMO-US"
         assert ui.chart.prices == ui.model.dataset.prices
@@ -202,6 +265,44 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.save_button.dispatch("on_release")
         assert len(ui.model.saved_lines()) == 1
         assert ui.save_button.selected
+        assert ui.saved_sheet.is_open
+        assert ui.saved_menu_button.kind == "down"
+        for _ in range(8): yield
+        assert ui.saved_sheet.body.top < ui.height
+        assert ui.saved_sheet.body.y >= ui.results_footer.top-dp(1)
+        original_bounds = ui.chart.viewport.bounds
+        # The persistent bottom-left menu toggles the sheet down, then up.
+        pointer = Pointer(*ui.saved_menu_button.to_window(*ui.saved_menu_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(10): yield
+        assert not ui.saved_sheet.is_open and ui.saved_sheet.parent is None
+        assert ui.saved_menu_button.kind == "menu"
+        pointer = Pointer(*ui.saved_menu_button.to_window(*ui.saved_menu_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(10): yield
+        assert ui.saved_sheet.is_open
+        ui.export_to_png("artifacts/screen-2b-saved-sheet.png")
+        grip = ui.saved_sheet.handle
+        pointer = Pointer(*grip.to_window(*grip.center))
+        pointer.down()
+        pointer.move_to(pointer.x,pointer.y-dp(100))
+        pointer.up()
+        for _ in range(10): yield
+        assert not ui.saved_sheet.is_open and ui.saved_sheet.parent is None
+        assert ui.chart.viewport.bounds == original_bounds
+        # Settings and back are real native buttons, not callback-only tests.
+        result = ui.model.result
+        pointer = Pointer(*ui.settings_button.to_window(*ui.settings_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(6): yield
+        assert ui.manager.current == "settings"
+        pointer = Pointer(*ui.settings_back_button.to_window(*ui.settings_back_button.center))
+        pointer.down(); pointer.up()
+        for _ in range(6): yield
+        assert ui.manager.current == "results" and ui.model.result is result
+        assert ui.chart.viewport.bounds == original_bounds
+        self.check("save opens partial sheet; menu toggle and swipe dismiss; settings/back retain analysis")
+
         ui.hide_button.dispatch("on_release")
         assert not ui.chart.series
         ui.hide_button.dispatch("on_release")
@@ -226,6 +327,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "email address" in ui.notification_status.text
         assert not ui.model.current_saved_line().email_enabled
         ui.validation_popup.dismiss()
+        ui.show_settings()
         ui.email_input.text = "bad-address"
         ui.email_save_button.dispatch("on_release")
         assert "valid email" in ui.notification_status.text
@@ -235,7 +337,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         for switch in ui.notification_switches.values():
             switch.active = True
         switch = ui.notification_switches["phone_buy"]
-        ui.scroll.scroll_to(switch,animate=False)
+        ui.settings_scroll.scroll_to(switch,animate=False)
         for _ in range(6): yield
         for expected in (False,True):
             pointer = Pointer(*switch.to_window(*switch.center))
@@ -286,6 +388,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "between 1 and" in ui.alert_preview.text
         self.check("real EOD preview buttons, buy/monitor contents, mocked Android delivery, duplicate suppression, desktop limitation")
 
+        ui.show_results()
         ui.scroll.scroll_to(ui.optimal_panel,animate=False)
         for _ in range(6): yield
         pointer = Pointer(*ui.save_button.to_window(*ui.save_button.center))
@@ -295,7 +398,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert not ui.save_button.selected and len(ui.model.saved_lines()) == 1
         history = ui.model.store.recent_unsaved()[0]
         assert history.target_frequency == 6
-        ui.scroll.scroll_to(ui.saved_panel,animate=False)
+        ui.saved_sheet.open()
+        for _ in range(8): yield
+        ui.saved_sheet.scroll.scroll_to(ui.saved_panel,animate=False)
         for _ in range(6): yield
         pointer = Pointer(*ui.history_button.to_window(*ui.history_button.center))
         pointer.down()
@@ -320,6 +425,8 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.content.width <= size[0]
             assert ui.chart.width > 200
             assert ui.chart.height >= 240
+            ui.show_parameters()
+            for _ in range(4): yield
             wide = size[0] >= 760
             assert ui.control_grid.cols == (4 if wide else 2)
             if wide:
@@ -336,11 +443,19 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert ui.counter.y > ui.target.y
                 assert ui.controls.height < dp(185)
-            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button,ui.hide_button]:
+            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button]:
                 assert widget.width >= dp(110)
                 assert widget.x >= ui.content.x and widget.right <= ui.content.right
                 assert widget.height >= dp(44)
+            ui.show_results()
+            for _ in range(4): yield
+            assert ui.hide_button.width == dp(88)
+            assert ui.change_parameters_button.width >= dp(110)
+            assert ui.saved_menu_button.height >= dp(44)
+            assert ui.settings_button.right <= ui.width
             assert ui.save_button.width == dp(44) and ui.save_button.height >= dp(44)
+            ui.saved_sheet.open()
+            for _ in range(8): yield
             for line in ui.model.saved_lines():
                 row = ui.saved_rows[line.id]
                 for key in ("push","email"):
@@ -349,6 +464,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(row["heart"].right - (ui.saved_panel.right-dp(14))) < dp(1)
                 active = ui.model.result is not None and line.period == ui.model.result.period
                 assert row["swatch"].ink == ui.chart.period_color(line.period,active)
+            ui.saved_sheet.dismiss(animate=False)
             if size[0] == 320:
                 ui.export_to_png("artifacts/prototype-small-phone.png")
         Window.size = (440, 920)
@@ -366,8 +482,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("five portrait sizes: compact aligned controls, responsive Optimal card, touch targets and screenshots")
 
         # Hit the arrow in each top selector through normal window routing.
+        ui.show_parameters()
         for selector, option in [(ui.counter,"DEMO-SGX"), (ui.scenario,"Trending"), (ui.target,"12 / year")]:
-            ui.scroll.scroll_y = 1
+            ui.parameter_scroll.scroll_y = 1
             for _ in range(6):
                 yield
             pointer = Pointer(*selector.to_window(selector.right-dp(8), selector.center_y))
@@ -602,9 +719,23 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         ui.saved_panel.export_to_png("artifacts/saved-lines-phone.png")
         ui.settings_panel.export_to_png("artifacts/notification-settings.png")
+        ui.saved_sheet.dismiss(animate=False)
         ui.scroll.scroll_y = 1
         for _ in range(6): yield
         ui.export_to_png("artifacts/prototype-phone.png")
+        ui.content.export_to_png("artifacts/screen-2-results-full.png")
+        ui.show_parameters()
+        for _ in range(6): yield
+        ui.export_to_png("artifacts/screen-1-parameters.png")
+        ui.show_settings()
+        ui.settings_scroll.scroll_y = 1
+        for _ in range(6): yield
+        ui.export_to_png("artifacts/screen-3-settings.png")
+        ui.show_results()
+        ui.saved_sheet.open()
+        for _ in range(10): yield
+        ui.export_to_png("artifacts/screen-2b-saved-sheet.png")
+        ui.saved_sheet.dismiss(animate=False)
         Window.size = (960,1440)
         for _ in range(8): yield
         ui.saved_panel.export_to_png("artifacts/saved-lines-wide.png")

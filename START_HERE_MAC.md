@@ -58,11 +58,15 @@ you use the app.
 
 1. Select **DEMO-SGX** and **Oscillating**.
 2. Choose **12** crossings per year.
-3. Click **Optimize SMA**.
-4. Scroll down to see the statistics and crossover table.
+3. Click **Optimize SMA**. The app moves from Parameters to the Results screen.
+4. Scroll down to see the statistics and the first five crossover rows. Use the
+   down arrow for up to ten more rows at a time. After 35 rows, **Show all** opens
+   the full table; its top-left Back arrow returns to Results.
 5. Click the **outline heart** in Optimal SMA to save a line; it turns red. Try a different target and optimize again to compare
    lines. These controls are in the Optimal SMA card above the chart. The
-   crossing count is in section 03, below the two frequency cards.
+   crossing count is in section 03, below the two frequency cards. A new save
+   opens the saved-lines bottom sheet. Use its top handle to swipe it down, or
+   use the bottom-left menu to open/close it.
 6. To zoom, click and hold inside the chart, drag left or right, then release.
    The selected range is shaded, with a green line on the left and a red line
    on the right. Click **Zoom out** beside the chart title to return to the selected timeline
@@ -87,11 +91,15 @@ for this downloaded copy.
 
 ## Try notification previews
 
-At the bottom of the app, open **04 / Notification Settings**. Save an email
+Use the bottom-right **gear** on Results to open **Notification Settings**. Save an email
 address and enable the Phone/Email Buy or Impending buy switches you want.
-In **02 / Saved SMA Lines**, turn on the corresponding channel for a saved line.
-Enter a session from the crossover table and press **Preview EOD alerts**.
-The app displays the simulated phone text and email subject/body. No email is sent.
+Use the top-left Back arrow to return to Results, then open **Saved SMAs** with
+the bottom-left menu and turn on the corresponding channel for a saved line.
+Close the saved-lines sheet, note a session from the crossover table, then return
+to Settings with the gear. Enter that session and press **Preview EOD alerts**
+to see the simulated phone text and email
+subject/body. No email is sent. **Change parameters** in the Optimal SMA card
+returns to the initial form when you want another analysis.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Older ones are discarded. The compact

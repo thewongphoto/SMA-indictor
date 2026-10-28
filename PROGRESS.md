@@ -15,7 +15,7 @@
   translucent selection, auto-scaled visible y-range, and a top-right Zoom out
   button that appears only while zoomed. Touches in the plot bypass scroll delay;
   page swipes outside the plot and mouse-wheel scrolling remain available.
-- 53 standard-library tests passed; 22 running Kivy smoke groups passed.
+- 53 standard-library tests passed; 25 running Kivy smoke groups passed.
   Screenshots generated in ignored `artifacts/`. No failed or skipped checks.
 
 ## Decisions to preserve
@@ -52,7 +52,7 @@
 - `experiments/observable_frequency.py` is the independent pre-integration
   reference. Production code does not import it. The comparison runner checks
   active results against that reference across all scenarios/targets.
-- 53 unit tests and 22 running Kivy smoke groups passed in the current version,
+- 53 unit tests and 25 running Kivy smoke groups passed in the current version,
   including the active five-year Sideways result: SMA 254, 125 crossings / 1,006
   comparisons, 31.31/year. Scenario, target, zoom, save/load and error checks passed.
 - `APP_SUMMARY.md`, README and Mac instructions now describe active behavior.
@@ -96,12 +96,31 @@
 - Manual session preview / Android test / enabled-EOD delivery buttons. Persistent
   successful-send deduplication, failure retry and clear desktop limitation.
   There is no automatic/background EOD arrival source or remote push service.
-- 53 unit tests and 22 running UI groups pass, including real window clicks on
+- 53 unit tests and 25 running UI groups pass, including real window clicks on
   the heart/history/switches, fake Android delivery and duplicate suppression,
   actual subject/body text, migration, ten-entry pruning, restore and five sizes.
 - `docs/NOTIFICATIONS.md` explains novice testing, exact templates, limitations
   and future device permissions. Settings and saved-line screenshots are linked
   from the GitHub preview page. Physical Android delivery remains unverified.
+
+## Separate-screen release
+
+- Native ScreenManager: parameters (launch), results (on successful optimization),
+  full crossovers and settings. Results has compact Hide/Show SMA plus Change
+  parameters. Fixed Back bars on settings/full crossovers retain scroll access.
+- Inline crossovers: first 5 ascending rows, then 15/25/35, followed by Show all
+  only if rows remain. Short lists clamp to their actual count. New optimization
+  resets five rows; returning/saving/hiding preserves pagination and chart state.
+- Saved lines use a partially covering animated lower sheet. New saves open it;
+  bottom-left menu toggles it and changes to a down icon while open. A downward
+  handle swipe or dimmed-area tap dismisses it. Bottom-right gear opens settings.
+  The sheet is modal above the persistent bottom navigation, with its own scroll.
+- 53 unit tests pass; 25 real Kivy UI groups pass across five portrait sizes,
+  including real parameter/back/menu/gear/handle clicks, full/short crossover
+  tables and preservation of prior chart, storage and notification behavior.
+- `navigation.py` contains the sheet; screenshots of all screens are linked in
+  `docs/UI_PREVIEW.md`. No dependency, schema, mock-data, mathematical or sender
+  changes. Android completion and Gmail OAuth/delivery remain deferred.
 
 ## Stop point
 

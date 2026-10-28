@@ -10,7 +10,10 @@ push service, and it does not monitor prices while the app is closed.
 
 - The Optimal SMA heart has a grey outline when this exact period/target is
   unsaved, and a red fill when saved. Tap it to save or unsave that configuration.
-- Each saved row has a matching chart-colour dash, channel On/Off buttons, a
+- Saved lines now live in a partial bottom sheet, opened on a new save or with
+  the bottom-left menu on Results. Close it with that menu, a downward swipe on
+  its handle, or a tap on the dimmed area. Each saved row has a matching
+  chart-colour dash, channel On/Off buttons, a
   compact Hide/Show button at the right, and a red heart furthest right.
 - Unsaving a selected line keeps the current calculated overlay available until
   you change it. It stops future alert evaluation for that saved configuration.
@@ -28,17 +31,19 @@ push service, and it does not monitor prices while the app is closed.
 
 1. Open the app, choose a counter/scenario, and press **Optimize SMA**.
 2. Tap the outline heart in Optimal SMA to save the result.
-3. Scroll to **04 / Notification Settings** at the bottom.
+3. Press the bottom-right **gear** on Results to open **Notification Settings**.
 4. Enter an email address and press **Save**. This saves the recipient locally;
    it does not send an email or verify that the mailbox exists.
 5. Turn on the desired Buy signal / Impending buy signal switches under Phone
    and/or Email notifications. They start Off and persist across restarts.
-6. In **02 / Saved SMA Lines**, turn on Push notifications and/or Email
+6. Return to Results with Back, then open **Saved SMAs** using the bottom-left
+   menu. In **02 / Saved SMA Lines**, turn on Push notifications and/or Email
    notifications for that particular saved line. These controls are independent
    of chart visibility. Turning email on without a saved address opens a helpful
    validation popup with a shortcut to Settings.
 7. For a predictable Buy preview, choose a session listed in **03 / Crossovers**
-   for the same saved SMA. Enter that number in the EOD session field in Settings
+   for the same saved SMA. Close the sheet and use the gear to return to Settings.
+   Enter that number in the EOD session field
    and press **Preview EOD alerts**.
 8. To test Monitor, choose a session after warm-up whose closing price is strictly
    below that SMA. Equality produces neither a fresh buy nor a monitor alert.

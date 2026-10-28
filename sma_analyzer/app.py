@@ -28,6 +28,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition
+from .navigation import SavedLinesSheet
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
@@ -108,24 +110,26 @@ class AnalyzerScreen(AnchorLayout):
         self.busy = False
         self.closed = False
         self._job = 0
-        self.scroll = ChartScrollView(do_scroll_x=False, bar_width=dp(3), size_hint=(None, 1))
-        self.add_widget(self.scroll)
+        self.manager = ScreenManager(transition=NoTransition())
+        self.add_widget(self.manager)
+        self.pages = {}
+        for name in ("parameters", "results", "crossovers", "settings"):
+            page = Screen(name=name)
+            self.pages[name] = page
+            self.manager.add_widget(page)
+        self.scroll, self.content = self._scrolling_page("results", chart=True, footer=True)
+        self.parameter_scroll, self.parameter_content = self._scrolling_page("parameters")
+        self.settings_scroll, self.settings_content = self._scrolling_page("settings")
+        self.full_crossovers_scroll, self.full_crossovers_content = self._scrolling_page("crossovers")
         self.bind(width=self._resize)
         self._resize()
-        self.content = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(14), padding=dp(16))
-        with self.content.canvas.before:
-            Color(*BG)
-            content_background = Rectangle(pos=self.content.pos, size=self.content.size)
-        def paint_content(*_):
-            content_background.pos, content_background.size = self.content.pos, self.content.size
-        self.content.bind(pos=paint_content, size=paint_content)
-        self.content.bind(minimum_height=self.content.setter("height"))
-        self.scroll.add_widget(self.content)
+        self.visible_crossovers = 5
+        self._table_result = None
 
         header = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3), padding=(dp(12), 0))
         self.header = header
         header.bind(minimum_height=header.setter("height"))
-        self.content.add_widget(header)
+        self.parameter_content.add_widget(header)
         header.add_widget(WrappedLabel(text="OFFLINE LAB / SIMULATED DATA", color=MUTED,
                                             font_size=sp(11), bold=True))
         self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
@@ -135,7 +139,7 @@ class AnalyzerScreen(AnchorLayout):
 
         controls = Panel()
         self.controls = controls
-        self.content.add_widget(controls)
+        self.parameter_content.add_widget(controls)
         self.control_grid = GridLayout(cols=2, size_hint_y=None, spacing=dp(12))
         self.control_grid.bind(minimum_height=self.control_grid.setter("height"))
         controls.add_widget(self.control_grid)
@@ -185,14 +189,18 @@ class AnalyzerScreen(AnchorLayout):
         self.card_values["period"] = WrappedLabel(text="—", bold=True, font_size=sp(26), color=ACTIVE_COLOR)
         self.optimal_value.add_widget(self.card_values["period"])
         self.optimal_panel.add_widget(self.optimal_value)
-        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
+        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(6))
         self.optimal_actions = actions
         self.save_button = IconButton(kind="heart")
-        self.hide_button = LabButton(text="Hide SMA line")
+        self.hide_button = LabButton(text="Hide SMA", size_hint_x=None, width=dp(88))
+        self.change_parameters_button = LabButton(text="Change parameters")
+        self.change_parameters_button.font_size = sp(11)
+        self.change_parameters_button.bind(on_release=self.show_parameters)
         self.save_button.bind(on_release=self.on_save)
         self.hide_button.bind(on_release=self.on_active_visibility)
         actions.add_widget(self.save_button)
         actions.add_widget(self.hide_button)
+        actions.add_widget(self.change_parameters_button)
         self.optimal_panel.add_widget(actions)
         self.content.add_widget(self.optimal_panel)
 
@@ -249,9 +257,14 @@ class AnalyzerScreen(AnchorLayout):
         self.explanation = WrappedLabel(text="", color=MUTED, font_size=sp(12))
         self.content.add_widget(self.explanation)
         self.saved_panel = Panel()
-        self.content.add_widget(self.saved_panel)
+        self.saved_sheet = SavedLinesSheet(self, self.saved_panel)
+        self.saved_sheet.bind(is_open=lambda _, opened: setattr(self.saved_menu_button,"kind","down" if opened else "menu"))
         self.table_panel = Panel()
         self.content.add_widget(self.table_panel)
+        self.settings_back_button = self._page_heading("settings","Notification settings")
+        self.crossovers_back_button = self._page_heading("crossovers","All upward crossings")
+        self.full_table_panel = Panel()
+        self.full_crossovers_content.add_widget(self.full_table_panel)
         self._build_notification_settings()
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
@@ -265,9 +278,77 @@ class AnalyzerScreen(AnchorLayout):
         self.scroll.bind(width=self._layout_for_width)
         self._layout_for_width()
         self.refresh()
+        self.manager.current = "parameters"
+
+    def _scrolling_page(self, name, chart=False, footer=False):
+        """Each page keeps its own scroll offset; only Results routes plot gestures."""
+        column = BoxLayout(orientation="vertical")
+        self.pages[name].add_widget(column)
+        anchor = AnchorLayout(anchor_x="center", anchor_y="top")
+        column.add_widget(anchor)
+        scroll = (ChartScrollView if chart else ScrollView)(do_scroll_x=False,
+                    bar_width=dp(3), size_hint=(None, 1))
+        anchor.add_widget(scroll)
+        content = BoxLayout(orientation="vertical", size_hint_y=None,
+                            spacing=dp(14), padding=dp(16))
+        with content.canvas.before:
+            Color(*BG)
+            background = Rectangle(pos=content.pos,size=content.size)
+        def paint_content(*_):
+            background.pos, background.size = content.pos, content.size
+        content.bind(pos=paint_content,size=paint_content)
+        content.bind(minimum_height=content.setter("height"))
+        scroll.add_widget(content)
+        if footer:
+            self.results_footer = BoxLayout(orientation="vertical",size_hint_y=None,
+                                            spacing=dp(4),padding=(dp(16),dp(6)))
+            self.results_footer.bind(minimum_height=self.results_footer.setter("height"))
+            bar = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+            self.saved_menu_button = IconButton(kind="menu")
+            self.saved_menu_button.bind(on_release=self.toggle_saved_sheet)
+            bar.add_widget(self.saved_menu_button)
+            bar.add_widget(WrappedLabel(text="Saved SMAs",pos_hint={"center_y":.5}))
+            self.settings_button = IconButton(kind="settings")
+            self.settings_button.bind(on_release=self.show_settings)
+            bar.add_widget(self.settings_button)
+            self.results_footer.add_widget(bar)
+            self.results_feedback = WrappedLabel(text="",color=MUTED,font_size=sp(11))
+            column.add_widget(self.results_footer)
+        return scroll, content
+
+    def _page_heading(self, page_name, title):
+        # Keep Back reachable even at the bottom of a long event list/settings.
+        row = BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(8),padding=(dp(16),dp(6)))
+        button = IconButton(kind="back")
+        button.bind(on_release=self.show_results)
+        row.add_widget(button)
+        row.add_widget(WrappedLabel(text=title,bold=True,font_size=sp(18),pos_hint={"center_y":.5}))
+        column = self.pages[page_name].children[0]
+        column.add_widget(row,index=len(column.children))
+        return button
 
     def _resize(self, *_):
-        self.scroll.width = min(self.width, dp(1000))
+        for scroll in (self.scroll,self.parameter_scroll,self.settings_scroll,self.full_crossovers_scroll):
+            scroll.width = min(self.width, dp(1000))
+
+    def show_parameters(self, *_):
+        self.saved_sheet.dismiss(animate=False)
+        self.manager.current = "parameters"
+        self.parameter_scroll.scroll_y = 1
+
+    def show_results(self, *_):
+        self.saved_sheet.dismiss(animate=False)
+        self.manager.current = "results"
+
+    def show_settings(self, *_):
+        self.saved_sheet.dismiss(animate=False)
+        self.manager.current = "settings"
+
+    def toggle_saved_sheet(self, *_):
+        if self.saved_sheet.is_open:
+            self.saved_sheet.dismiss()
+        else:
+            self.saved_sheet.open()
 
     def _paint_background(self, *_):
         self._background.pos, self._background.size = self.pos, self.size
@@ -276,7 +357,8 @@ class AnalyzerScreen(AnchorLayout):
         """Four compact controls on wide portraits; a readable 2×2 phone grid."""
         wide = self.scroll.width >= dp(760)
         self.control_grid.cols = 4 if wide else 2
-        self.content.padding = (dp(26), dp(28)) if wide else (dp(16), dp(16))
+        for content in (self.content,self.parameter_content,self.settings_content,self.full_crossovers_content):
+            content.padding = (dp(26), dp(28)) if wide else (dp(16), dp(16))
         self.header.padding = (dp(20 if wide else 12), 0)
         self.heading.font_size = sp(32 if wide else 25)
         self.introduction.font_size = sp(16 if wide else 13)
@@ -288,6 +370,8 @@ class AnalyzerScreen(AnchorLayout):
             widget.height = dp(52 if wide else 44)
         self.optimize_cell.height = dp(78 if wide else 65)
         self.save_button.width = dp(44)
+        self.hide_button.width = dp(88)
+        self.change_parameters_button.font_size = sp(13 if wide else 11)
         self.optimal_actions.height = dp(52 if wide else 44)
         self.optimal_caption.font_size = sp(14 if wide else 12)
         self.card_values["period"].font_size = sp(30 if wide else 26)
@@ -312,6 +396,12 @@ class AnalyzerScreen(AnchorLayout):
     def message(self, text, error=False, quiet=False):
         self.status.text = text
         self.status.color = ERROR if error else MUTED
+        self.results_feedback.text = text
+        self.results_feedback.color = ERROR if error else MUTED
+        if quiet and self.results_feedback.parent is not None:
+            self.results_footer.remove_widget(self.results_feedback)
+        elif not quiet and self.manager.current == "results" and self.results_feedback.parent is None:
+            self.results_footer.add_widget(self.results_feedback, index=1)
         if quiet and self.status.parent is not None:
             self.controls.remove_widget(self.status)
         elif not quiet and self.status.parent is None:
@@ -362,6 +452,7 @@ class AnalyzerScreen(AnchorLayout):
     def on_optimize(self, *_):
         if self.busy:
             return
+        self.show_parameters()
         try:
             self._read_target()
         except ValueError as error:
@@ -384,6 +475,8 @@ class AnalyzerScreen(AnchorLayout):
         try:
             self.model.apply_result(future.result())
             self.refresh()
+            self.show_results()
+            self.scroll.scroll_y = 1
             self.message("Optimization complete. Upward crossings are marked with outlined plus signs.", quiet=True)
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Unable to optimize: {error}", True)
@@ -396,6 +489,8 @@ class AnalyzerScreen(AnchorLayout):
             saved = self.model.toggle_current_saved()
             self.refresh()
             self.message("SMA line saved on this device." if saved else "SMA line unsaved. Restore it from the last-10 history.")
+            if saved:
+                self.saved_sheet.open()
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Could not save line: {error}. Check local storage permissions.", True)
 
@@ -450,7 +545,7 @@ class AnalyzerScreen(AnchorLayout):
                 self.card_values[key].text = value
         self._set_busy(self.busy)
         self.save_button.selected = self.model.current_saved_line() is not None
-        self.hide_button.text = "Hide SMA line" if self.model.active_visible else "Show SMA line"
+        self.hide_button.text = "Hide SMA" if self.model.active_visible else "Show SMA"
         result = self.model.result
         self.explanation.text = (
             f"Based on {result.comparisons} usable comparisons "
@@ -554,7 +649,7 @@ class AnalyzerScreen(AnchorLayout):
             self.validation_popup = Popup(title="Notification settings", content=content,
                                           size_hint=(.9,None),height=dp(210))
             go.bind(on_release=lambda _: (self.validation_popup.dismiss(),
-                                         self.scroll.scroll_to(self.settings_panel,animate=False)))
+                                         self.show_settings()))
             self.validation_popup.open()
 
     def open_unsaved_history(self, *_):
@@ -594,7 +689,7 @@ class AnalyzerScreen(AnchorLayout):
 
     def _build_notification_settings(self):
         self.settings_panel = Panel()
-        self.content.add_widget(self.settings_panel)
+        self.settings_content.add_widget(self.settings_panel)
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
         self.settings_panel.add_widget(WrappedLabel(text="SIMULATED DATA · Manual EOD tests only. No background monitoring. Email stays in preview mode.",color=MUTED,font_size=sp(11)))
         settings = self.model.store.notification_settings()
@@ -732,27 +827,62 @@ class AnalyzerScreen(AnchorLayout):
         except Exception:
             self.notification_status.text = "Delivery failed. Check Android notification setup; email remains preview-only."
 
+    def _crossing_table(self, rows):
+        table = GridLayout(cols=3, size_hint_y=None, row_default_height=dp(30),
+                           row_force_default=True,spacing=dp(3))
+        table.bind(minimum_height=table.setter("height"))
+        for title in ("Session","Sim. close","SMA"):
+            table.add_widget(Label(text=title,color=MUTED,font_size=sp(12)))
+        for row in rows:
+            for value in row:
+                table.add_widget(Label(text=value,color=TEXT,font_size=sp(12)))
+        return table
+
     def _refresh_table(self):
+        if self.model.result is not self._table_result:
+            self.visible_crossovers = 5
+            self._table_result = self.model.result
         self.table_panel.clear_widgets()
-        self.table_panel.add_widget(WrappedLabel(text="03  /  CROSSOVERS · SELECTED SMA", font_size=sp(11), bold=True, color=MUTED))
+        self.table_panel.add_widget(WrappedLabel(text="03  /  CROSSOVERS · SELECTED SMA",font_size=sp(11),bold=True,color=MUTED))
         self.crossing_count_label = WrappedLabel(
             text=(f"{self.model.result.crossing_count} upward crossings across all observable history"
                   if self.model.result else "Optimize to calculate upward crossings."),
-            color=ACTIVE_COLOR, bold=True)
+            color=ACTIVE_COLOR,bold=True)
         self.table_panel.add_widget(self.crossing_count_label)
         rows = self.model.event_rows()
+        self.rendered_crossover_rows = rows[:self.visible_crossovers]
+        self.crossover_table = None
+        self.more_crossings_button = None
         if not rows:
-            self.table_panel.add_widget(WrappedLabel(
-                text="No upward crossings for the selected SMA." if self.model.result else "Optimize to list crossover events.", color=MUTED))
+            self.table_panel.add_widget(WrappedLabel(text="No upward crossings for the selected SMA.",color=MUTED))
             return
-        table = GridLayout(cols=3, size_hint_y=None, row_default_height=dp(30), row_force_default=True, spacing=dp(3))
-        table.bind(minimum_height=table.setter("height"))
-        for title in ["Session", "Sim. close", "SMA"]:
-            table.add_widget(Label(text=title, color=MUTED, font_size=sp(12)))
-        for row in rows:
-            for value in row:
-                table.add_widget(Label(text=value, color=TEXT, font_size=sp(12)))
-        self.table_panel.add_widget(table)
+        self.crossover_table = self._crossing_table(self.rendered_crossover_rows)
+        self.table_panel.add_widget(self.crossover_table)
+        footer = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+        footer.add_widget(WrappedLabel(text=f"Showing {len(self.rendered_crossover_rows)} of {len(rows)}",color=MUTED,font_size=sp(11)))
+        if len(rows) > self.visible_crossovers:
+            if self.visible_crossovers >= 35:
+                self.more_crossings_button = LabButton(text="Show all",size_hint_x=None,width=dp(110))
+            else:
+                self.more_crossings_button = IconButton(kind="down")
+            self.more_crossings_button.bind(on_release=self.show_more_crossings)
+            footer.add_widget(self.more_crossings_button)
+        self.table_panel.add_widget(footer)
+
+    def show_more_crossings(self, *_):
+        if self.visible_crossovers >= 35:
+            self.full_table_panel.clear_widgets()
+            data, result = self.model.dataset,self.model.result
+            self.full_table_panel.add_widget(WrappedLabel(
+                text=f"{data.counter} · {data.scenario} · SMA {result.period} · {result.crossing_count} upward crossings",bold=True))
+            self.full_crossover_table = self._crossing_table(self.model.event_rows())
+            self.full_table_panel.add_widget(self.full_crossover_table)
+            self.saved_sheet.dismiss(animate=False)
+            self.manager.current = "crossovers"
+            self.full_crossovers_scroll.scroll_y = 1
+        else:
+            self.visible_crossovers = min(35,self.visible_crossovers+10)
+            self._refresh_table()
 
     def close(self):
         self.closed = True

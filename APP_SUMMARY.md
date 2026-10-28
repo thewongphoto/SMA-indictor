@@ -179,7 +179,7 @@ Validation after application integration:
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The current Kivy UI run passed 22 check groups, including the known
+- The current Kivy UI run passed 25 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -261,6 +261,27 @@ specified calculations and controls, not investment performance.
 - The SQLite migration is additive and preserves older saved lines. Email,
   settings, history and delivery records remain on the device. No shared sending
   secrets are stored. See [notification testing](docs/NOTIFICATIONS.md).
+
+## Screen structure
+
+- Screen 1 contains only the heading and parameters, and is the launch screen.
+  Successful optimization navigates to Screen 2. Change parameters returns to 1
+  with the controls retained; failed/invalid calculations remain on 1.
+- Screen 2 contains Optimal SMA, chart, two frequency cards and coverage. The
+  Hide/Show SMA control is narrower, alongside the heart and Change parameters.
+- Inline Screen 2a is below these results. It shows the first five events in
+  ascending session order; each arrow adds up to ten, through 35. Show all
+  appears only when there are more than 35, and opens a complete event screen
+  with a fixed Back arrow. Short lists end cleanly. A new result resets to five.
+- Screen 2b is a modal partial bottom sheet for saved lines. New saves open it;
+  the fixed bottom-left menu toggles it. A downward handle swipe or outside tap
+  also closes it. The list scrolls independently; bottom navigation stays usable.
+- A fixed bottom-right gear opens Screen 3 / notification settings. A fixed Back
+  arrow returns to Results. Full-list and settings Back controls remain available
+  while scrolling. Page navigation retains chart range/result/scroll state.
+- The native Kivy ScreenManager and animated sheet add no dependency and do not
+  change the calculation, storage or alert rules. Physical Android validation
+  and Gmail API delivery remain future work.
 
 ## Current app behavior and remaining work
 

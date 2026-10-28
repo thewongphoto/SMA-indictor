@@ -47,6 +47,31 @@ If PowerShell activation is restricted, run `.\.venv\Scripts\python.exe` in plac
 of `python`. Installation downloads dependencies; the running app uses mock data
 only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
 
+## Screen navigation
+
+The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens
+**Screen 2: Results** automatically. Its Optimal SMA card has a heart, compact
+Hide/Show SMA and **Change parameters**, which returns to Screen 1 with the
+selected parameters retained.
+
+**Screen 2a** is the crossover section below the chart, in the same scroll view.
+It starts with the first five events in ascending session order. The down arrow
+reveals up to ten more: 5 → 15 → 25 → 35. If events remain after 35, **Show all**
+opens a separate full-list screen with a fixed top-left Back arrow. Short lists
+stop at their actual count. A new optimization resets the preview to five rows;
+returning from another screen preserves its current size and the chart view.
+
+**Screen 2b** is a partial saved-lines bottom sheet. Saving a new configuration
+opens it automatically; the fixed bottom-left menu also opens/closes it. Swipe
+the top handle downward or tap the dimmed area to dismiss it. Its list scrolls
+independently, and the bottom navigation stays reachable.
+
+The fixed bottom-right **gear** opens **Screen 3: Settings**. Its fixed top-left
+Back arrow returns to Results. Each page has its own scroll position; navigation
+does not rerun calculations or change the active chart range.
+
+[View screenshots of every screen](docs/UI_PREVIEW.md).
+
 ## Try the prototype
 
 1. Choose a fictional counter and **Trending**, **Oscillating**, or **Sideways**.
@@ -65,7 +90,8 @@ only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
    the selected visibility controls that period, and it is drawn only once.
    The selected toggle lasts for the current result; saved-row toggles persist.
    Tap a red heart to unsave a line; the current analysis remains until changed.
-   The history icon in section 02 restores the last 10 unsaved configurations.
+   Open Saved SMAs with the bottom-left menu. Its history icon restores the
+   last 10 unsaved configurations.
 
 Changing a scenario, counter, or target clears the selected statistics. Press
 Optimize again to compute the new result; saved overlays remain available.
@@ -144,7 +170,7 @@ heart at the far right. The outline/red heart in Optimal SMA also saves/unsaves.
 The clock/history icon in section 02 restores the ten most recently unsaved
 configurations across all scenarios/counters; older entries are discarded.
 
-**04 / Notification Settings**, at the bottom, contains phone/email sections,
+**Screen 3 / Notification Settings**, opened with the bottom-right gear, contains phone/email sections,
 Buy/Monitor switches and a locally saved email address. Email cannot be enabled
 for a saved line until a valid address is saved. Both the per-line channel and
 its type switch must be On. Settings and channel choices survive restarts.
@@ -276,9 +302,9 @@ SDL2, and Mesa llvmpipe software OpenGL:
 | Check | Actual result |
 | --- | --- |
 | Standard-library test suite | **53 passed**, including production/reference and notification checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **22 groups passed**, 0 failed |
+| Real Kivy UI smoke checks | **25 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
-| Screenshot exports | Phone viewport and full scrollable page generated and inspected |
+| Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
 | Android device / APK build | Not run; deferred to the next approved stage |
 
@@ -326,6 +352,7 @@ sma_analyzer/
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
   viewport.py              # Timeline presets, inclusive zoom ranges, y scaling
+  navigation.py            # Animated saved-lines sheet and downward swipe handle
   widgets.py               # Shared rounded selectors and symbol legend
   app.py                   # Portrait UI and asynchronous button actions
 tests/

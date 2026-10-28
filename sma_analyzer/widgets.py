@@ -138,6 +138,25 @@ def draw_icon(kind, x, y, radius, selected=False):
     elif kind == "mail":
         Line(rectangle=(x-radius,y-radius*.7,radius*2,radius*1.4), width=dp(1))
         Line(points=[x-radius,y+radius*.7,x,y-radius*.1,x+radius,y+radius*.7], width=dp(1))
+    elif kind == "menu":
+        for offset in (-.55, 0, .55):
+            Line(points=[x-radius*.8,y+radius*offset,x+radius*.8,y+radius*offset],
+                 width=dp(1.2),cap="round")
+    elif kind == "down":
+        Line(points=[x-radius*.65,y+radius*.3,x,y-radius*.35,x+radius*.65,y+radius*.3],
+             width=dp(1.3),cap="round",joint="round")
+    elif kind == "back":
+        Line(points=[x+radius*.1,y+radius*.65,x-radius*.6,y,x+radius*.1,y-radius*.65],
+             width=dp(1.2),cap="round",joint="round")
+        Line(points=[x-radius*.55,y,x+radius*.8,y],width=dp(1.2),cap="round")
+    elif kind == "settings":
+        points = []
+        for n in range(32):
+            angle = n*math.pi/16
+            r = radius*(1 if n%4 in (0,1) else .76)
+            points.extend((x+r*math.cos(angle),y+r*math.sin(angle)))
+        Line(points=points,close=True,width=dp(1.1))
+        Line(circle=(x,y,radius*.3),width=dp(1.1))
 
 
 class IconButton(Button):

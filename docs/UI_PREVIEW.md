@@ -1,50 +1,65 @@
-# Updated interface
+# Screen layout of the running app
 
-The interface now follows the approved mockup's compact layout and styling.
-The default view is 1Y; calculations still use all observable history.
+The app now follows the user's labelled screen structure. These are screenshots
+from the tested Kivy application, with calculated results and simulated prices.
 
-## Screenshot of the running app
+| Screen | Contents | Navigation |
+| --- | --- | --- |
+| 1 | App heading and parameter controls | Opens at launch; successful Optimize SMA opens 2 |
+| 2 | Optimal SMA, chart, frequency cards, coverage explanation | Change parameters returns to 1; fixed bottom-left Saved SMAs and bottom-right Settings controls |
+| 2a | Crossovers below the results, in the same scroll view | Starts with 5 rows; downward arrows add up to 10 at a time, through 35 |
+| Expanded 2a | All selected-result crossing events | Show all opens this screen when more than 35 events exist; fixed top-left Back returns to 2 |
+| 2b | Saved SMA lines in a partial bottom sheet | Opens on a new save or with the bottom-left menu; dismiss with that button, a downward handle swipe, or the dimmed area |
+| 3 | Notification preferences, recipient address and preview tests | Bottom-right gear opens it; fixed top-left Back returns to 2 |
 
-![Working five-year SMA Stock Analyzer](ui-current.png)
+## Screen 1 — parameters
 
-This image was captured from the tested Kivy application. Its prices are
-simulated and its statistics are calculated by the active engine. The screenshot
-shows a wider portrait layout with the controls in one row and the Optimal SMA
-value beside its save/hide buttons. Rounded, outlined selectors include visible
-arrows, and the chart legend is centered.
+![Parameter screen](screen-parameters.png)
 
-## Phone layout
+## Screen 2 — results
 
-![Working phone layout](ui-phone.png)
+![Phone results screen](ui-phone.png)
 
-On narrow phones the controls form a two-by-two grid, and the Optimal SMA buttons
-sit below its value. These adaptations preserve readable text and touch targets
-at 320 pixels wide. The app starts at 440 × 920; widen the portrait window to at
-least 760 display-independent pixels to see the four-column controls.
+[View the wider portrait results layout](ui-current.png).
+The Hide SMA button is compact, beside the save heart and Change parameters.
+The bottom navigation stays reachable while scrolling through results.
 
-Loading, save feedback and errors appear below the controls when needed. The
-ordinary completed state keeps that area compact. Both images are captures of
-the running app, rather than generated design images.
+## Screen 2a — crossovers
 
-## Saved lines and notification settings
+[View the full scrollable results content, including its five-row crossover preview](screen-results-full.png).
+Rows keep the original ascending session order. A short list stops at its actual
+count. New optimization resets the preview to five; hiding/saving lines and
+visiting another screen preserve the current preview length.
 
-![Saved SMA lines with chart-matched swatches and hearts](ui-saved-lines.png)
+![Expanded crossover screen](screen-crossovers-expanded.png)
 
-![Notification settings and simulated alert previews](ui-notification-settings.png)
+The full list shows every calculated event, with a fixed Back arrow even after
+scrolling to the bottom. Returning preserves the results scroll position and chart.
 
-The example uses computed SMA 11 (target 12) and SMA 18 (target 1) for the
-Trending simulation. Filled hearts mean saved; the outline heart means unsaved.
-The history icon recovers the last ten unsaved configurations. Phone/email
-switches and email address persist locally. Email is preview-only; Android
-local delivery needs an Android development build and permission. See the
-[testing and notification limitations](NOTIFICATIONS.md).
+## Screen 2b — saved lines
 
-[View the recently unsaved popup](ui-unsaved-history.png).
+![Saved lines sliding over the results](screen-saved-sheet.png)
 
-## Original design reference
+The lower sheet leaves the fixed bottom navigation accessible. Its top handle
+accepts a downward swipe; the saved-line list scrolls independently below it.
+The selected history icon remains option A, and the history popup still restores
+the most recent ten unsaved configurations.
 
-[View the approved illustrative mockup](ui-preview.png). Its dates and numbers
-were placeholders; the actual app uses simulated session numbers and computed
-values, as shown above. Prices, selected periods and crossing statistics will
-therefore differ from the original mockup. Native font rendering may vary
-slightly between operating systems; Android device validation is still pending.
+[View saved-line controls at phone size](ui-saved-lines.png).
+
+## Screen 3 — settings
+
+![Separate settings screen](screen-settings.png)
+
+Email is still preview-only; Gmail API is the chosen future sender. Android
+notification completion/device validation remain deferred until the Android
+build. See [notification testing and limitations](NOTIFICATIONS.md).
+
+The layouts were checked at five portrait sizes, including 320 pixels wide.
+Native fonts can vary slightly between operating systems. Physical Android
+validation is pending. No new dependency, live data or APK was added.
+
+## Earlier design references
+
+[Original illustrative mockup](ui-preview.png) ·
+[History icon options, with A selected](HISTORY_ICON_OPTIONS.md).

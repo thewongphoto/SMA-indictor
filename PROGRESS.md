@@ -105,6 +105,14 @@
 
 ## Stop point
 
+Latest user direction: complete Android notification implementation/integration
+and physical-device testing when building the Android app later. The existing
+adapter is preparatory and unverified on-device; current desktop behavior stays
+manual previews/testing. Do not start Android packaging or background work now.
+Email remains preview-only. Expected future volume is at most about 50 messages
+per month. Resend is a proposed custom-domain sender, not an approved or
+configured provider; current free-plan terms need confirmation before setup.
+
 History icon selection: the user chose option A from
 `docs/HISTORY_ICON_OPTIONS.md`. Its native canvas implementation uses an open
 circular return arrow, rounded strokes and clock hands, sized 22 dp in the

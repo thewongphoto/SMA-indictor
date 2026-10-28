@@ -99,6 +99,10 @@ notification** button explains that an Android development build is required.
 
 ## Later physical-phone check — not built in this stage
 
+The user has explicitly deferred completing Android notification integration
+and device testing until the Android app build stage. The current adapter is
+preparatory; desktop preview/testing is the present workflow.
+
 After Android development packaging is approved:
 
 1. Build with python-for-android/Pyjnius and declare the
@@ -135,3 +139,9 @@ this workspace. A service-provided sender address may avoid buying a domain,
 subject to the provider's current conditions. A custom domain normally requires
 registration and DNS verification. Provider/free-plan selection can wait until
 actual email delivery is approved.
+
+Expected volume is no more than about 50 emails per month. Resend is a proposed
+option for a verified custom-domain sender; it has offered a free transactional
+tier suitable for this scale. Current pricing could not be verified from this
+workspace, so check [Resend pricing](https://resend.com/pricing) before choosing
+or configuring a provider. No provider has been selected or account created.

@@ -176,7 +176,7 @@ Validation after application integration:
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The integrated Kivy UI run passed 17 check groups, including the known
+- The current Kivy UI run passed 18 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -233,6 +233,11 @@ saved lines remain viewable; those outside today's cap are labelled, not deleted
 or treated as newly optimized results.
 
 The app uses Python and Kivy's native canvas, with SQLite local persistence.
+The approved mockup guides its header, rounded outlined dropdowns, compact
+controls, Optimal SMA strip, chart grid/axes and centered symbol legend. Wider
+portrait windows use four control columns (>=760 dp) and place the Optimal SMA
+value beside its actions (>=620 dp); narrow phones use two columns and actions
+below the value. Five portrait sizes, including 320 pixels wide, were exercised.
 It is portrait-first with vertical scrolling; panning, pinch zoom, calendar
 dates, exchange calendars, corporate-action adjustments, and return/backtest
 analysis are not implemented. Kivy is the only direct third-party dependency.

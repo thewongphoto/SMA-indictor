@@ -114,6 +114,16 @@ The window starts at 440 × 920 and supports narrower portrait sizes down to
 320 pixels wide. Content scrolls vertically. On wider desktops the portrait
 column remains centered. Landscape layouts are not designed for this stage.
 
+The [implemented interface screenshots](docs/UI_PREVIEW.md) show the layout
+against the approved design reference. At widths of at least 760 dp, the counter,
+scenario, target and Optimize SMA controls share one row; narrower phones use
+a two-by-two grid. Selectors have rounded borders and visible dropdown arrows.
+At 620 dp and above the Optimal SMA value sits beside its save/hide buttons;
+on smaller screens the buttons sit below it. Header spacing, typography, chart
+grid/axis labels and centered symbol legend follow the mockup. Completed
+optimization hides the routine status paragraph, while loading and errors remain
+visible. No additional dependency is required.
+
 To configure the target choices, edit `sma_analyzer/settings.py`:
 
 ```python
@@ -191,7 +201,7 @@ python -m unittest discover -s tests -v
 The real-widget smoke runner starts Kivy, dispatches button/selector events,
 waits for asynchronous calculations, and checks the displayed cards, actual
 chart arrays/markers, table cells, saving, visibility, input errors, empty data,
-and 320×640, 440×920, and 560×1000 portrait sizes. It also sends synthetic
+and 320×640, 440×920, 560×1000, 760×1100 and 960×1440 portrait sizes. It also sends synthetic
 touches through the real window/scroll-view pipeline to test range selection,
 boundary colors/shading, nested zoom, outside-plot release, and the zoom-out button:
 
@@ -235,8 +245,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 | Check | Actual result |
 | --- | --- |
 | Standard-library test suite | **44 passed**, including production/reference integration checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **17 groups passed**, 0 failed |
-| Portrait rendering | 320×640, 440×920, 560×1000 exercised |
+| Real Kivy UI smoke checks | **18 groups passed**, 0 failed |
+| Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
 | Android device / APK build | Not run; deferred to the next approved stage |
@@ -281,7 +291,7 @@ sma_analyzer/
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
   viewport.py              # Timeline presets, inclusive zoom ranges, y scaling
-  widgets.py               # Rounded timeline dropdown and symbol legend
+  widgets.py               # Shared rounded selectors and symbol legend
   app.py                   # Portrait UI and asynchronous button actions
 tests/
   test_engine.py           # Arithmetic and algorithm rules

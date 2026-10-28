@@ -214,13 +214,40 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert len(ui.model.saved_lines()) == 2
         self.check("save, multiple overlays, hide/show, persistent saved-line toggles")
 
-        for size in [(320, 640), (440, 920), (560, 1000)]:
+        # Measure the completed analysis layout, after save feedback has cleared.
+        ui.optimize_button.dispatch("on_release")
+        yield from self.wait_for_calculation()
+        assert ui.status.parent is None
+        for size in [(320, 640), (440, 920), (560, 1000), (760, 1100), (960, 1440)]:
             Window.size = size
             for _ in range(4):
                 yield
             assert ui.content.width <= size[0]
             assert ui.chart.width > 200
             assert ui.chart.height >= 240
+            wide = size[0] >= 760
+            assert ui.control_grid.cols == (4 if wide else 2)
+            if wide:
+                assert abs(ui.counter.y - ui.scenario.y) < dp(1)
+                assert abs(ui.counter.y - ui.target.y) < dp(1)
+                assert abs(ui.counter.y - ui.optimize_button.y) < dp(1)
+                assert ui.counter.right < ui.scenario.x
+                assert ui.scenario.right < ui.target.x
+                assert ui.target.right < ui.optimize_button.x
+                assert ui.controls.height < dp(130), "Completed controls must remain compact"
+                assert ui.optimal_panel.orientation == "horizontal"
+                assert ui.card_values["period"].right <= ui.save_button.x
+            else:
+                assert abs(ui.counter.y - ui.scenario.y) < dp(1)
+                assert ui.counter.y > ui.target.y
+                assert ui.controls.height < dp(185)
+            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button,
+                           ui.save_button, ui.hide_button]:
+                assert widget.width >= dp(110)
+                assert widget.x >= ui.content.x and widget.right <= ui.content.right
+                assert widget.height >= dp(44)
+            if size[0] == 320:
+                ui.export_to_png("artifacts/prototype-small-phone.png")
         Window.size = (440, 920)
         ui.scroll.scroll_y = 1
         for _ in range(6):
@@ -228,7 +255,45 @@ class SmokeApp(SMAStockAnalyzerApp):
         Path("artifacts").mkdir(exist_ok=True)
         ui.export_to_png("artifacts/prototype-phone.png")
         ui.content.export_to_png("artifacts/prototype-full.png")
-        self.check("three portrait sizes render and screenshots export")
+        self.check("five portrait sizes: compact aligned controls, responsive Optimal card, touch targets and screenshots")
+
+        # Hit the arrow in each top selector through normal window routing.
+        for selector, option in [(ui.counter,"DEMO-SGX"), (ui.scenario,"Trending"), (ui.target,"12 / year")]:
+            ui.scroll.scroll_y = 1
+            for _ in range(6):
+                yield
+            pointer = Pointer(*selector.to_window(selector.right-dp(8), selector.center_y))
+            pointer.down()
+            pointer.up()
+            for _ in range(14):
+                yield
+            assert selector.is_open, "Entire rounded control including chevron must open dropdown"
+            selector._dropdown.select(option)
+            for _ in range(4):
+                yield
+        ui.optimize_button.dispatch("on_release")
+        yield from self.wait_for_calculation()
+        assert ui.model.result.target_frequency == 12
+        assert ui.model.result.period == 11
+        assert ui.status.parent is None, "Completed state must not inflate the control panel"
+        Window.size = (960, 1440)
+        ui.scroll.scroll_y = 1
+        for _ in range(8):
+            yield
+        ui.export_to_png("artifacts/prototype-wide.png")
+        ui.content.export_to_png("artifacts/prototype-wide-full.png")
+        Window.size = (440, 920)
+        for _ in range(8):
+            yield
+        ui.export_to_png("artifacts/prototype-phone.png")
+        ui.content.export_to_png("artifacts/prototype-full.png")
+        # Restore the dataset/result expected by the original range-zoom checks.
+        ui.counter.text = "DEMO-US"
+        ui.scenario.text = "Oscillating"
+        ui.target.text = "6"
+        ui.optimize_button.dispatch("on_release")
+        yield from self.wait_for_calculation()
+        self.check("all top dropdown arrows respond to real clicks; annual target labels parse; mockup screenshots captured")
 
         # Scroll first so the real event pipeline must transform coordinates.
         ui.scroll.scroll_to(ui.chart, animate=False)

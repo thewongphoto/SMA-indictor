@@ -1,6 +1,6 @@
 """Native Kivy canvas chart: no browser, Matplotlib, or platform-specific widget."""
 from kivy.core.text import Label as CoreLabel
-from kivy.graphics import Color, Line, Rectangle
+from kivy.graphics import Color, Line, Rectangle, PushMatrix, PopMatrix, Rotate
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.scrollview import ScrollView
@@ -96,8 +96,8 @@ class PriceChart(Widget):
 
     @property
     def plot_rect(self):
-        return (self.x + dp(38), self.y + dp(28),
-                max(dp(1), self.width - dp(48)), max(dp(1), self.height - dp(44)))
+        return (self.x + dp(48), self.y + dp(40),
+                max(dp(1), self.width - dp(62)), max(dp(1), self.height - dp(56)))
 
     def _index_at_x(self, x):
         left, _, width, _ = self.plot_rect
@@ -195,10 +195,20 @@ class PriceChart(Widget):
                 Color(0.16, 0.21, 0.28, 1)
                 Line(points=[left, y, left + width, y], width=dp(0.6))
                 value = low + fraction * (high - low)
-                self._text(f"{value:.2f}" if high - low < 5 else f"{value:.0f}", self.x, y - dp(6))
-            for index in sorted({start, (start + end) // 2, end}):
+                self._text(f"{value:.2f}" if high - low < 5 else f"{value:.0f}", self.x + dp(12), y - dp(6))
+            ticks = 6 if width >= dp(550) else 3
+            for index in sorted({round(start + (end - start) * n / (ticks - 1)) for n in range(ticks)}):
                 x, _ = point(index, low)
-                self._text(str(index + 1), x, self.y + dp(8), center=True)
+                Color(0.13, 0.18, 0.24, 1)
+                Line(points=[x, bottom, x, bottom + height], width=dp(0.5))
+                self._text(str(index + 1), x, self.y + dp(20), center=True)
+            Color(*MUTED)
+            Line(points=[left, bottom + height, left, bottom, left + width, bottom], width=dp(0.6))
+            self._text("Session", left + width / 2, self.y, center=True)
+            PushMatrix()
+            Rotate(angle=90, origin=(self.x + dp(3), bottom + height / 2))
+            self._text("Price", self.x + dp(3), bottom + height / 2, center=True)
+            PopMatrix()
 
             def draw_series(values, color, thickness):
                 points = []

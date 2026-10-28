@@ -16,14 +16,13 @@ Config.set("input", "mouse", "mouse,disable_multitouch")
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.textinput import TextInput
 from kivy.uix.stacklayout import StackLayout
 
@@ -34,7 +33,7 @@ from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
 from .viewport import available_timelines
-from .widgets import TimelineSelector, LegendItem
+from .widgets import TimelineSelector, RoundedSelector, LegendItem
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -89,24 +88,17 @@ class Panel(BoxLayout):
         self._rect.pos, self._rect.size = self.pos, self.size
 
 
-class ChoiceOption(SpinnerOption):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.height = dp(48)
-        self.font_size = sp(13)
-        self.background_normal = ""
-        self.background_color = (0.12, 0.17, 0.23, 1)
-
-
 def choice(text, values):
-    return Spinner(text=text, values=values, option_cls=ChoiceOption,
-                   size_hint_y=None, height=dp(46), font_size=sp(13),
-                   background_normal="", background_color=(0.12, 0.17, 0.23, 1), color=TEXT)
+    return RoundedSelector(text=text, values=values)
 
 
 class AnalyzerScreen(AnchorLayout):
     def __init__(self, model, **kwargs):
         super().__init__(anchor_x="center", anchor_y="top", **kwargs)
+        with self.canvas.before:
+            Color(*BG)
+            self._background = Rectangle(pos=self.pos, size=self.size)
+        self.bind(pos=self._paint_background, size=self._paint_background)
         self.model = model
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sma")
         self.busy = False
@@ -117,45 +109,80 @@ class AnalyzerScreen(AnchorLayout):
         self.bind(width=self._resize)
         self._resize()
         self.content = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(14), padding=dp(16))
+        with self.content.canvas.before:
+            Color(*BG)
+            content_background = Rectangle(pos=self.content.pos, size=self.content.size)
+        def paint_content(*_):
+            content_background.pos, content_background.size = self.content.pos, self.content.size
+        self.content.bind(pos=paint_content, size=paint_content)
         self.content.bind(minimum_height=self.content.setter("height"))
         self.scroll.add_widget(self.content)
 
-        self.content.add_widget(WrappedLabel(text="OFFLINE LAB  /  SIMULATED DATA", color=PRICE_COLOR,
+        header = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3), padding=(dp(12), 0))
+        self.header = header
+        header.bind(minimum_height=header.setter("height"))
+        self.content.add_widget(header)
+        header.add_widget(WrappedLabel(text="OFFLINE LAB / SIMULATED DATA", color=MUTED,
                                             font_size=sp(11), bold=True))
-        self.content.add_widget(WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True))
-        self.content.add_widget(WrappedLabel(text="Explore crossing frequency. Save the lines you want to study.", color=MUTED))
+        self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
+        header.add_widget(self.heading)
+        self.introduction = WrappedLabel(text="Find the simple moving average (SMA) that matches a target upward crossing frequency.", color=MUTED)
+        header.add_widget(self.introduction)
 
         controls = Panel()
+        self.controls = controls
         self.content.add_widget(controls)
-        controls.add_widget(WrappedLabel(text="01  /  CHOOSE YOUR SIMULATION", color=MUTED, font_size=sp(11), bold=True))
-        controls.add_widget(WrappedLabel(text="Fictional counter · no real market prices"))
+        self.control_grid = GridLayout(cols=2, size_hint_y=None, spacing=dp(12))
+        self.control_grid.bind(minimum_height=self.control_grid.setter("height"))
+        controls.add_widget(self.control_grid)
+
+        self.field_labels = []
+
+        def field(title, widget):
+            cell = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(4))
+            cell.bind(minimum_height=cell.setter("height"))
+            label = WrappedLabel(text=title, color=MUTED, font_size=sp(10))
+            self.field_labels.append(label)
+            cell.add_widget(label)
+            cell.add_widget(widget)
+            self.control_grid.add_widget(cell)
+            return cell
+
         self.counter = choice(model.dataset.counter, COUNTERS)
-        controls.add_widget(self.counter)
+        field("COUNTER (FICTIONAL)", self.counter)
         self.scenario = choice(model.dataset.scenario, SCENARIOS)
-        controls.add_widget(self.scenario)
-        controls.add_widget(WrappedLabel(text="Target upward crossings per trading year"))
-        target_row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(10))
-        target_values = tuple(str(n) for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
-        self.target = choice(str(model.target_frequency), target_values)
+        field("SCENARIO (FICTIONAL)", self.scenario)
+        target_row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
+        target_row.bind(minimum_height=target_row.setter("height"))
+        target_values = tuple(f"{n} / year" for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
+        self.target = choice(f"{model.target_frequency} / year", target_values)
         target_row.add_widget(self.target)
         self.custom_target = TextInput(text="9", multiline=False, input_type="number",
+                                       size_hint_y=None, height=dp(44),
                                        font_size=sp(16), padding=[dp(10), dp(12)],
                                        background_normal="", background_active="", background_color=(0.12, 0.17, 0.23, 1),
                                        foreground_color=TEXT, cursor_color=PRICE_COLOR)
         self.target_row = target_row
-        controls.add_widget(target_row)
+        field("TARGET CROSSINGS", target_row)
         self.optimize_button = LabButton(text="Optimize SMA", primary=True)
         self.optimize_button.bind(on_release=self.on_optimize)
-        controls.add_widget(self.optimize_button)
+        self.optimize_cell = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(65))
+        self.optimize_cell.add_widget(Label())
+        self.optimize_cell.add_widget(self.optimize_button)
+        self.control_grid.add_widget(self.optimize_cell)
         self.status = WrappedLabel(text="Choose a scenario, then press Optimize SMA.", color=MUTED)
-        controls.add_widget(self.status)
 
         self.card_values = {}
         self.optimal_panel = Panel()
-        self.optimal_panel.add_widget(WrappedLabel(text="OPTIMAL SMA", color=MUTED, font_size=sp(12)))
+        self.optimal_value = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3))
+        self.optimal_value.bind(minimum_height=self.optimal_value.setter("height"))
+        self.optimal_caption = WrappedLabel(text="OPTIMAL SMA", color=MUTED, font_size=sp(12))
+        self.optimal_value.add_widget(self.optimal_caption)
         self.card_values["period"] = WrappedLabel(text="—", bold=True, font_size=sp(26), color=ACTIVE_COLOR)
-        self.optimal_panel.add_widget(self.card_values["period"])
+        self.optimal_value.add_widget(self.card_values["period"])
+        self.optimal_panel.add_widget(self.optimal_value)
         actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
+        self.optimal_actions = actions
         self.save_button = LabButton(text="Save SMA line")
         self.hide_button = LabButton(text="Hide SMA line")
         self.save_button.bind(on_release=self.on_save)
@@ -186,16 +213,30 @@ class AnalyzerScreen(AnchorLayout):
         plot_panel.add_widget(self.chart)
         self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
         plot_panel.add_widget(WrappedLabel(text="Drag across the plot to zoom.", font_size=sp(11), color=MUTED))
-        self.legend = StackLayout(size_hint_y=None, spacing=(dp(12), dp(2)))
+        legend_holder = AnchorLayout(size_hint_y=None, height=dp(24))
+        self.legend = StackLayout(size_hint=(None, None), spacing=(dp(12), dp(2)))
         self.legend.bind(minimum_height=self.legend.setter("height"))
-        plot_panel.add_widget(self.legend)
+        self.legend.bind(height=lambda _, height: setattr(legend_holder, "height", height))
+        legend_holder.add_widget(self.legend)
+        plot_panel.add_widget(legend_holder)
+
+        def center_legend(*_):
+            self.legend.width = min(legend_holder.width, sum(child.width for child in self.legend.children)
+                                    + dp(12) * max(0, len(self.legend.children) - 1))
+
+        legend_holder.bind(width=center_legend)
+        self.legend.bind(children=center_legend)
+        self._center_legend = center_legend
 
         self.cards = GridLayout(cols=2, size_hint_y=None, spacing=dp(10))
+        self.card_titles = []
         self.cards.bind(minimum_height=self.cards.setter("height"))
         for key, title in [("target", "TARGET CROSSING FREQUENCY"),
                            ("actual", "ACTUAL CROSSING FREQUENCY")]:
             card = Panel()
-            card.add_widget(WrappedLabel(text=title, color=MUTED, font_size=sp(10)))
+            label = WrappedLabel(text=title, color=MUTED, font_size=sp(10))
+            self.card_titles.append(label)
+            card.add_widget(label)
             value = WrappedLabel(text="—", bold=True, font_size=sp(19), color=ACTIVE_COLOR)
             card.add_widget(value)
             self.card_values[key] = value
@@ -216,14 +257,57 @@ class AnalyzerScreen(AnchorLayout):
         self.scenario.bind(text=self.on_dataset_change)
         self.target.bind(text=self.on_target_change)
         self.custom_target.bind(text=self.on_custom_target)
+        self.scroll.bind(width=self._layout_for_width)
+        self._layout_for_width()
         self.refresh()
 
     def _resize(self, *_):
-        self.scroll.width = min(self.width, dp(580))
+        self.scroll.width = min(self.width, dp(1000))
 
-    def message(self, text, error=False):
+    def _paint_background(self, *_):
+        self._background.pos, self._background.size = self.pos, self.size
+
+    def _layout_for_width(self, *_):
+        """Four compact controls on wide portraits; a readable 2×2 phone grid."""
+        wide = self.scroll.width >= dp(760)
+        self.control_grid.cols = 4 if wide else 2
+        self.content.padding = (dp(26), dp(28)) if wide else (dp(16), dp(16))
+        self.header.padding = (dp(20 if wide else 12), 0)
+        self.heading.font_size = sp(32 if wide else 25)
+        self.introduction.font_size = sp(16 if wide else 13)
+        for label in self.field_labels:
+            label.font_size = sp(12 if wide else 10)
+        for widget in (self.counter, self.scenario, self.target, self.optimize_button,
+                       self.save_button, self.hide_button):
+            widget.font_size = sp(16 if wide else 13)
+            widget.height = dp(52 if wide else 44)
+        self.optimize_cell.height = dp(78 if wide else 65)
+        self.optimal_actions.height = dp(52 if wide else 44)
+        self.optimal_caption.font_size = sp(14 if wide else 12)
+        self.card_values["period"].font_size = sp(30 if wide else 26)
+        for key in ("target", "actual"):
+            self.card_values[key].font_size = sp(24 if wide else 19)
+        for label in self.card_titles:
+            label.font_size = sp(12 if wide else 10)
+        self.plot_title.font_size = sp(18 if wide else 15)
+        self.plot_subtitle.font_size = sp(13 if wide else 11)
+        for panel in (self.controls, self.optimal_panel, self.chart.parent):
+            panel.padding = dp(20 if wide else 14)
+        side_by_side = self.scroll.width >= dp(620)
+        self.optimal_panel.orientation = "horizontal" if side_by_side else "vertical"
+        self.optimal_value.size_hint_x = 0.48 if side_by_side else 1
+        self.optimal_actions.size_hint_x = 0.52 if side_by_side else 1
+        self.optimal_actions.pos_hint = {"center_y": 0.5}
+        # BoxLayout.minimum_height adds vertically only in vertical orientation.
+        self.chart.height = dp(max(245, min(320, self.scroll.width * 0.33)))
+
+    def message(self, text, error=False, quiet=False):
         self.status.text = text
         self.status.color = ERROR if error else MUTED
+        if quiet and self.status.parent is not None:
+            self.controls.remove_widget(self.status)
+        elif not quiet and self.status.parent is None:
+            self.controls.add_widget(self.status)
 
     def on_dataset_change(self, *_):
         self._job += 1
@@ -235,7 +319,7 @@ class AnalyzerScreen(AnchorLayout):
             self.message(f"Could not load simulation: {error}", True)
 
     def _read_target(self):
-        self.model.set_target(self.custom_target.text if self.target.text == "Custom" else self.target.text)
+        self.model.set_target(self.custom_target.text if self.target.text == "Custom" else self.target.text.split(" / ")[0])
 
     def on_target_change(self, *_):
         if self.target.text == "Custom" and self.custom_target.parent is None:
@@ -292,7 +376,7 @@ class AnalyzerScreen(AnchorLayout):
         try:
             self.model.apply_result(future.result())
             self.refresh()
-            self.message("Optimization complete. Upward crossings are marked with outlined plus signs.")
+            self.message("Optimization complete. Upward crossings are marked with outlined plus signs.", quiet=True)
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Unable to optimize: {error}", True)
         except Exception:
@@ -339,12 +423,17 @@ class AnalyzerScreen(AnchorLayout):
         self._refresh_chart_header()
         self.legend.clear_widgets()
         self.legend_labels = ["simulated close", "upward crossings"]
-        self.legend.add_widget(LegendItem("simulated close", PRICE_COLOR))
-        self.legend.add_widget(LegendItem("upward crossings", ACTIVE_COLOR, plus=True))
+        def add_legend(text, color, plus=False):
+            item = LegendItem(text, color, plus=plus)
+            item.bind(width=self._center_legend)
+            self.legend.add_widget(item)
+
+        add_legend("simulated close", PRICE_COLOR)
+        add_legend("upward crossings", ACTIVE_COLOR, plus=True)
         for index, line in enumerate(lines):
             label = f"SMA {line.period}"
             self.legend_labels.append(label)
-            self.legend.add_widget(LegendItem(label, self.chart.line_color(line, index)))
+            add_legend(label, self.chart.line_color(line, index))
         for key, value in self.model.summary().items():
             if key in self.card_values:
                 self.card_values[key].text = value

@@ -17,29 +17,37 @@ class TimelineOption(SpinnerOption):
         self.height = dp(44)
 
 
-class TimelineSelector(Spinner):
+class RoundedSelector(Spinner):
     """One rounded hit target, including the label and drawn downward arrow."""
     __events__ = ("on_select",)
 
     def __init__(self, **kwargs):
-        super().__init__(text="1Y", option_cls=TimelineOption, size_hint=(None, None),
-                         width=dp(100), height=dp(44), font_size=sp(14),
-                         background_normal="", background_down="", background_color=(0, 0, 0, 0),
-                         halign="left", valign="middle", padding=(dp(14), 0), **kwargs)
+        defaults = dict(option_cls=TimelineOption, size_hint_y=None,
+                        height=dp(44), font_size=sp(13), color=(0.92, 0.95, 0.98, 1),
+                        background_normal="", background_down="", background_color=(0, 0, 0, 0),
+                        halign="left", valign="middle", padding=(dp(12), 0),
+                        shorten=True, shorten_from="right")
+        defaults.update(kwargs)
+        super().__init__(**defaults)
         self.bind(pos=self._paint, size=self._paint, state=self._paint, text=self._highlight)
         self._paint()
 
     def _paint(self, *_):
-        self.text_size = (self.width - dp(32), self.height)
+        self.text_size = (self.width - dp(28), self.height)
         self.canvas.before.clear()
         self.canvas.after.clear()
         with self.canvas.before:
-            Color(*( (0.16, 0.23, 0.31, 1) if self.state == "down" else (0.12, 0.17, 0.23, 1)))
+            Color(*( (0.13, 0.20, 0.28, 1) if self.state == "down" else (0.08, 0.12, 0.18, 1)))
             RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
+            Color(0.22, 0.29, 0.37, 1)
+            Line(rounded_rectangle=(*self.pos, *self.size, dp(10)), width=dp(0.7))
         with self.canvas.after:
             Color(0.92, 0.95, 0.98, 1)
             x, y, r = self.right - dp(18), self.center_y, dp(4)
-            Triangle(points=[x-r, y+r/2, x+r, y+r/2, x, y-r])
+            if isinstance(self, TimelineSelector):
+                Triangle(points=[x-r, y+r/2, x+r, y+r/2, x, y-r])
+            else:
+                Line(points=[x-r, y+r/2, x, y-r/2, x+r, y+r/2], width=dp(1.1))
 
     def _update_dropdown(self, *_):
         super()._update_dropdown()
@@ -56,6 +64,11 @@ class TimelineSelector(Spinner):
 
     def on_select(self, value):
         pass
+
+
+class TimelineSelector(RoundedSelector):
+    def __init__(self, **kwargs):
+        super().__init__(text="1Y", size_hint_x=None, width=dp(100), **kwargs)
 
 
 class LegendSymbol(Widget):

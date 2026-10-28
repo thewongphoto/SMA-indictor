@@ -15,7 +15,7 @@
   translucent selection, auto-scaled visible y-range, and a top-right Zoom out
   button that appears only while zoomed. Touches in the plot bypass scroll delay;
   page swipes outside the plot and mouse-wheel scrolling remain available.
-- 44 standard-library tests passed; 17 running Kivy smoke groups passed.
+- 44 standard-library tests passed; 18 running Kivy smoke groups passed.
   Screenshots generated in ignored `artifacts/`. No failed or skipped checks.
 
 ## Decisions to preserve
@@ -52,7 +52,7 @@
 - `experiments/observable_frequency.py` is the independent pre-integration
   reference. Production code does not import it. The comparison runner checks
   active results against that reference across all scenarios/targets.
-- 44 unit tests and 17 running Kivy smoke groups passed after integration,
+- 44 unit tests and 18 running Kivy smoke groups passed in the current version,
   including the active five-year Sideways result: SMA 254, 125 crossings / 1,006
   comparisons, 31.31/year. Scenario, target, zoom, save/load and error checks passed.
 - `APP_SUMMARY.md`, README and Mac instructions now describe active behavior.
@@ -80,6 +80,20 @@
   remains the approved illustrative design reference.
 
 ## Stop point
+
+Latest visual correction: compact mockup controls are now implemented, rather
+than retaining the original stacked form. Four columns at widths >=760 dp,
+two columns below; Optimal SMA value/actions share a row at >=620 dp. Header
+copy, spacing, responsive font sizes, rounded outlined controls with arrows,
+chart axes/grid, centered legend and compact completed-state feedback follow
+the approved reference. Loading, custom entry, errors, saved lines, and all
+math/zoom behavior remain functional. No new dependencies or database changes.
+The smoke runner verifies five portrait sizes, control placement/touch sizes,
+and real window clicks on each top dropdown's arrow, plus all prior checks.
+`docs/ui-current.png` and `docs/ui-phone.png` show the running application.
+Mockup calendar dates and illustrative prices/results remain replaced by honest
+simulated session numbers and calculated statistics. Cross-platform font
+rendering can vary; no physical Android or Mac UI validation was done here.
 
 The mock-only prototype and requested range zoom are complete. Wait for user approval before
 data-provider integration, background scheduling, or Android APK packaging.

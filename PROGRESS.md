@@ -105,6 +105,11 @@
 
 ## Stop point
 
+History icon selection: the user chose option A from
+`docs/HISTORY_ICON_OPTIONS.md`. Its native canvas implementation uses an open
+circular return arrow, rounded strokes and clock hands, sized 22 dp in the
+existing 44 dp button. The last-ten-history popup behavior is unchanged.
+
 Latest visual correction: compact mockup controls are now implemented, rather
 than retaining the original stacked form. Four columns at widths >=760 dp,
 two columns below; Optimal SMA value/actions share a row at >=620 dp. Header

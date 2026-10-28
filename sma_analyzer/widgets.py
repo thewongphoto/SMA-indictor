@@ -119,13 +119,19 @@ def draw_icon(kind, x, y, radius, selected=False):
             Mesh(vertices=vertices, indices=list(range(len(vertices)//4)), mode="triangle_fan")
         Line(points=points, close=True, width=dp(1.2))
     elif kind == "history":
+        # Option A: an open circular return arrow, with a clear upper-left
+        # arrowhead and simple clock hands. Keep a generous gap at the left.
         points = []
-        for n in range(41):
-            angle = math.radians(-70 + n * 330 / 40)
+        for n in range(65):
+            angle = math.radians(215 + n * 285 / 64)
             points.extend((x + radius*math.cos(angle), y + radius*math.sin(angle)))
-        Line(points=points, width=dp(1.3))
-        Line(points=[x-radius, y+radius*.8, x-radius, y+radius*.05, x-radius*.25, y+radius*.05], width=dp(1.3))
-        Line(points=[x,y+radius*.65,x,y,x+radius*.5,y-radius*.3], width=dp(1.3))
+        points.extend((x-radius, y+radius*.4))
+        Line(points=points, width=dp(1.15), cap="round", joint="round")
+        Line(points=[x-radius, y+radius*.95, x-radius, y+radius*.4,
+                     x-radius*.45, y+radius*.4],
+             width=dp(1.15), cap="round", joint="round")
+        Line(points=[x,y+radius*.43,x,y,x+radius*.36,y-radius*.22],
+             width=dp(1.15), cap="round", joint="round")
     elif kind == "phone":
         Line(rounded_rectangle=(x-radius*.55,y-radius,radius*1.1,radius*2,dp(2)), width=dp(1))
         Line(points=[x-radius*.2,y-radius*.7,x+radius*.2,y-radius*.7], width=dp(1))

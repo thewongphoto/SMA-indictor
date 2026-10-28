@@ -1,7 +1,10 @@
 # Recently unsaved: icon options
 
-Choose one option, A–F. This sheet is an illustrative design comparison;
-the app's current icon has not been changed.
+**Selected: A — Classic history.** The app now uses a native canvas version
+with a circular return arrow, rounded strokes and simple clock hands.
+Its visible icon is 22 dp inside a 44 dp touch target.
+
+This sheet records the illustrative alternatives originally offered.
 
 ![Six history icon options](history-icon-options.png)
 
@@ -14,6 +17,4 @@ the app's current icon has not been changed.
 | E | List with a small clock |
 | F | Heart with an undo arrow |
 
-A is the clearest conventional history symbol. E emphasizes a list of recent
-items. Each option includes a small header example; the chosen icon will be
-drawn as a native Kivy canvas icon and checked at its actual phone size.
+[View the implemented icon in the saved-lines panel](ui-saved-lines.png).

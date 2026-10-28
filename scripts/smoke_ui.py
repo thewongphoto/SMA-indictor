@@ -93,7 +93,21 @@ class SmokeApp(SMAStockAnalyzerApp):
 
     def exercise(self):
         ui = self.screen
-        assert len(ui.chart.prices) == 252 and not ui.chart.series
+        # Font textures and minimum-height bindings settle over multiple frames.
+        # Wait for actual layout instead of relying on a fixed startup delay.
+        deadline = time.monotonic() + 3
+        while ui.optimal_panel.top <= ui.chart.parent.top:
+            assert time.monotonic() < deadline, "Optimal SMA panel must be above the chart"
+            yield
+        assert len(ui.chart.prices) == 1260 and not ui.chart.series
+        assert ui.chart.viewport.bounds == (1008, 1259)
+        assert ui.timeline_selector.text == "1Y"
+        assert tuple(ui.timeline_selector.values) == ("1Y", "3Y", "5Y", "Max")
+        assert "count" not in ui.card_values
+        assert len(ui.cards.children) == 2
+        assert ui.save_button.parent.parent is ui.optimal_panel
+        assert ui.hide_button.parent.parent is ui.optimal_panel
+        assert ui.optimal_panel.top > ui.chart.parent.top
         assert ui.save_button.disabled
         self.check("initial unoptimized state")
 
@@ -104,6 +118,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert "Calculating" in ui.status.text
             yield from self.wait_for_calculation()
             result = ui.model.result
+            assert "outlined plus signs" in ui.status.text
             assert result.target_frequency == target
             assert ui.card_values["target"].text == f"{target} / yr"
             assert ui.card_values["period"].text == f"{result.period} sessions"
@@ -119,6 +134,28 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert rendered[3:] == [value for row in rows for value in row]
             self.check(f"target {target}: button, loading, engine, cards, chart markers, table")
 
+        result_before = ui.model.result
+        summary_before = ui.model.summary()
+        for label, bounds in [("3Y",(504,1259)), ("5Y",(0,1259)), ("Max",(0,1259)), ("1Y",(1008,1259))]:
+            ui.timeline_selector._dropdown.select(label)
+            assert ui.chart.viewport.bounds == bounds
+            assert ui.model.result is result_before
+            assert ui.model.summary() == summary_before
+            assert not ui.chart.is_zoomed
+        assert ui.legend_labels[:2] == ["simulated close", "upward crossings"]
+        assert all(":" not in label and "Triangles" not in label for label in ui.legend_labels)
+        self.check("timeline ranges preserve full-history results; revised cards, contained actions and symbol legend")
+        original_data = ui.model.dataset
+        for length, choices in [(500,("1Y","Max")), (756,("1Y","3Y","Max")), (1259,("1Y","3Y","Max"))]:
+            ui.model.dataset = Dataset(original_data.counter, original_data.scenario, original_data.prices[:length])
+            ui.model.result = None
+            ui.refresh()
+            assert tuple(ui.timeline_selector.values) == choices
+            assert ui.timeline_selector.text == "1Y"
+        ui.model.select_dataset(original_data.counter, original_data.scenario)
+        ui.refresh()
+        self.check("short-history dropdown omits unavailable 3Y and 5Y choices; dataset change defaults to 1Y")
+
         for scenario in ["Trending", "Sideways", "Oscillating"]:
             previous = ui.chart.prices
             ui.scenario.text = scenario
@@ -131,11 +168,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.target.text = "12"
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
-        assert ui.card_values["period"].text == "22 sessions"
-        assert ui.card_values["actual"].text == "36.16 / yr"
-        assert ui.card_values["count"].text == "33"
-        assert "230 usable comparisons" in ui.explanation.text
-        assert "SMA search: 2–126" in ui.explanation.text
+        assert ui.card_values["period"].text == "254 sessions"
+        assert ui.card_values["actual"].text == "31.31 / yr"
+        assert "125 upward crossings" in ui.crossing_count_label.text
+        assert "1006 usable comparisons" in ui.explanation.text
+        assert "SMA search: 2–756" in ui.explanation.text
         assert "Warm-up is included" not in ui.explanation.text
         assert "not matched exactly" in ui.explanation.text
         self.check("active adjusted-frequency policy: known sideways result, coverage, cap, unreachable target")
@@ -199,6 +236,27 @@ class SmokeApp(SMAStockAnalyzerApp):
             yield
         chart = ui.chart
 
+        arrow = Pointer(*ui.timeline_selector.to_window(ui.timeline_selector.right-dp(8), ui.timeline_selector.center_y))
+        arrow.down()
+        arrow.up()
+        for _ in range(14):
+            yield
+        assert ui.timeline_selector.is_open, "Arrow area must open the same dropdown as the label"
+        options = {option.text: option for option in ui.timeline_selector._dropdown.container.children}
+        assert set(options) == {"1Y","3Y","5Y","Max"}
+        assert options["1Y"].background_color != options["3Y"].background_color
+        options["3Y"].dispatch("on_release")
+        assert chart.viewport.bounds == (504,1259)
+        # Re-select the same preset after a custom zoom to restore its baseline.
+        chart.viewport.select(600,700)
+        chart._sync_view()
+        options["3Y"].dispatch("on_release")
+        assert chart.viewport.bounds == (504,1259) and not chart.is_zoomed
+        options["1Y"].dispatch("on_release")
+        for _ in range(6):
+            yield
+        self.check("rounded dropdown arrow is clickable; selected option shaded; selecting same preset resets drag zoom")
+
         def location(fraction, y_fraction=0.5):
             left, bottom, width, height = chart.plot_rect
             return chart.to_window(left + fraction * width, bottom + y_fraction * height)
@@ -241,17 +299,18 @@ class SmokeApp(SMAStockAnalyzerApp):
         second.up()
         finger.up()
         assert chart.selection is None and chart._drag_touch is None
-        assert chart.viewport.bounds == (62, 189), chart.viewport.bounds
+        assert chart.viewport.bounds == (1070, 1197), chart.viewport.bounds
         assert chart.is_zoomed and ui.zoom_out_button.parent is ui.plot_header
         zoom_limits = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
         assert zoom_limits != full_limits
         assert ui.model.result.sma is full_sma and ui.model.result.events is full_events
         assert ui.model.summary() == full_summary
-        assert "Viewing sessions 63–190" in ui.plot_subtitle.text
-        triangles = [item for item in chart.canvas.children if isinstance(item, Triangle)]
-        expected_markers = sum(62 <= event.index <= 189
+        assert "sessions 1071–1198" in ui.plot_subtitle.text
+        outlines = [item for item in chart.canvas.children if isinstance(item, Line) and item.close and len(item.points) == 24]
+        assert not any(isinstance(item, Triangle) for item in chart.canvas.children)
+        expected_markers = sum(1070 <= event.index <= 1197
                                for events in chart.marker_events.values() for event in events)
-        assert len(triangles) == expected_markers
+        assert len(outlines) == expected_markers
         for _ in range(4):
             yield
         chart.parent.export_to_png("artifacts/zoom-active.png")
@@ -260,7 +319,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         Window.size = (320, 640)
         for _ in range(6):
             yield
-        assert chart.viewport.bounds == (62, 189)
+        assert chart.viewport.bounds == (1070, 1197)
         assert ui.zoom_out_button.right <= chart.parent.right
         chart.parent.export_to_png("artifacts/zoom-phone-320.png")
         Window.size = (440, 920)
@@ -277,9 +336,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         # Release coordinates also work without a provider sending a final move.
         finger.move_to(*location(0.2), dispatch=False)
         finger.up()
-        assert chart.viewport.bounds == (87, 164), chart.viewport.bounds
+        assert chart.viewport.bounds == (1095, 1172), chart.viewport.bounds
         ui.hide_button.dispatch("on_release")
-        assert chart.viewport.bounds == (87, 164)
+        assert chart.viewport.bounds == (1095, 1172)
         ui.hide_button.dispatch("on_release")
         # Use actual window touches for the top-right button, not its callback.
         for _ in range(4):
@@ -289,9 +348,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         button.up()
         for _ in range(12):
             yield
-        assert chart.viewport.bounds == (0, 251)
+        assert chart.viewport.bounds == (1008, 1259)
         assert not chart.is_zoomed and ui.zoom_out_button.parent is None
-        self.check("leftward nested zoom, overlays preserve view, zoom-out button restores full range and disappears")
+        self.check("leftward nested zoom, overlays preserve view, zoom-out button restores selected timeline and disappears")
 
         for movement in [0, dp(2)]:
             finger = Pointer(*location(0.4))
@@ -304,9 +363,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         finger.down()
         finger.move_to(*location(1.3, 1.2))
         finger.up()
-        assert chart.viewport.bounds == (125, 251)
+        assert chart.viewport.bounds == (1133, 1259)
         ui.scenario.text = "Trending"
-        assert chart.viewport.bounds == (0, 251) and not chart.is_zoomed
+        assert chart.viewport.bounds == (1008, 1259) and not chart.is_zoomed
         assert ui.zoom_out_button.parent is None
         self.check("taps/jitter ignored, outside-plot release clamped, new scenario resets zoom")
 

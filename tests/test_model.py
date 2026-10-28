@@ -42,7 +42,7 @@ class ModelTests(unittest.TestCase):
                 self.model.select_dataset(counter, scenario)
                 self.assertIsNone(self.model.result)
                 data = self.model.dataset
-                self.assertEqual(len(data.prices), 252)
+                self.assertEqual(len(data.prices), 1260)
                 self.assertIn("SIMULATED", data.label)
                 seen.add(data.prices)
                 self.assertEqual(data, generate_mock_data(counter, scenario))
@@ -98,6 +98,7 @@ class ModelTests(unittest.TestCase):
 
     def test_active_policy_updates_display_and_preserves_older_saved_lines(self):
         self.model.select_dataset("DEMO-SGX", "Sideways")
+        self.model.dataset = generate_mock_data("DEMO-SGX", "Sideways", sessions=252)
         self.model.store.save("DEMO-SGX", "Sideways", 192, 12)
         result = self.model.calculate()
         self.assertEqual((result.period, result.crossing_count, result.comparisons), (22, 33, 230))
@@ -106,3 +107,12 @@ class ModelTests(unittest.TestCase):
         restored = AnalyzerModel(LineStore(self.path))
         restored.select_dataset("DEMO-SGX", "Sideways")
         self.assertEqual(restored.saved_lines()[0].period, 192)
+
+    def test_five_year_default_preserves_original_seeded_prefix(self):
+        data = self.model.dataset
+        self.assertEqual(len(data.prices), 1260)
+        self.assertEqual(data.prices[:252], generate_mock_data(data.counter, data.scenario, 252).prices)
+        result = self.model.calculate()
+        self.assertEqual(result.history_sessions, 1260)
+        self.assertGreaterEqual(result.comparisons, 504)
+        self.assertLessEqual(result.period, 756)

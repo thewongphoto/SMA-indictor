@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import math
 import random
 
-from .settings import COUNTERS, DATA_VERSION, SCENARIOS
+from .settings import COUNTERS, DATA_VERSION, SCENARIOS, MOCK_HISTORY_SESSIONS
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class Dataset:
         return f"{self.counter} · {self.scenario} · SIMULATED DATA"
 
 
-def generate_mock_data(counter: str, scenario: str, sessions: int = 252) -> Dataset:
+def generate_mock_data(counter: str, scenario: str, sessions: int = MOCK_HISTORY_SESSIONS) -> Dataset:
     if counter not in COUNTERS or scenario not in SCENARIOS:
         raise ValueError("Choose a fictional counter and one of the three mock scenarios.")
     if isinstance(sessions, bool) or not isinstance(sessions, int) or sessions < 1:

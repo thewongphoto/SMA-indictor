@@ -115,10 +115,10 @@ class ObservableFrequencyProposalTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             annual_frequency(2, 1)
 
-    def test_all_six_current_mock_datasets_remain_252_sessions(self):
+    def test_all_six_historical_252_session_fixtures(self):
         for counter in ["DEMO-SGX", "DEMO-US"]:
             for scenario in ["Trending", "Oscillating", "Sideways"]:
-                dataset = generate_mock_data(counter, scenario)
+                dataset = generate_mock_data(counter, scenario, sessions=252)
                 original = dataset.prices
                 for target in [12, 6, 1]:
                     result = optimize_proposed(dataset.prices, target)
@@ -126,10 +126,10 @@ class ObservableFrequencyProposalTests(unittest.TestCase):
                     self.assertGreaterEqual(result.comparisons, 126)
                 self.assertEqual(len(dataset.prices), 252)
                 self.assertEqual(dataset.prices, original)
-                self.assertEqual(dataset, generate_mock_data(counter, scenario))
+                self.assertEqual(dataset, generate_mock_data(counter, scenario, sessions=252))
 
     def test_app_optimizer_matches_preintegration_reference(self):
-        prices = generate_mock_data("DEMO-SGX", "Sideways").prices
+        prices = generate_mock_data("DEMO-SGX", "Sideways", sessions=252).prices
         existing = optimize_sma(prices, 12)
         proposed = optimize_proposed(prices, 12)
         self.assertEqual((existing.period, existing.crossing_count, existing.comparisons), (22, 33, 230))

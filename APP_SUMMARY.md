@@ -9,10 +9,10 @@ connected to the running app; the status table records the remaining scope.
 | Component | Status |
 | --- | --- |
 | Mock-only desktop Kivy app, chart, saved lines, crossover table, range zoom | Implemented |
-| Six fictional datasets, each with 252 sessions | Active in the app |
+| Six fictional datasets, each with 1,260 sessions (five years) | Active in the app |
 | Original frequency calculation and unrestricted candidate range | Replaced by the agreed observable-history policy |
 | Warm-up-adjusted frequency and automatic history-dependent SMA cap below | Active in `sma_analyzer/engine.py` and `policy.py`; checked against the research reference |
-| Longer histories | Used only as isolated test fixtures; app defaults remain unchanged |
+| Default chart view and available presets | 1Y on startup/new data; 3Y and 5Y only when available; Max shows all history |
 | Live market data, background scheduling, Android APK packaging | Not implemented |
 
 Download the updated repository to use the new calculations. Files already
@@ -28,7 +28,7 @@ positive integers that fit a signed 64-bit SQLite integer.
 All data is simulated. DEMO-SGX and DEMO-US are fictional counters, not actual
 securities, currencies, or exchange feeds. Each has Trending, Oscillating, and
 Sideways scenarios generated with fixed random seeds. The current app creates
-252 closing prices per counter/scenario combination, identical between runs.
+1,260 closing prices (five trading years) per counter/scenario combination, identical between runs.
 Prices use fictional units; chart labels identify simulated data explicitly.
 
 One trading year is defined as **252 trading sessions**. This is a convention
@@ -161,22 +161,22 @@ app:
 
 | Scenario | Selected SMA | Crossings | Usable comparisons | Annual frequency |
 | --- | ---: | ---: | ---: | ---: |
-| Trending | 11 | 13 | 241 | 13.5934 |
-| Oscillating | 42 | 10 | 210 | 12.0000 |
-| Sideways | 22 | 33 | 230 | 36.1565 |
+| Trending | 11 | 61 | 1,249 | 12.3074 |
+| Oscillating | 721 | 26 | 539 | 12.1558 |
+| Sideways | 254 | 125 | 1,006 | 31.3121 |
 
-For the sideways example, adjusting frequency without restricting coverage
+In the historical 252-session sideways fixture, adjusting frequency without restricting coverage
 selected SMA 251: zero crossings over only one usable comparison. The complete
 policy excludes that result by requiring at least 126 usable comparisons.
 
 Validation after application integration:
 
-- 39 unit tests passed, including active-engine/reference agreement, coverage,
+- 44 unit tests passed, including active-engine/reference agreement, coverage,
   caps, displayed model results, and preservation of earlier saved lines; none
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The integrated Kivy UI run passed 14 check groups, including the known
+- The integrated Kivy UI run passed 17 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -188,7 +188,21 @@ specified calculations and controls, not investment performance.
 
 ## Chart, zoom, and local saving
 
-- The chart draws simulated closing prices, visible SMA lines, and triangles
+- A full-width Optimal SMA card, including Save SMA line and Hide/Show SMA line,
+  sits above the chart. Only two frequency cards sit below it: Target Crossing
+  Frequency on the left and Actual Crossing Frequency on the right.
+- The raw crossing count is part of section 03, Crossovers — Selected SMA,
+  and refers to the full observable history even when the chart shows 1Y.
+- The timeline dropdown is below the counter/scenario row. It always starts at
+  1Y on launch/new data. 3Y is omitted below 756 sessions; 5Y below 1,260. Max
+  always offers the available history. Selecting a preset shows the latest
+  matching sessions, and changing a preset does not recalculate statistics.
+- The rounded label/arrow share one clickable target. The current option is
+  shaded. Legend entries use colored dashes and the same outlined plus marker,
+  with descriptive labels and no colons or color-name prefixes.
+
+- The chart draws simulated closing prices, visible SMA lines, and plus signs
+  with a thin black border
   at calculated upward-crossing events. Saved overlays can be hidden or shown.
 - The crossover table describes the selected result. Chart markers describe
   every visible SMA line; these scopes are intentionally different.
@@ -197,7 +211,7 @@ specified calculations and controls, not investment performance.
   Crossing the original touch position changes the moving boundary's color.
 - Release zooms to the chosen range and scales y to the visible prices and SMA
   values. Nested zoom is supported. Zoom out appears beside the title only
-  while zoomed and restores the full history.
+  while a custom selection is zoomed and restores the selected timeline.
 - Selection rounds outward to bordering sessions. Movements under 6 dp do not
   zoom; release beyond the plot clamps the x-range to the visible plot.
 - Zoom changes the view, not the optimization history, statistics, or table.
@@ -227,6 +241,6 @@ The supplied LinkedIn article returned HTTP 403 and could not be read; the
 implementation follows the written requirements and the recorded decisions.
 Long genuine histories will need performance profiling and schema planning.
 
-A longer default mock history, genuine market data,
+Genuine market data,
 background scheduling, and Android packaging are separate future changes.
 These remain outside the current implementation.

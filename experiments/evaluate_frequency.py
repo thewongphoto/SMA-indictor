@@ -11,7 +11,7 @@ from pathlib import Path
 from .observable_frequency import best_candidate, optimize_proposed, proposed_cap
 from sma_analyzer.engine import optimize_sma
 from sma_analyzer.mock_data import generate_mock_data
-from sma_analyzer.settings import COUNTERS, SCENARIOS
+from sma_analyzer.settings import COUNTERS, SCENARIOS, MOCK_HISTORY_SESSIONS
 
 
 def _fingerprints(root):
@@ -65,7 +65,7 @@ def run_evaluation():
     if before != after:
         raise RuntimeError("Application source changed during evaluation.")
     return {"active_policy_verified": True, "simulated_data_only": True, "application_source_unchanged": True,
-            "application_source_sha256": before, "current_mock_history_sessions": 252,
+            "application_source_sha256": before, "current_mock_history_sessions": MOCK_HISTORY_SESSIONS,
             "cases": cases, "isolated_longer_history_checks": boundaries}
 
 
@@ -82,4 +82,4 @@ if __name__ == "__main__":
         print(f"{case['counter']} {case['scenario']:<11} target={case['target']:>2}: "
               f"active SMA={new['period']:>3}, crossings={new['crossings']:>2}, "
               f"usable={new['observable_comparisons']:>3}, annual={new['annual_frequency']:.4f}")
-    print("Verified: active policy matches reference; evaluation changed no app source; mock history remains 252 sessions.")
+    print("Verified: active policy matches reference; evaluation changed no app source; mock history is five years (1,260 sessions).")

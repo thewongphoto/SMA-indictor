@@ -1,8 +1,8 @@
 """Native Kivy canvas chart: no browser, Matplotlib, or platform-specific widget."""
 from kivy.core.text import Label as CoreLabel
-from kivy.graphics import Color, Line, Rectangle, Triangle
+from kivy.graphics import Color, Line, Rectangle
 from kivy.metrics import dp, sp
-from kivy.properties import BooleanProperty, ListProperty
+from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
@@ -15,6 +15,19 @@ SAVED_COLORS = ((0.59, 0.64, 1, 1), (1, 0.49, 0.62, 1), (0.42, 0.76, 1, 1))
 MUTED = (0.58, 0.66, 0.75, 1)
 START_COLOR = (0.22, 0.94, 0.43, 1)
 END_COLOR = (1, 0.28, 0.32, 1)
+
+
+def draw_plus(x, y, radius, color):
+    """Shared chart/legend marker: filled plus with a thin black outer border."""
+    r, arm = radius, radius * 0.3
+    Color(*color)
+    Rectangle(pos=(x - r, y - arm), size=(2 * r, 2 * arm))
+    Rectangle(pos=(x - arm, y - r), size=(2 * arm, 2 * r))
+    Color(0, 0, 0, 1)
+    Line(points=[x-arm, y+r, x+arm, y+r, x+arm, y+arm, x+r, y+arm,
+                 x+r, y-arm, x+arm, y-arm, x+arm, y-r, x-arm, y-r,
+                 x-arm, y-arm, x-r, y-arm, x-r, y+arm, x-arm, y+arm],
+         close=True, width=dp(0.45))
 
 
 class ChartScrollView(ScrollView):
@@ -42,6 +55,7 @@ class ChartScrollView(ScrollView):
 class PriceChart(Widget):
     is_zoomed = BooleanProperty(False)
     view_range = ListProperty([0, 0])
+    timeline = StringProperty("1Y")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -68,7 +82,16 @@ class PriceChart(Widget):
         if changed:
             self._cancel_selection()
             self.viewport.reset(len(self.prices))
+            self.viewport.show_timeline("1Y")
+            self.timeline = "1Y"
             self._sync_view()
+        self.redraw()
+
+    def set_timeline(self, label):
+        self._cancel_selection()
+        self.viewport.show_timeline(label)
+        self.timeline = label
+        self._sync_view()
         self.redraw()
 
     @property
@@ -195,13 +218,11 @@ class PriceChart(Widget):
             for index, line in enumerate(self.series):
                 color = self.line_color(line, index)
                 draw_series(line.sma, color, dp(1.6) if line.active else dp(1))
-                Color(*color)
                 for event in self.marker_events[line.key]:
                     if not start <= event.index <= end:
                         continue
                     x, y = point(event.index, event.price)
-                    r = dp(4)
-                    Triangle(points=[x, y + r, x - r, y - r, x + r, y - r])
+                    draw_plus(x, y, dp(5), color)
 
             if self.selection is not None:
                 x_start, _ = point(self.selection.start, low)

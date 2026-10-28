@@ -1,6 +1,6 @@
 import unittest
 
-from sma_analyzer.viewport import ChartViewport, RangeSelection
+from sma_analyzer.viewport import ChartViewport, RangeSelection, available_timelines
 
 
 class ViewportTests(unittest.TestCase):
@@ -56,3 +56,39 @@ class ViewportTests(unittest.TestCase):
         view.reset(3)
         self.assertEqual(view.bounds, (0, 2))
         self.assertFalse(view.is_zoomed)
+
+    def test_timeline_options_only_offer_complete_longer_ranges(self):
+        self.assertEqual(available_timelines(100), ("1Y", "Max"))
+        self.assertEqual(available_timelines(755), ("1Y", "Max"))
+        self.assertEqual(available_timelines(756), ("1Y", "3Y", "Max"))
+        self.assertEqual(available_timelines(1259), ("1Y", "3Y", "Max"))
+        self.assertEqual(available_timelines(1260), ("1Y", "3Y", "5Y", "Max"))
+
+    def test_timeline_windows_show_latest_sessions(self):
+        view = ChartViewport(1260)
+        for label, bounds in [("1Y", (1008,1259)), ("3Y", (504,1259)),
+                              ("5Y", (0,1259)), ("Max", (0,1259))]:
+            view.show_timeline(label)
+            self.assertEqual(view.bounds, bounds)
+            self.assertFalse(view.is_zoomed)
+
+    def test_zoom_reset_restores_selected_timeline(self):
+        view = ChartViewport(1260)
+        view.show_timeline("1Y")
+        view.select(1100, 1200)
+        self.assertTrue(view.is_zoomed)
+        view.reset()
+        self.assertEqual(view.bounds, (1008,1259))
+        self.assertFalse(view.is_zoomed)
+        view.show_timeline("Max")
+        self.assertEqual(view.bounds, (0,1259))
+
+    def test_short_and_empty_history_timeline_handling(self):
+        for count, bounds in [(0,(0,0)), (100,(0,99))]:
+            view = ChartViewport(count)
+            view.show_timeline("1Y")
+            self.assertEqual(view.bounds, bounds)
+            with self.assertRaises(ValueError):
+                view.show_timeline("3Y")
+            with self.assertRaises(ValueError):
+                view.show_timeline("5Y")

@@ -1,6 +1,13 @@
 """Chart range math, independent of Kivy and the SMA optimization objective."""
 from dataclasses import dataclass
 import math
+from .settings import TRADING_SESSIONS_PER_YEAR
+
+
+def available_timelines(session_count):
+    """1Y clamps to shorter histories; unavailable longer ranges are omitted."""
+    return tuple(label for label, years in (("1Y", 1), ("3Y", 3), ("5Y", 5))
+                 if years == 1 or session_count >= years * TRADING_SESSIONS_PER_YEAR) + ("Max",)
 
 
 @dataclass
@@ -28,12 +35,20 @@ class ChartViewport:
 
     @property
     def is_zoomed(self) -> bool:
-        return self.bounds != (0, max(0, self.session_count - 1))
+        return self.bounds != self.base_range
 
     def reset(self, session_count=None):
         if session_count is not None:
             self.session_count = session_count
-        self.start, self.end = 0, max(0, self.session_count - 1)
+            self.base_range = (0, max(0, self.session_count - 1))
+        self.start, self.end = self.base_range
+
+    def show_timeline(self, label):
+        if label not in available_timelines(self.session_count):
+            raise ValueError(f"{label} is not available for this price history.")
+        sessions = self.session_count if label == "Max" else int(label[:-1]) * TRADING_SESSIONS_PER_YEAR
+        self.base_range = (max(0, self.session_count - sessions), max(0, self.session_count - 1))
+        self.reset()
 
     def index_at(self, fraction: float) -> float:
         """Map a plot-relative x position to the currently displayed history."""

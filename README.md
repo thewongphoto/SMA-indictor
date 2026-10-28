@@ -15,7 +15,7 @@ summary.
 
 The app now uses the agreed **warm-up-adjusted annual frequency**, automatic
 history-dependent SMA cap, and minimum observable-history requirement. It shows
-one actual annual frequency. The mock datasets remain 252 sessions. The
+one actual annual frequency. The mock datasets now contain five years (1,260 sessions). The
 [pre-integration evaluation](docs/observable-frequency-evaluation.md) records why
 these rules were chosen; the production code is in `engine.py` and `policy.py`.
 
@@ -50,16 +50,17 @@ only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
 ## Try the prototype
 
 1. Choose a fictional counter and **Trending**, **Oscillating**, or **Sideways**.
-   Each combination has 252 reproducible synthetic closes and a fixed seed.
+   Each combination has 1,260 reproducible synthetic closes and a fixed seed.
 2. Choose **12**, **6**, or **1** upward crossings per trading year. Choose
    **Custom** to type another positive integer, then press **Optimize SMA**.
-3. The teal price line is overlaid with the gold selected SMA. Triangles mark
-   upward crossings. Scroll below the chart for the selected period, target,
-   actual annual rate, raw crossing count, and crossover table.
+3. The teal price line is overlaid with the gold optimal SMA. Black-outlined plus signs mark
+   upward crossings. The full-width Optimal SMA card and its save/hide actions
+   sit above the chart. Target Crossing Frequency and Actual Crossing Frequency
+   sit side by side below it. The raw crossing count appears in section 03.
 4. Press **Save SMA line** to retain a line locally. Optimize another target to
    compare multiple overlays. Saved lines belong to their counter, scenario,
    and mock-data version; they reappear when you return to that combination.
-5. Use **Hide/Show** for saved lines and **Hide/Show selected SMA** for the
+5. Use **Hide/Show** for saved lines and **Hide/Show SMA line** for the
    current result. If a saved line has the same period as the selected result,
    the selected visibility controls that period, and it is drawn only once.
    The selected toggle lasts for the current result; saved-row toggles persist.
@@ -68,7 +69,20 @@ only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
 Changing a scenario, counter, or target clears the selected statistics. Press
 Optimize again to compute the new result; saved overlays remain available.
 The event table always describes the **selected result**, even when its line
-is hidden. The chart's triangles describe **all currently visible SMA lines**.
+is hidden. The chart's plus markers describe **all currently visible SMA lines**.
+
+### Default timeline view
+
+The rounded dropdown below the counter/scenario title starts at **1Y** whenever
+an app session or a new counter/scenario starts. Its label and downward arrow
+share one clickable area. Choose **1Y**, **3Y**, **5Y**, or **Max**; 3Y is omitted
+below 756 sessions and 5Y below 1,260. 1Y clamps to all data if less than a year
+is available, and Max shows everything. The latest sessions are always used.
+
+Timeline changes do not alter the optimizer's input or crossing statistics.
+Re-selecting a preset resets any custom drag zoom within that preset. Gold/teal
+dash symbols identify SMA/close lines in the legend, and the outlined plus
+symbol identifies upward crossings, without color-name prefixes or colons.
 
 ### Zoom into a chart range
 
@@ -81,7 +95,8 @@ moving boundary changes color to keep that ordering.
 Release to zoom to the selected sessions. The y-axis automatically scales to
 the visible prices and displayed SMA lines, with a little padding. The small
 **Zoom out** button appears at the top right beside the counter/scenario title;
-click it to restore all 252 sessions. It disappears in the full-history view.
+click it to restore the selected timeline preset. It disappears when no custom
+selection zoom is active; choose Max to display all available sessions.
 
 You can drag again for a closer zoom. Selections round outward to include both
 bordering sessions; taps or horizontal movements under 6 display-independent
@@ -155,10 +170,10 @@ If no candidate has enough valid coverage, optimization gives a helpful error.
 
 The interface shows only the adjusted annual frequency, with crossing count,
 usable comparisons/years, candidate cap, and annual target difference for context.
-A target may be unattainable. With the current DEMO-SGX Sideways data and target
-12, the closest eligible result is **SMA 22: 33 crossings over 230 comparisons,
-36.16/year**. Oscillating selects SMA 42: 10 crossings over 210 comparisons,
-exactly 12/year. Annualization does not guarantee future frequency or profits.
+A target may be unattainable. With the current five-year DEMO-SGX Sideways data and target
+12, the closest eligible result is **SMA 254: 125 crossings over 1,006 comparisons,
+31.31/year**. Oscillating selects SMA 721: 26 crossings over 539 comparisons,
+12.16/year. Annualization does not guarantee future frequency or profits.
 
 Saved lines from earlier versions remain available and retain their original
 period and target. Lines above the current cap are labelled as previously saved
@@ -219,8 +234,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **39 passed**, including production/reference integration checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **14 groups passed**, 0 failed |
+| Standard-library test suite | **44 passed**, including production/reference integration checks, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **17 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
@@ -228,7 +243,10 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 Tests include requested A–G, missing data, invalid inputs, a 3-year target,
 all six counter/scenario combinations, SQLite reload and deduplication,
-visibility, and empty history with saved lines. See `PROGRESS.md` for the handoff.
+visibility, and empty history with saved lines. See `PROGRESS.md` for the handoff. The latest run also checked the five-year
+default and seeded prefix, timeline availability, whole-button dropdown clicks,
+selected-option shading, same-preset reset, outlined plus markers, revised
+card hierarchy, and full-history result stability while changing views.
 Zoom checks cover both drag directions, crossing the anchor, immediate visual
 feedback, nested ranges, visible y-limits including SMA values, tap/jitter
 rejection, release beyond the plot, a second finger, page scrolling, reset on
@@ -258,11 +276,12 @@ sma_analyzer/
   settings.py              # Frequency presets, mock choices, version
   engine.py                # SMA, events, capped annual-frequency optimizer
   policy.py                # Automatic cap, observable coverage, exact annual rates
-  mock_data.py             # Seeded 252-session synthetic series
+  mock_data.py             # Seeded five-year (1,260-session) synthetic series
   storage.py               # Local SQLite saved-line repository
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
-  viewport.py              # Inclusive zoom ranges and visible y-axis scaling
+  viewport.py              # Timeline presets, inclusive zoom ranges, y scaling
+  widgets.py               # Rounded timeline dropdown and symbol legend
   app.py                   # Portrait UI and asynchronous button actions
 tests/
   test_engine.py           # Arithmetic and algorithm rules
@@ -281,7 +300,7 @@ The prototype implements the detailed rules in your request; it does not claim
 to reproduce unverified details from that article. Pasted article text can be
 compared with these rules in a later session.
 
-Known limits: synthetic 252-session datasets, no date axis or exchange calendar,
+Known limits: synthetic five-year datasets, no date axis or exchange calendar,
 no price adjustments, no return/backtest analysis, no panning or pinch zoom,
 one calculation worker, and no Android device/keyboard/lifecycle validation.
 An exhaustive search is suitable for this prototype but will need profiling for

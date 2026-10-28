@@ -61,16 +61,22 @@ you use the app.
 3. Click **Optimize SMA**.
 4. Scroll down to see the statistics and crossover table.
 5. Click **Save SMA line**. Try a different target and optimize again to compare
-   lines. Use the Hide/Show buttons to control which lines appear.
+   lines. These controls are in the Optimal SMA card above the chart. The
+   crossing count is in section 03, below the two frequency cards.
 6. To zoom, click and hold inside the chart, drag left or right, then release.
    The selected range is shaded, with a green line on the left and a red line
-   on the right. Click **Zoom out** beside the chart title to see all sessions
-   again. The zoom-out button appears only while zoomed.
+   on the right. Click **Zoom out** beside the chart title to return to the selected timeline
+   again. Choose Max in the dropdown to see the full history. The zoom-out button appears only while zoomed.
+
+The chart now starts at 1Y out of five years of simulated data. Use the rounded
+dropdown below the counter title for 3Y, 5Y or Max. The whole button, including
+its arrow, opens the menu. Options disappear if there is insufficient history.
+Changing the view does not change the full-history analysis.
 
 The actual frequency now excludes the SMA's warm-up and missing observations.
-For example, DEMO-SGX Sideways at target 12 should show SMA 22 and 36.16/year,
-with 33 crossings over 230 usable comparisons. That is the closest eligible
-result, even though it does not match 12. The app still has 252 mock sessions.
+For example, DEMO-SGX Sideways at target 12 should show SMA 254 and 31.31/year,
+with 125 crossings over 1,006 usable comparisons. That is the closest eligible
+result, even though it does not match 12. The app has 1,260 mock sessions.
 
 Every price is simulated. These are fictional counters, not real market data.
 Matching crossing frequency does not demonstrate a profitable strategy.
@@ -87,7 +93,7 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 39 tests, including checks that the active app
+The current test suite contains 44 tests, including checks that the active app
 uses the agreed warm-up-adjusted frequency and automatic SMA cap. Successful
 output ends with `OK`.
 

@@ -25,6 +25,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.textinput import TextInput
+from kivy.uix.stacklayout import StackLayout
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
@@ -32,6 +33,8 @@ from .policy import maximum_sma_period
 from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
+from .viewport import available_timelines
+from .widgets import TimelineSelector, LegendItem
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -147,6 +150,21 @@ class AnalyzerScreen(AnchorLayout):
         self.status = WrappedLabel(text="Choose a scenario, then press Optimize SMA.", color=MUTED)
         controls.add_widget(self.status)
 
+        self.card_values = {}
+        self.optimal_panel = Panel()
+        self.optimal_panel.add_widget(WrappedLabel(text="OPTIMAL SMA", color=MUTED, font_size=sp(12)))
+        self.card_values["period"] = WrappedLabel(text="—", bold=True, font_size=sp(26), color=ACTIVE_COLOR)
+        self.optimal_panel.add_widget(self.card_values["period"])
+        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
+        self.save_button = LabButton(text="Save SMA line")
+        self.hide_button = LabButton(text="Hide SMA line")
+        self.save_button.bind(on_release=self.on_save)
+        self.hide_button.bind(on_release=self.on_active_visibility)
+        actions.add_widget(self.save_button)
+        actions.add_widget(self.hide_button)
+        self.optimal_panel.add_widget(actions)
+        self.content.add_widget(self.optimal_panel)
+
         plot_panel = Panel()
         self.content.add_widget(plot_panel)
         self.plot_header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
@@ -157,6 +175,8 @@ class AnalyzerScreen(AnchorLayout):
                                          pos_hint={"center_y": 0.5})
         self.zoom_out_button.height = dp(36)
         plot_panel.add_widget(self.plot_header)
+        self.timeline_selector = TimelineSelector(values=("1Y", "Max"))
+        plot_panel.add_widget(self.timeline_selector)
         self.plot_subtitle = WrappedLabel(text="", color=MUTED, font_size=sp(11))
         plot_panel.add_widget(self.plot_subtitle)
         self.chart = PriceChart(size_hint_y=None, height=dp(245))
@@ -164,14 +184,16 @@ class AnalyzerScreen(AnchorLayout):
         self.zoom_out_button.bind(on_release=self.chart.reset_zoom)
         self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
-        self.legend = WrappedLabel(text="", font_size=sp(11), color=MUTED)
+        self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
+        plot_panel.add_widget(WrappedLabel(text="Drag across the plot to zoom.", font_size=sp(11), color=MUTED))
+        self.legend = StackLayout(size_hint_y=None, spacing=(dp(12), dp(2)))
+        self.legend.bind(minimum_height=self.legend.setter("height"))
         plot_panel.add_widget(self.legend)
 
         self.cards = GridLayout(cols=2, size_hint_y=None, spacing=dp(10))
         self.cards.bind(minimum_height=self.cards.setter("height"))
-        self.card_values = {}
-        for key, title in [("period", "SELECTED SMA"), ("target", "TARGET FREQUENCY"),
-                           ("actual", "ACTUAL FREQUENCY"), ("count", "UPWARD CROSSINGS")]:
+        for key, title in [("target", "TARGET CROSSING FREQUENCY"),
+                           ("actual", "ACTUAL CROSSING FREQUENCY")]:
             card = Panel()
             card.add_widget(WrappedLabel(text=title, color=MUTED, font_size=sp(10)))
             value = WrappedLabel(text="—", bold=True, font_size=sp(19), color=ACTIVE_COLOR)
@@ -181,15 +203,6 @@ class AnalyzerScreen(AnchorLayout):
         self.content.add_widget(self.cards)
         self.explanation = WrappedLabel(text="", color=MUTED, font_size=sp(12))
         self.content.add_widget(self.explanation)
-        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
-        self.save_button = LabButton(text="Save SMA line")
-        self.hide_button = LabButton(text="Hide selected SMA")
-        self.save_button.bind(on_release=self.on_save)
-        self.hide_button.bind(on_release=self.on_active_visibility)
-        actions.add_widget(self.save_button)
-        actions.add_widget(self.hide_button)
-        self.content.add_widget(actions)
-
         self.saved_panel = Panel()
         self.content.add_widget(self.saved_panel)
         self.table_panel = Panel()
@@ -279,7 +292,7 @@ class AnalyzerScreen(AnchorLayout):
         try:
             self.model.apply_result(future.result())
             self.refresh()
-            self.message("Optimization complete. Upward crossings are marked with triangles.")
+            self.message("Optimization complete. Upward crossings are marked with outlined plus signs.")
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Unable to optimize: {error}", True)
         except Exception:
@@ -324,16 +337,22 @@ class AnalyzerScreen(AnchorLayout):
         lines = self.model.plot_lines()
         self.chart.update(data.prices, lines)
         self._refresh_chart_header()
-        self.legend.text = "Drag left or right across the plot to zoom.\nTeal: simulated close   •   Triangles: upward crossings\n" + (
-            "   /   ".join(f"{'Gold' if line.active else 'Saved'}: SMA {line.period}" for line in lines)
-            if lines else "No SMA displayed. Optimize or show a saved line.")
+        self.legend.clear_widgets()
+        self.legend_labels = ["simulated close", "upward crossings"]
+        self.legend.add_widget(LegendItem("simulated close", PRICE_COLOR))
+        self.legend.add_widget(LegendItem("upward crossings", ACTIVE_COLOR, plus=True))
+        for index, line in enumerate(lines):
+            label = f"SMA {line.period}"
+            self.legend_labels.append(label)
+            self.legend.add_widget(LegendItem(label, self.chart.line_color(line, index)))
         for key, value in self.model.summary().items():
-            self.card_values[key].text = value
+            if key in self.card_values:
+                self.card_values[key].text = value
         self._set_busy(self.busy)
-        self.hide_button.text = "Hide selected SMA" if self.model.active_visible else "Show selected SMA"
+        self.hide_button.text = "Hide SMA line" if self.model.active_visible else "Show SMA line"
         result = self.model.result
         self.explanation.text = (
-            f"{result.crossing_count} crossings over {result.comparisons} usable comparisons "
+            f"Based on {result.comparisons} usable comparisons "
             f"({result.usable_years:.2f} trading years) from {result.history_sessions} sessions. "
             f"Target difference: {float(result.frequency_error):.2f}/yr. "
             f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. "
@@ -350,10 +369,13 @@ class AnalyzerScreen(AnchorLayout):
         elif self.zoom_out_button.parent is not None:
             self.plot_header.remove_widget(self.zoom_out_button)
         data = self.model.dataset
+        self.timeline_selector.values = available_timelines(len(data.prices))
+        self.timeline_selector.text = self.chart.timeline
+        self.timeline_selector.disabled = not data.prices
         self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units"
-        if self.chart.is_zoomed:
+        if data.prices:
             start, end = self.chart.view_range
-            self.plot_subtitle.text += f"\nViewing sessions {start + 1}–{end + 1}"
+            self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
 
     def _refresh_saved(self):
         self.saved_panel.clear_widgets()
@@ -381,6 +403,11 @@ class AnalyzerScreen(AnchorLayout):
     def _refresh_table(self):
         self.table_panel.clear_widgets()
         self.table_panel.add_widget(WrappedLabel(text="03  /  CROSSOVERS · SELECTED SMA", font_size=sp(11), bold=True, color=MUTED))
+        self.crossing_count_label = WrappedLabel(
+            text=(f"{self.model.result.crossing_count} upward crossings across all observable history"
+                  if self.model.result else "Optimize to calculate upward crossings."),
+            color=ACTIVE_COLOR, bold=True)
+        self.table_panel.add_widget(self.crossing_count_label)
         rows = self.model.event_rows()
         if not rows:
             self.table_panel.add_widget(WrappedLabel(

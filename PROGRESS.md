@@ -4,8 +4,8 @@
 
 - Pure SMA engine with documented crossing/equality/gap rules, adjusted annual
   targets over observable history, automatic cap and shorter-period tie-break.
-- Fixed-seed 252-session generators for two fictional counters × three scenarios.
-- Native Kivy canvas price/SMA overlays and triangles at calculated event indices.
+- Fixed-seed five-year (1,260-session) generators for two fictional counters × three scenarios.
+- Native Kivy canvas price/SMA overlays and black-outlined plus signs at calculated event indices.
 - Preset/custom target controls, background calculation/loading state, summary
   cards, full selected-result crossover table, and helpful invalid/empty states.
 - SQLite saved lines, per-counter/scenario scoping, duplicate protection,
@@ -15,12 +15,13 @@
   translucent selection, auto-scaled visible y-range, and a top-right Zoom out
   button that appears only while zoomed. Touches in the plot bypass scroll delay;
   page swipes outside the plot and mouse-wheel scrolling remain available.
-- 39 standard-library tests passed; 14 running Kivy smoke groups passed.
+- 44 standard-library tests passed; 17 running Kivy smoke groups passed.
   Screenshots generated in ignored `artifacts/`. No failed or skipped checks.
 
 ## Decisions to preserve
 
-- Mock data only; 252-session defaults and dataset version remain unchanged.
+- Mock data only; five-year default (1,260 sessions). Seeded prefixes and the
+  generator version are preserved so prior saved periods remain available.
 - Active cap: min(floor(H/2),252) through H=756; H-504 above that.
 - Require at least H-cap actual observable comparisons, excluding warm-up/gaps.
 - Rank by annual-frequency error over all observable history; exact ties use
@@ -51,16 +52,32 @@
 - `experiments/observable_frequency.py` is the independent pre-integration
   reference. Production code does not import it. The comparison runner checks
   active results against that reference across all scenarios/targets.
-- 39 unit tests and 14 running Kivy smoke groups passed after integration,
-  including the active Sideways result: SMA 22, 33 crossings / 230 comparisons,
-  36.16/year. Scenario, target, zoom, save/load and error checks passed.
+- 44 unit tests and 17 running Kivy smoke groups passed after integration,
+  including the active five-year Sideways result: SMA 254, 125 crossings / 1,006
+  comparisons, 31.31/year. Scenario, target, zoom, save/load and error checks passed.
 - `APP_SUMMARY.md`, README and Mac instructions now describe active behavior.
   The evaluation report is retained as a historical pre-integration record.
-- Mock generator, 252-session length and SQLite schema/version are unchanged.
+- Mock history is now five years; generator seed/version and SQLite schema
+  remain unchanged.
   Existing saved periods are preserved; those above the cap are labelled as
   outside the current search limit.
-- Remaining: longer default mock data, genuine data, Android device validation
+- Remaining: genuine data, Android device validation
   and packaging are separate subsequent tasks.
+
+## Approved interface release
+
+- Five-year mock history is active, with 1Y as the default chart view. The
+  rounded timeline selector offers 1Y/3Y/5Y/Max; insufficient 3Y/5Y choices are
+  omitted. Both the text and downward arrow are clickable. Choosing a preset
+  resets custom zoom; Zoom out restores that preset. New data resets to 1Y.
+- Optimization, cards and the full-history crossing table are independent of
+  timeline/zoom. Markers and SMA drawing use the full calculated arrays.
+- The Optimal SMA card and save/hide actions now span the area above the chart.
+  Below it are two frequency cards; the crossing count moved into section 03.
+- Chart and legend use a shared plus-sign drawing with a thin black border.
+  Legend line swatches match actual series colors and have no color prefixes.
+- `docs/ui-current.png` is a screenshot of the working app; `ui-preview.png`
+  remains the approved illustrative design reference.
 
 ## Stop point
 

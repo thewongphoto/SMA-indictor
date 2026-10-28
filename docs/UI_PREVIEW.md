@@ -51,13 +51,16 @@ the most recent ten unsaved configurations.
 
 ![Separate settings screen](screen-settings.png)
 
-Email is still preview-only; Gmail API is the chosen future sender. Android
-notification completion/device validation remain deferred until the Android
-build. See [notification testing and limitations](NOTIFICATIONS.md).
+The current Settings screen adds Gmail Connect, explicit test/send and
+Disconnect controls for the configured sender, shown in the tested UI screenshot.
+Native Android/Google authorization needs the
+[APK + Gmail setup guide](ANDROID_APK_GUIDE.md). Preview still sends nothing;
+real sends require the sender account's consent. See [validation status](ANDROID_TEST_STATUS.md).
 
 The layouts were checked at five portrait sizes, including 320 pixels wide.
 Native fonts can vary slightly between operating systems. Physical Android
-validation is pending. No new dependency, live data or APK was added.
+validation is pending. Stock prices remain simulated. The Android build config is now included, but
+no APK has been produced in this cloud; certifi was added for Gmail TLS.
 
 ## Earlier design references
 

@@ -104,10 +104,21 @@ class AndroidNotifier:
     This is local OS delivery, not remote push or a background EOD scheduler.
     """
     @staticmethod
-    def request_permission():
+    def request_permission(callback=None):
+        """Request Android 13+ permission, then call callback once with its result."""
         try:
-            from android.permissions import request_permissions
-            request_permissions(["android.permission.POST_NOTIFICATIONS"])
+            from jnius import autoclass
+            from android.permissions import check_permission, request_permissions
+            sdk = autoclass("android.os.Build$VERSION").SDK_INT
+            permission = "android.permission.POST_NOTIFICATIONS"
+            if sdk < 33 or check_permission(permission):
+                if callback:
+                    callback(True)
+                return
+            from android.runnable import run_on_ui_thread
+            def ask():
+                request_permissions([permission], lambda _, grants: callback(bool(grants) and all(grants)) if callback else None)
+            run_on_ui_thread(ask)()
         except ImportError:
             raise RuntimeError("Phone delivery needs an Android development build. Use Preview on desktop.") from None
         except RuntimeError:
@@ -117,27 +128,40 @@ class AndroidNotifier:
 
     def send(self, alert: Alert):
         try:
-            from jnius import autoclass
+            from jnius import autoclass, cast
             Activity = autoclass("org.kivy.android.PythonActivity")
             Version = autoclass("android.os.Build$VERSION")
             Context = autoclass("android.content.Context")
             activity = Activity.mActivity
-            manager = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+            manager = cast("android.app.NotificationManager", activity.getSystemService(Context.NOTIFICATION_SERVICE))
             if Version.SDK_INT >= 33 and activity.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != 0:
                 raise RuntimeError("Allow notifications in Android settings, then retry the test.")
+            if not manager.areNotificationsEnabled():
+                raise RuntimeError("Notifications are disabled for this app. Enable them in Android Settings.")
             channel_id = "sma_research_alerts"
             if Version.SDK_INT >= 26:
                 Channel = autoclass("android.app.NotificationChannel")
                 manager.createNotificationChannel(Channel(channel_id, "SMA research alerts", 3))
+                channel = manager.getNotificationChannel(channel_id)
+                if channel is not None and channel.getImportance() == 0:
+                    raise RuntimeError("SMA alert channel is disabled. Enable it in Android notification settings.")
                 builder = autoclass("android.app.Notification$Builder")(activity, channel_id)
             else:
                 builder = autoclass("android.app.Notification$Builder")(activity)
-            builder.setSmallIcon(activity.getApplicationInfo().icon)
+            icon = activity.getResources().getIdentifier("ic_stat_sma", "drawable", activity.getPackageName())
+            if not icon:
+                icon = autoclass("android.R$drawable").stat_notify_more
+            builder.setSmallIcon(icon)
             builder.setContentTitle(alert.subject)
             builder.setContentText(alert.body.splitlines()[0])
             builder.setStyle(autoclass("android.app.Notification$BigTextStyle")().bigText(alert.body))
             builder.setAutoCancel(True)
             identifier = int(hashlib.sha256(alert.key.encode()).hexdigest()[:7], 16)
+            intent = activity.getPackageManager().getLaunchIntentForPackage(activity.getPackageName())
+            if intent is not None:
+                PendingIntent = autoclass("android.app.PendingIntent")
+                flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                builder.setContentIntent(PendingIntent.getActivity(activity, identifier, intent, flags))
             manager.notify(identifier, builder.build())
         except ImportError:
             raise RuntimeError("Phone delivery needs an Android development build. Use Preview on desktop.") from None
@@ -147,7 +171,7 @@ class AndroidNotifier:
             raise RuntimeError("Android notification failed. Check device permission and notification setup.") from None
 
 
-def deliver_alerts(store, alerts, phone=None) -> list[str]:
+def deliver_alerts(store, alerts, phone=None, mailer=None) -> list[str]:
     """Explicit dispatch with persistent successful-delivery deduplication.
 
     A failed channel remains retryable. Preview never invokes this function.
@@ -163,11 +187,15 @@ def deliver_alerts(store, alerts, phone=None) -> list[str]:
             if alert.channel == "phone":
                 (phone or AndroidNotifier()).send(alert)
             else:
-                report.append("Email preview only; no email was sent.")
-                continue
+                if mailer is None:
+                    report.append("Email not sent. Connect Gmail and press Send enabled alerts.")
+                    continue
+                mailer.send(alert, store.notification_settings().email)
             store.record_delivery(alert.key)
-            report.append(f"Delivered: {alert.channel}, session {alert.session}.")
-        except (OSError, ValueError, RuntimeError):
+            status = "Accepted by Gmail" if alert.channel == "email" else "Posted to Android"
+            report.append(f"{status}: {alert.channel}, session {alert.session}.")
+        except (OSError, ValueError, RuntimeError) as error:
             # Do not expose account details, server replies or secrets in UI logs.
-            report.append(f"Delivery failed ({alert.channel}). Check Android notification permission/setup; Preview remains available.")
+            report.append(f"Delivery failed ({alert.channel}). " + (str(error) if isinstance(error,RuntimeError)
+                          else "Check permission, connection and sender setup. Preview remains available."))
     return report

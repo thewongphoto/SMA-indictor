@@ -6,3 +6,12 @@ __pycache__/
 *.sqlite3-*
 artifacts/
 .local/
+.buildozer/
+.venv-android/
+bin/
+*.apk
+*.aab
+*.keystore
+*.jks
+client_secret*.json
+token*.json

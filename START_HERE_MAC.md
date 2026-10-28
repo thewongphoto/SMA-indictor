@@ -98,7 +98,9 @@ the bottom-left menu and turn on the corresponding channel for a saved line.
 Close the saved-lines sheet, note a session from the crossover table, then return
 to Settings with the gear. Enter that session and press **Preview EOD alerts**
 to see the simulated phone text and email
-subject/body. No email is sent. **Change parameters** in the Optimal SMA card
+subject/body. Preview sends nothing. The new Gmail test/send buttons send real
+mail only after Google authorization on Android. See the
+[Android APK + Gmail guide](docs/ANDROID_APK_GUIDE.md). **Change parameters** in the Optimal SMA card
 returns to the initial form when you want another analysis.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
@@ -118,7 +120,7 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 53 tests, including checks that the active app
+The current test suite contains 67 tests, including checks that the active app
 uses the agreed warm-up-adjusted frequency and automatic SMA cap. Successful
 output ends with `OK`.
 

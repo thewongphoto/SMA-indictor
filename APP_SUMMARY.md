@@ -13,10 +13,11 @@ connected to the running app; the status table records the remaining scope.
 | Original frequency calculation and unrestricted candidate range | Replaced by the agreed observable-history policy |
 | Warm-up-adjusted frequency and automatic history-dependent SMA cap below | Active in `sma_analyzer/engine.py` and `policy.py`; checked against the research reference |
 | Default chart view and available presets | 1Y on startup/new data; 3Y and 5Y only when available; Max shows all history |
-| Live market data, background scheduling, Android APK packaging | Not implemented |
+| Live market data / background EOD scheduler | Not implemented |
+| Debug Android APK configuration/workflow | Added; local build blocked; no APK/device result yet |
 | Saved hearts, ten-entry unsave history, channel/type settings and EOD previews | Implemented and tested |
-| Foreground Android local-notification adapter | Implemented; device validation pending |
-| Email sending | Preview only, by user choice |
+| Android local notifications and native Google authorization | Implemented; native build/device validation pending |
+| Gmail sending | MIME/HTTPS + native OAuth implemented; user Google setup/consent required |
 
 Download the updated repository to use the new calculations. Files already
 downloaded to a Mac do not update automatically when GitHub changes.
@@ -37,7 +38,9 @@ Prices use fictional units; chart labels identify simulated data explicitly.
 One trading year is defined as **252 trading sessions**. This is a convention
 for annualization, not a calendar or an exchange-specific holiday schedule.
 Chart session labels are observation numbers, not dates. Nothing connects to
-live APIs, sends email, requests financial credentials, or requires a backend.
+live market APIs or requires a backend for analysis. Optional Gmail sending
+uses the internet and Google send-only authorization; no financial credentials
+are requested.
 
 ## SMA arithmetic and upward-crossing definition
 
@@ -174,12 +177,12 @@ policy excludes that result by requiring at least 126 usable comparisons.
 
 Validation after application integration:
 
-- 53 unit tests passed, including active-engine/reference agreement, coverage,
+- 67 unit tests passed, including active-engine/reference agreement, coverage,
   caps, displayed model results, and preservation of earlier saved lines; none
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The current Kivy UI run passed 25 check groups, including the known
+- The current Kivy UI run passed 26 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -238,22 +241,24 @@ specified calculations and controls, not investment performance.
   configurations, newest first across counters/scenarios. Older entries are
   discarded; restore recovers period, target, visibility and channel flags.
 - Per saved line, Phone/Email On/Off controls are separate from Hide/Show.
-  Bottom Settings holds two type switches per channel and a locally stored
+  The Settings screen holds two type switches per channel and a locally stored
   recipient address. All toggles start Off. Missing-address validation blocks
   enabling email, and clearing the address is blocked while a saved line has
   email On.
 - Buy uses the existing upward-crossing engine at the selected EOD observation.
   Monitor means a strictly below-SMA close, once per simulated session; equality,
   gaps and warm-up do not invent alerts. Both channel and type must be enabled.
-- Email remains preview-only by user choice. Preview shows exact subjects and
-  bodies; no email service, domain, sender or credentials have been configured.
-  Gmail API is the chosen future provider (about 50 emails/month), using Google
-  OAuth with send-only access. No custom domain is required. Provider selection
-  does not connect an account or enable actual email delivery.
+- The user has now authorized Android testing and Gmail delivery. Preview still
+  sends nothing; native Google authorization and explicit Gmail test/EOD send
+  actions are implemented. Sender defaults to kelwong98@gmail.com in settings.py,
+  configurable for a later dedicated account. The user must set up the Google
+  project/Android OAuth client and authorize the sender. No account was connected
+  or real email sent in this session. Expected volume remains about 50/month.
 - A lazy Android local-notification adapter and manual test controls are present.
   Desktop Kivy integration checks inject a fake sender. Physical OS delivery,
   permission prompts, sounds and background behavior have not been verified.
-  No APK or scheduler was built. Local notification delivery while running is
+  No APK was produced; local compilation was blocked. No scheduler was added.
+  Local notification delivery while running is
   distinct from remote push delivery or reliable closed-app monitoring.
 - Successful EOD sends are deduplicated persistently by data version, channel,
   type, counter, scenario, period, target and session. Failures remain retryable;
@@ -281,7 +286,7 @@ specified calculations and controls, not investment performance.
   while scrolling. Page navigation retains chart range/result/scroll state.
 - The native Kivy ScreenManager and animated sheet add no dependency and do not
   change the calculation, storage or alert rules. Physical Android validation
-  and Gmail API delivery remain future work.
+  and Google consent/real delivery remain to be verified.
 
 ## Current app behavior and remaining work
 
@@ -299,12 +304,14 @@ value beside its actions (>=620 dp); narrow phones use two columns and actions
 below the value. Five portrait sizes, including 320 pixels wide, were exercised.
 It is portrait-first with vertical scrolling; panning, pinch zoom, calendar
 dates, exchange calendars, corporate-action adjustments, and return/backtest
-analysis are not implemented. Kivy is the only direct third-party dependency.
+analysis are not implemented. Kivy and certifi are the direct desktop dependencies. Android adds native Google
+Identity/Pyjnius through its build configuration.
 
 The supplied LinkedIn article returned HTTP 403 and could not be read; the
 implementation follows the written requirements and the recorded decisions.
 Long genuine histories will need performance profiling and schema planning.
 
 Genuine market data,
-background scheduling, and Android packaging are separate future changes.
-These remain outside the current implementation.
+background scheduling remain future work. Android debug packaging is now
+authorized and configured, but awaits a successful native build and device test.
+See docs/ANDROID_APK_GUIDE.md and docs/ANDROID_TEST_STATUS.md.

@@ -1,0 +1,6 @@
+# Build tooling only; use Python 3.11 on Linux, separate from desktop Kivy.
+buildozer==1.6.0
+Cython==0.29.36
+setuptools==70.3.0
+sh==2.4.0
+virtualenv==21.15.1

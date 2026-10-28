@@ -5,6 +5,7 @@ On headless Mesa/SDL Linux: SDL_VIDEODRIVER=offscreen LIBGL_ALWAYS_SOFTWARE=1 ..
 Screenshots and a machine-readable current-run report go into artifacts/.
 """
 import json
+import io
 import os
 from pathlib import Path
 import sys
@@ -362,14 +363,15 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "SIMULATED DATA" in ui.alert_preview.text
         assert all(not ui.model.store.was_delivered(a.key) for a in ui.last_alerts)
         phone = Mock()
-        with patch("sma_analyzer.notifications.AndroidNotifier",return_value=phone):
+        with patch("sma_analyzer.notifications.AndroidNotifier",return_value=phone) as notifier:
+            notifier.request_permission.side_effect = lambda callback=None: callback(True) if callback else None
             ui.eod_deliver_button.dispatch("on_release")
             deadline = time.monotonic()+5
             while ui.eod_deliver_button.disabled:
                 assert time.monotonic()<deadline
                 yield
             assert phone.send.call_count == 1
-            assert "Email preview only" in ui.notification_status.text
+            assert "Email not sent" in ui.notification_status.text
             ui.eod_deliver_button.dispatch("on_release")
             while ui.eod_deliver_button.disabled:
                 assert time.monotonic()<deadline
@@ -387,6 +389,41 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.preview_alert_button.dispatch("on_release")
         assert "between 1 and" in ui.alert_preview.text
         self.check("real EOD preview buttons, buy/monitor contents, mocked Android delivery, duplicate suppression, desktop limitation")
+
+        # Exercise actual Gmail UI controls with fake Google consent and HTTP;
+        # no real Google token, account access or email is used by this runner.
+        original_authorizer = ui.gmail_authorizer
+        original_transport = ui.gmail_sender._transport
+        authorizer = Mock()
+        authorizer.authorize.side_effect = lambda sender, ok, failed: ok("test-token")
+        authorizer.revoke.side_effect = lambda sender, done, failed: done()
+        ui.gmail_authorizer = authorizer
+        transport = Mock(side_effect=lambda *a,**k: io.BytesIO(b'{"id":"ui-test-email"}'))
+        ui.gmail_sender._transport = transport
+        ui.gmail_connect_button.dispatch("on_release")
+        deadline = time.monotonic()+5
+        while ui.delivery_busy:
+            assert time.monotonic()<deadline
+            yield
+        assert ui.gmail_sender.connected and "Connected" in ui.gmail_status.text
+        ui.gmail_test_button.dispatch("on_release")
+        while ui.delivery_busy:
+            assert time.monotonic()<deadline
+            yield
+        assert "Test email accepted" in ui.notification_status.text
+        assert transport.call_count==1
+        ui.preview_alert_button.dispatch("on_release")
+        assert transport.call_count==1, "Preview must never send Gmail messages"
+        ui.gmail_disconnect_button.dispatch("on_release")
+        while ui.delivery_busy:
+            assert time.monotonic()<deadline
+            yield
+        assert not ui.gmail_sender.connected and "Disconnected" in ui.gmail_status.text
+        ui.gmail_authorizer = original_authorizer
+        ui.gmail_sender._transport = original_transport
+        ui.gmail_connect_button.dispatch("on_release")
+        assert not ui.delivery_busy and "Android build" in ui.gmail_status.text
+        self.check("Gmail connect, explicit test send, preview isolation and disconnect with fake OAuth/HTTP")
 
         ui.show_results()
         ui.scroll.scroll_to(ui.optimal_panel,animate=False)

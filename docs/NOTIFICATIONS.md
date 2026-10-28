@@ -1,166 +1,110 @@
-# Saved lines and notification testing
+# Saved lines and notification delivery
 
-The app still uses fictional prices only. Email is **preview-only**, as requested.
-No network sender, live-price API, credentials, backend, background task or APK
-has been added. The Android adapter can post **local OS notifications** from a
-future Android development build while the app is running. It is not a remote
-push service, and it does not monitor prices while the app is closed.
+Prices remain fictional. The app now includes **native Android local
+notifications** and **Gmail API sending**, with Google authorization required.
+Preview remains available and never posts or emails anything.
 
-## Hearts and recent history
+Start with the [beginner Android APK + Gmail setup guide](ANDROID_APK_GUIDE.md).
+Read [actual test/build status](ANDROID_TEST_STATUS.md) before expecting an APK.
 
-- The Optimal SMA heart has a grey outline when this exact period/target is
-  unsaved, and a red fill when saved. Tap it to save or unsave that configuration.
-- Saved lines now live in a partial bottom sheet, opened on a new save or with
-  the bottom-left menu on Results. Close it with that menu, a downward swipe on
-  its handle, or a tap on the dimmed area. Each saved row has a matching
-  chart-colour dash, channel On/Off buttons, a
-  compact Hide/Show button at the right, and a red heart furthest right.
-- Unsaving a selected line keeps the current calculated overlay available until
-  you change it. It stops future alert evaluation for that saved configuration.
-- The clock/history icon opens the last **10 distinct unsaved configurations**,
-  newest first, across counters and scenarios. Only previously saved lines enter
-  this list. Restoring one recovers its period, target, visibility and channel
-  settings, and removes it from history. Saving it again also removes its history
-  entry. Older entries are discarded when a newer unsave exceeds the ten-entry
-  limit; they cannot be restored through the app.
-- Saved-line swatches use the same period colour function as the chart. The
-  selected period is gold, including all saved targets that share that period.
-  Hidden rows retain their colour; hiding one line does not recolour others.
+## Saved lines and channel controls
 
-## Test previews on your Mac
+- The Optimal SMA heart is outlined/grey when unsaved and red when saved for
+  that exact period/target. Tapping it again unsaves the configuration.
+- The saved-lines bottom sheet opens on a new save or through the bottom-left
+  menu. Dismiss it with the menu, downward handle swipe or dimmed-area tap.
+- Each row has a chart-matched dash, separate Phone/Email On/Off controls, Hide
+  and a red heart. Hiding a line affects its chart visibility, not its alerts.
+- The history icon (option A) restores the last ten distinct saved-then-unsaved
+  configurations across counters/scenarios, newest first. Older entries are
+  discarded. Restore recovers period, target, visibility and channel flags.
+- Unsaving stops evaluation of that saved configuration. The current calculated
+  overlay may remain visible until its analysis changes.
+- The gear opens Screen 3 / Settings. Each channel has independent Buy/Monitor
+  switches, defaulting Off. A line's channel **and** its global type must be On.
+- Save a valid **recipient** before enabling email on a line. Clearing it is
+  blocked while any saved line still has email On. Preferences persist locally.
 
-1. Open the app, choose a counter/scenario, and press **Optimize SMA**.
-2. Tap the outline heart in Optimal SMA to save the result.
-3. Press the bottom-right **gear** on Results to open **Notification Settings**.
-4. Enter an email address and press **Save**. This saves the recipient locally;
-   it does not send an email or verify that the mailbox exists.
-5. Turn on the desired Buy signal / Impending buy signal switches under Phone
-   and/or Email notifications. They start Off and persist across restarts.
-6. Return to Results with Back, then open **Saved SMAs** using the bottom-left
-   menu. In **02 / Saved SMA Lines**, turn on Push notifications and/or Email
-   notifications for that particular saved line. These controls are independent
-   of chart visibility. Turning email on without a saved address opens a helpful
-   validation popup with a shortcut to Settings.
-7. For a predictable Buy preview, choose a session listed in **03 / Crossovers**
-   for the same saved SMA. Close the sheet and use the gear to return to Settings.
-   Enter that number in the EOD session field
-   and press **Preview EOD alerts**.
-8. To test Monitor, choose a session after warm-up whose closing price is strictly
-   below that SMA. Equality produces neither a fresh buy nor a monitor alert.
+## EOD rules and message templates
 
-The preview displays the channel, email subject and complete notification text.
-Every message is labelled SIMULATED DATA and identifies its scenario and session.
-Repeated previews never send messages or mark them delivered. If nothing matches,
-the app says so; it does not invent an alert. Invalid sessions show a helpful error.
-The default session is 1260; different sessions let you simulate different closes.
+Only the selected EOD session is evaluated, for all saved lines in the current
+counter/scenario. Opening or optimizing does not replay five years of alerts.
 
-Both a saved line's channel and its corresponding global type switch must be On.
-All saved lines for the current counter/scenario are evaluated at the requested
-close, including hidden lines. Unsaved lines are excluded. Only that close is
-evaluated; opening or optimizing the app does not replay five years of alerts.
+Buy uses `engine.crossover_events`: a strict below-to-above transition, equality
+retaining the previous strict side, missing values resetting it, and SMA warm-up
+excluded. The event must land on the requested EOD observation.
 
-## Rules and message templates
-
-The Buy rule uses `engine.crossover_events`, including equality retention,
-missing-value resets and the full warm-up. The event must land on the requested
-EOD session. Monitor means `close < SMA` at that session; no valid close/SMA means
-no alert. It can recur on each successive trading session below the SMA.
+Monitor means a strictly below-SMA close at that observation. It can recur once
+per successive trading session below the SMA. Equality or unavailable close/SMA
+produces no Monitor alert. "Impending" is the requested label for this condition,
+not a prediction of a future crossover or profit.
 
 | Type | Phone content / email body first line | Email subject |
 | --- | --- | --- |
 | Buy | `Buy Signal: DEMO-SGX has crossed above SMA X, target x /year` | `Buy Signal for DEMO-SGX` |
 | Monitor | `Monitor: DEMO-SGX has closed below SMA X, target x /year` | `Impending buy signal for DEMO-SGX` |
 
-Counter, period and target come from the saved line. A second body line identifies
-simulated data, scenario and session. These labels do not establish profitability
-or promise a price rise. "Impending" is the requested name for a below-SMA close,
-not a prediction of a future crossover.
+The saved counter/period/target replace these examples. A second body line labels
+SIMULATED DATA, scenario and session. `Preview EOD alerts` displays these exact
+subjects and bodies without contacting Gmail or posting a phone notification.
 
-## What the desktop tests verify
+## Android notifications
 
-Run these inside the project folder with your virtual environment active:
+- Android 13+ requests `POST_NOTIFICATIONS` permission on the Android UI thread.
+  The same test action continues after the permission callback grants access.
+- A named **SMA research alerts** channel, monochrome chart icon, stable alert ID
+  and tap-to-open PendingIntent are provided. Disabled app/channel settings and
+  denied permission produce helpful errors and leave failed alerts retryable.
+- `Test Android phone notification` is a repeatable generic test. `Send enabled
+  alerts` posts eligible EOD alerts and records successful dispatches.
+- This is local OS notification delivery, not a remote push service. There is no
+  EOD arrival source, daily scheduler or closed-app monitoring in this mock stage.
 
-```sh
-python -m unittest discover -s tests -v
-python -m scripts.smoke_ui
+## Gmail authorization and sending
+
+The sender is configurable in `sma_analyzer/settings.py`:
+
+```python
+GMAIL_SENDER_ADDRESS = "kelwong98@gmail.com"
 ```
 
-The notification unit tests check known upward crossings, equality, missing
-values, warm-up, latest-close evaluation, daily monitor keys, channel/type gates,
-exact subjects/body templates, email validation, storage migration, the history
-limit, restore, failed-delivery retry and successful-delivery deduplication.
+The sender must be a Google account on the phone and must grant permission. The
+recipient is the independently saved address in Settings. A sender address alone
+cannot grant access or send mail.
 
-The running Kivy tests use the actual heart, history popup, rule switches,
-channel buttons, address form and preview/delivery buttons. They inject a fake
-Android sender to confirm that Buy/Monitor alerts reach the dispatcher and that
-sending the same session twice invokes the sender only once. Email always stays
-a preview. Five portrait sizes check swatches, compact right-side actions and
-label fit. Screenshots are saved under `artifacts/`.
+`Connect Gmail` invokes Google Identity authorization for only
+`https://www.googleapis.com/auth/gmail.send`. The Android OAuth client must match
+the installed package and signing SHA-1. No inbox-reading permission, password,
+web client secret, Firebase config or custom domain is needed.
 
-This verifies app logic and widget connections. It cannot verify Android OS
-permissions, device notification rendering, sound, battery restrictions or
-background delivery on a Mac/cloud desktop. The desktop **Test Android phone
-notification** button explains that an Android development build is required.
+The app keeps a short-lived access token in memory only. Google Play services
+manages the account grant; the app never persists refresh tokens in SQLite.
+An explicit send re-authorizes to obtain a fresh access token, usually without
+another consent prompt once granted. `Disconnect` clears the local token and
+requests revocation; if offline, revoke access in Google Account settings too.
 
-## Later physical-phone check — not built in this stage
+`Send a test email via Gmail` sends one real, repeatable simulated test to the
+saved recipient. `Send enabled alerts` sends matching saved-line emails and phone
+alerts. Connecting and previewing send nothing. A failed Gmail connection does
+not prevent a valid phone channel from dispatching, or vice versa.
 
-The user has explicitly deferred completing Android notification integration
-and device testing until the Android app build stage. The current adapter is
-preparatory; desktop preview/testing is the present workflow.
+The Gmail REST transport constructs MIME mail, base64url-encodes it and POSTs to
+`users/me/messages/send`, with TLS verification using certifi's CA bundle. It
+reports API acceptance, expired authorization, configuration/permission errors,
+rate limits and uncertain network delivery. API acceptance does not guarantee
+inbox placement. There is no automatic retry on a possibly accepted request.
 
-After Android development packaging is approved:
+## Deduplication and limits
 
-1. Build with python-for-android/Pyjnius and declare the
-   `android.permission.POST_NOTIFICATIONS` manifest permission. Pyjnius is
-   imported only on demand, so desktop dependency installation is unchanged.
-2. Launch on a physical Android phone and press **Test Android phone notification**.
-   On Android 13+, accept the OS permission request, then press the test again.
-3. Open the notification shade and confirm the simulated test message.
-4. Enable a saved line/type and select a known crossover session. Press
-   **Show enabled EOD phone alerts (Android)**; check the message, then press
-   again to confirm it is not duplicated. Repeat with a below-SMA session.
-5. Deny permission and confirm a helpful failure, then grant permission and retry.
+Successful EOD sends are recorded by data version, channel, type, counter,
+scenario, period, target and session. Failed attempts remain retryable. Preview
+never changes these records. Clearing app data resets them. A crash/timeout
+between provider acceptance and recording can still cause a repeat; check Gmail
+**Sent** before retrying an uncertain send. Generic test buttons are deliberately
+not deduplicated.
 
-Successful EOD dispatches are recorded locally by dataset version, channel,
-notification type, counter, scenario, period, target and session. Failures remain
-retryable. This prevents ordinary repeated sends across restarts, but cannot
-provide exactly-once delivery if the process crashes after posting and before
-recording success. Uninstalling/deleting the database resets these records.
-The dedicated generic test button is intentionally repeatable.
-
-Automatic daily operation while closed will need a separate approved design for
-genuine EOD arrivals, market calendars/time zones, Android background execution
-or a trusted server. The current implementation has no such scheduler.
-
-## Selected email service: Gmail API
-
-The user selected **Gmail API** for future delivery, replacing the Resend
-suggestion. Expected volume is at most about 50 messages per month. Sending can
-use the user's existing Gmail address; buying or verifying a custom domain is
-unnecessary. Account-specific sending limits still apply.
-
-The current app remains **preview-only**. The email address field stores a
-recipient, not a connected Google sender. No Gmail account has been connected,
-Google Cloud project configured, token requested or email sent.
-
-When delivery is implemented:
-
-1. Enable Gmail API in a Google Cloud project and configure the OAuth consent
-   screen and appropriate desktop/Android OAuth clients.
-2. Let the user authorize their Google account using Google's supported sign-in
-   flow. Request only `https://www.googleapis.com/auth/gmail.send`, which permits
-   sending without granting inbox-reading access.
-3. Keep refresh/access tokens in secure platform storage, separate from source
-   code, screenshots, logs and the ordinary SQLite preferences. Never collect a
-   Gmail password in the app or distribute a shared client secret in Android.
-4. Connect the existing preview subject/body and deduplication rules to Gmail
-   delivery. Test with a fake transport before an explicitly authorized real
-   send; provide disconnect/revoke and clear expired-authorization errors.
-5. Review OAuth consent/testing status, scope-verification requirements and
-   refresh-token lifetime before relying on unattended delivery. Scheduling
-   remains a separate task from permission to send an email.
-
-See Google's [Gmail API guide](https://developers.google.com/workspace/gmail/api/guides)
-and [authorization scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
-when implementing. This provider decision adds no runtime dependency, network
-request, credentials or background work to the present prototype.
+No real account was connected, real email sent or physical phone notification
+verified in this cloud session. The native Java/Android build is still awaiting
+its first successful GitHub workflow run and device test. The desktop suite
+checks the real UI with fake consent, HTTP and Android APIs; see the linked
+validation report for exact pass counts and the blocked local build.

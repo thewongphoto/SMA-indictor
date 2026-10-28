@@ -52,12 +52,12 @@ class AlertTests(unittest.TestCase):
         self.assertNotEqual(a.key,b.key)
         self.assertNotEqual(a.key,replace(a,scenario='Trending').key)
 
-    def test_delivery_dedup_persists_failures_retry_and_email_preview(self):
+    def test_delivery_dedup_persists_failures_retry_and_unconnected_email(self):
         alerts = evaluate_eod([10,12,10,12],self.line,self.settings)
         phone = Mock()
         report = deliver_alerts(self.store, alerts, phone)
         phone.send.assert_called_once_with(alerts[0])
-        self.assertIn('Email preview only',report[1])
+        self.assertIn('Email not sent',report[1])
         deliver_alerts(LineStore(self.path),alerts,phone)
         self.assertEqual(phone.send.call_count,1)
         self.assertFalse(self.store.was_delivered(alerts[1].key))
@@ -66,7 +66,7 @@ class AlertTests(unittest.TestCase):
         self.assertIn('failed',deliver_alerts(self.store,[next_alert],phone)[0])
         self.assertFalse(self.store.was_delivered(next_alert.key))
         phone.send.side_effect = None
-        self.assertIn('Delivered',deliver_alerts(self.store,[next_alert],phone)[0])
+        self.assertIn('Posted to Android',deliver_alerts(self.store,[next_alert],phone)[0])
 
     def test_preview_has_no_delivery_side_effects(self):
         for _ in range(2):

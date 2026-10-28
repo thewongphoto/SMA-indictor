@@ -5,7 +5,8 @@
 A personal, **offline Python/Kivy prototype** for finding a simple moving average
 whose upward-crossing frequency is closest to a chosen target. Every price is
 synthetic. `DEMO-SGX` and `DEMO-US` are **fictional counters**, not exchange feeds.
-The app makes no network requests and needs no account, credentials, or backend.
+Stock analysis stays local and needs no account or backend. Optional Gmail
+API sending uses Google authorization and the internet; prices remain simulated.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
@@ -22,7 +23,8 @@ these rules were chosen; the production code is in `engine.py` and `policy.py`.
 ## Install and launch
 
 Use Python **3.12** (tested with 3.12.14) and a desktop with graphics support.
-Kivy is the only direct third-party dependency; charts use its native canvas.
+Desktop dependencies are Kivy and certifi (verified TLS for Gmail); charts use
+Kivy's native canvas. Android adds Pyjnius and a Google Identity Gradle dependency.
 SQLite and the test runner are part of Python's standard library.
 
 From this repository directory on Linux/macOS:
@@ -44,8 +46,9 @@ python main.py
 ```
 
 If PowerShell activation is restricted, run `.\.venv\Scripts\python.exe` in place
-of `python`. Installation downloads dependencies; the running app uses mock data
-only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
+of `python`. Installation downloads dependencies; stock prices remain mock data only.
+Desktop analysis needs no Android SDK. For a phone test APK, use the
+[beginner Android APK + Gmail guide](docs/ANDROID_APK_GUIDE.md).
 
 ## Screen navigation
 
@@ -178,18 +181,23 @@ its type switch must be On. Settings and channel choices survive restarts.
 Press **Preview EOD alerts** for a chosen simulated session. Buy uses the tested
 upward-crossing rules; Monitor means a strictly below-SMA close once per session.
 The preview shows exact phone text and email subject/body, labelled simulated.
-Email is **preview-only**, following the user's choice; nothing is sent.
-**Gmail API** is the selected future sender, using Google OAuth and send-only
-access with an existing Gmail address. No custom domain is needed; Google
-account connection and actual delivery have not been implemented yet.
-The Android buttons use a lazy native local-notification adapter and explain the
-platform requirement on desktop. They are not a remote push service, and there
-is no automatic monitoring while the app is closed.
+Preview sends nothing. **Connect Gmail** authorizes the configured sender,
+`kelwong98@gmail.com`, with Google's native send-only flow on Android. **Send a
+test email via Gmail** and **Send enabled alerts** are explicit real-send actions.
+Change `GMAIL_SENDER_ADDRESS` in `settings.py` for a later dedicated Gmail account.
+A recipient address alone does not connect or authorize the sender.
 
-See [the notification testing guide](docs/NOTIFICATIONS.md) for beginner steps,
-message templates, delivery/deduplication limits, Android permission requirements
-and what the automated fake-sender checks prove. No new desktop dependency,
-live API, sender account, domain registration or APK packaging was added.
+Android permission callbacks, notification channels, a monochrome icon and
+tap-to-open are implemented. These are local OS alerts; this prototype has no
+remote push server, daily scheduler or live EOD-price source. Desktop tests fake
+the Android/Google transports. Actual native compilation, phone delivery and
+Google consent are not verified here because the cloud lacks Android tooling.
+
+Start with [the APK/Gmail guide](docs/ANDROID_APK_GUIDE.md) to run the new manual
+GitHub Actions build, install its artifact, register its signing fingerprint in
+Google Cloud and authorize Gmail. [Validation status](docs/ANDROID_TEST_STATUS.md)
+reports the local build failure honestly: no APK has been produced here. No
+passwords, OAuth tokens or client secrets belong in source control.
 
 ## Mathematical rules
 
@@ -301,12 +309,13 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **53 passed**, including production/reference and notification checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **25 groups passed**, 0 failed |
+| Standard-library test suite | **67 passed**, including production/reference and notification checks, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **26 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
-| Android device / APK build | Not run; deferred to the next approved stage |
+| Android APK build | Attempted locally; blocked at missing javac, SDK/NDK absent; manual GitHub workflow supplied |
+| Physical Android / Google consent / real sending | Not run; requires user build/account/device setup |
 
 Tests include requested A–G, missing data, invalid inputs, a 3-year target,
 all six counter/scenario combinations, SQLite reload and deduplication,
@@ -332,8 +341,8 @@ KIVY_HOME="$PWD/.local/kivy" SMA_ANALYZER_DATA_DIR="$PWD/.local/data" python mai
 The SQLite table stores integer IDs, counter/scenario strings, SMA period,
 target frequency, visibility (0/1), and a mock-data version. A uniqueness
 constraint prevents duplicate saves. Derived series and event counts are
-recomputed from the deterministic dataset. No user identity or financial
-account data is stored. Back up the database to preserve saved lines; deleting
+recomputed from the deterministic dataset. The recipient email/preferences are
+stored locally; no financial credentials or Google refresh tokens are stored. Back up the database to preserve saved lines; deleting
 it resets them. The current additive migration preserves existing lines while adding channel flags,
 last-10 unsaved history, recipient/type preferences and successful-delivery keys.
 No passwords or provider credentials are stored. Future genuine market data needs
@@ -341,20 +350,26 @@ its own schema and migrations.
 
 ```text
 main.py                    # Launches the Kivy application
-requirements.txt           # Kivy only; unittest/SQLite need no package
+requirements.txt           # Desktop Kivy + certifi; unittest/SQLite are built in
 sma_analyzer/
   settings.py              # Frequency presets, mock choices, version
   engine.py                # SMA, events, capped annual-frequency optimizer
   policy.py                # Automatic cap, observable coverage, exact annual rates
   mock_data.py             # Seeded five-year (1,260-session) synthetic series
   storage.py               # SQLite lines, history, preferences, delivery dedup
-  notifications.py         # Pure EOD alert rules and lazy Android local delivery
+  notifications.py         # EOD rules, Android notifications and channel dispatch
+  gmail.py                 # Send-only Gmail MIME/HTTPS transport
+  android_gmail.py         # Lazy native Google Identity authorization bridge
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
   viewport.py              # Timeline presets, inclusive zoom ranges, y scaling
   navigation.py            # Animated saved-lines sheet and downward swipe handle
   widgets.py               # Shared rounded selectors and symbol legend
   app.py                   # Portrait UI and asynchronous button actions
+android/                   # Google Identity Java bridge and notification icon
+buildozer.spec             # Portrait ARM64 debug APK, permissions and dependencies
+requirements-android.txt   # Build-tool environment; separate from desktop
+.github/workflows/         # Manual test-APK build + fingerprint/artifact upload
 tests/
   test_engine.py           # Arithmetic and algorithm rules
   test_model.py            # Mock data, controls, chart/table data, SQLite
@@ -383,9 +398,9 @@ After you approve the next stage: introduce an explicitly selected data source
 with adjusted EOD closes, timestamps, corporate-action and missing-session
 rules, a versioned local cache, and fixture-based integration tests. Revisit
 warm-up exposure with you before changing the objective. Then validate native
-Android touch, keyboard, safe areas, pause/resume, and persistence, and prepare
-Buildozer/python-for-android configuration with portrait orientation. Any
-provider credentials should be configured securely only at that later stage.
-No live API, background scheduler, email sending, APK, or release build is included now.
-Foreground Android local notification delivery is implemented but requires a future
-Android development build for device validation.
+Android touch, keyboard, safe areas, pause/resume and persistence using the
+authorized debug-build guide. Buildozer configuration is now included; Google
+account setup is described in that guide. Release-store packaging remains later work.
+No live market-data API, background EOD scheduler or Play Store release is included.
+Gmail sending and a debug-APK build configuration are implemented; native
+compilation/device validation and Google account authorization remain required.

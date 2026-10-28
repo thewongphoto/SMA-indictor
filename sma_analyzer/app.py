@@ -35,11 +35,13 @@ from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
 from .policy import maximum_sma_period
 from .model import AnalyzerModel
-from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
+from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES, GMAIL_SENDER_ADDRESS
 from .storage import LineStore
 from .viewport import available_timelines
 from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol, IconButton, IconSymbol, RuleSwitch
 from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
+from .gmail import GmailSender
+from .android_gmail import AndroidGmailAuthorizer
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -110,6 +112,9 @@ class AnalyzerScreen(AnchorLayout):
         self.busy = False
         self.closed = False
         self._job = 0
+        self.gmail_sender = GmailSender(GMAIL_SENDER_ADDRESS)
+        self.gmail_authorizer = AndroidGmailAuthorizer()
+        self.delivery_busy = False
         self.manager = ScreenManager(transition=NoTransition())
         self.add_widget(self.manager)
         self.pages = {}
@@ -691,7 +696,7 @@ class AnalyzerScreen(AnchorLayout):
         self.settings_panel = Panel()
         self.settings_content.add_widget(self.settings_panel)
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
-        self.settings_panel.add_widget(WrappedLabel(text="SIMULATED DATA · Manual EOD tests only. No background monitoring. Email stays in preview mode.",color=MUTED,font_size=sp(11)))
+        self.settings_panel.add_widget(WrappedLabel(text="SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts can post phone alerts and email through Gmail.",color=MUTED,font_size=sp(11)))
         settings = self.model.store.notification_settings()
         self.notification_switches = {}
         descriptions = {
@@ -718,7 +723,21 @@ class AnalyzerScreen(AnchorLayout):
                 row.add_widget(switch)
                 self.notification_switches[key] = switch
                 self.settings_panel.add_widget(row)
-        self.settings_panel.add_widget(WrappedLabel(text="Email address · saved only on this device",color=MUTED,font_size=sp(11)))
+        self.settings_panel.add_widget(WrappedLabel(text=f"Gmail sender: {GMAIL_SENDER_ADDRESS}",color=MUTED,font_size=sp(11)))
+        self.gmail_status = WrappedLabel(text="Gmail not connected. Google sign-in is required on Android.",color=MUTED,font_size=sp(11))
+        self.settings_panel.add_widget(self.gmail_status)
+        gmail_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+        self.gmail_connect_button = LabButton(text="Connect Gmail")
+        self.gmail_disconnect_button = LabButton(text="Disconnect")
+        self.gmail_connect_button.bind(on_release=self.connect_gmail)
+        self.gmail_disconnect_button.bind(on_release=self.disconnect_gmail)
+        gmail_row.add_widget(self.gmail_connect_button)
+        gmail_row.add_widget(self.gmail_disconnect_button)
+        self.settings_panel.add_widget(gmail_row)
+        self.gmail_test_button = LabButton(text="Send a test email via Gmail")
+        self.gmail_test_button.bind(on_release=self.test_gmail_email)
+        self.settings_panel.add_widget(self.gmail_test_button)
+        self.settings_panel.add_widget(WrappedLabel(text="Recipient email address · saved only on this device",color=MUTED,font_size=sp(11)))
         address_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
         self.email_input = TextInput(text=settings.email,multiline=False,font_size=sp(13),
                                     padding=(dp(8),dp(12)),write_tab=False,
@@ -729,7 +748,7 @@ class AnalyzerScreen(AnchorLayout):
         address_row.add_widget(self.email_input)
         address_row.add_widget(self.email_save_button)
         self.settings_panel.add_widget(address_row)
-        self.notification_status = WrappedLabel(text="Email previews never send messages. Enable a type above and a channel on each saved line.",color=MUTED,font_size=sp(11))
+        self.notification_status = WrappedLabel(text="Preview sends nothing. Send enabled alerts sends selected channels; email needs Google authorization.",color=MUTED,font_size=sp(11))
         self.settings_panel.add_widget(self.notification_status)
         self.alert_session_label = WrappedLabel(text="Test an end-of-day session (1–1260)",color=MUTED,font_size=sp(11))
         self.settings_panel.add_widget(self.alert_session_label)
@@ -746,7 +765,7 @@ class AnalyzerScreen(AnchorLayout):
         self.phone_test_button = LabButton(text="Test Android phone notification")
         self.phone_test_button.bind(on_release=self.test_phone_notification)
         self.settings_panel.add_widget(self.phone_test_button)
-        self.eod_deliver_button = LabButton(text="Show enabled EOD phone alerts (Android)")
+        self.eod_deliver_button = LabButton(text="Send enabled alerts")
         self.eod_deliver_button.font_size = sp(11)
         self.eod_deliver_button.bind(on_release=self.deliver_eod_alerts)
         self.settings_panel.add_widget(self.eod_deliver_button)
@@ -773,7 +792,7 @@ class AnalyzerScreen(AnchorLayout):
             settings = replace(self.model.store.notification_settings(),email=self.email_input.text)
             self.model.store.save_notification_settings(settings)
             self.email_input.text = settings.email.strip()
-            self.notification_status.text = "Email address saved locally. Email remains preview-only."
+            self.notification_status.text = "Recipient saved locally. Preview sends nothing; Gmail sending requires authorization."
         except (ValueError,sqlite3.Error) as error:
             self.notification_status.text = str(error)
 
@@ -798,34 +817,131 @@ class AnalyzerScreen(AnchorLayout):
             self.alert_preview.text = str(error) if str(error) else "Enter a valid EOD session number."
             return ()
 
+    def _on_ui(self, callback):
+        Clock.schedule_once(lambda _: callback() if not self.closed else None, 0)
+
     def test_phone_notification(self, *_):
+        def permitted(allowed):
+            self._on_ui(lambda: self._post_test_phone(allowed))
         try:
-            AndroidNotifier.request_permission()
+            AndroidNotifier.request_permission(permitted)
+        except RuntimeError as error:
+            self.notification_status.text = str(error)
+
+    def _post_test_phone(self, allowed):
+        if not allowed:
+            self.notification_status.text = "Notification permission denied. Enable it in Android Settings to test again."
+            return
+        try:
             alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
                           "SMA Stock Analyzer · Test", "SIMULATED TEST · Phone notifications are working.")
-            # Permission dialog is asynchronous. Press again after granting it.
             AndroidNotifier().send(alert)
             self.notification_status.text = "Android test notification posted. Check the notification shade."
-        except Exception as error:
-            self.notification_status.text = (str(error) if isinstance(error,RuntimeError)
-                                             else "Android notification failed. Check permission and device setup.")
+        except RuntimeError as error:
+            self.notification_status.text = str(error)
+
+    def _delivery_controls(self, busy):
+        self.delivery_busy = busy
+        for widget in (self.eod_deliver_button,self.gmail_connect_button,self.gmail_disconnect_button,
+                       self.gmail_test_button,self.email_input,self.email_save_button):
+            widget.disabled = busy
+
+    def connect_gmail(self, *_):
+        self._delivery_controls(True)
+        self.gmail_status.text = "Waiting for Google authorization…"
+        try:
+            self.gmail_authorizer.authorize(GMAIL_SENDER_ADDRESS,
+                lambda token: self._on_ui(lambda: self._gmail_connected(token)),
+                lambda message: self._on_ui(lambda: self._gmail_connect_failed(message)))
+        except RuntimeError as error:
+            self._gmail_connect_failed(str(error))
+
+    def _gmail_connected(self, token):
+        self.gmail_sender.accept_access_token(token)
+        self.gmail_status.text = f"Connected for sending as {GMAIL_SENDER_ADDRESS}. No inbox access requested."
+        self._delivery_controls(False)
+
+    def _gmail_connect_failed(self, message):
+        self.gmail_sender.disconnect()
+        self.gmail_status.text = message
+        self._delivery_controls(False)
+
+    def disconnect_gmail(self, *_):
+        self.gmail_sender.disconnect()
+        self._delivery_controls(True)
+        try:
+            self.gmail_authorizer.revoke(GMAIL_SENDER_ADDRESS,
+                lambda: self._on_ui(lambda: self._gmail_connect_failed("Disconnected from Gmail; Google sending grant revoked.")),
+                lambda message: self._on_ui(lambda: self._gmail_connect_failed(message)))
+        except RuntimeError as error:
+            self._gmail_connect_failed(str(error))
+
+    def test_gmail_email(self, *_):
+        if not self.model.store.notification_settings().email:
+            self.notification_status.text = "Save a recipient email address first. Use your own address for the test."
+            return
+        alert = Alert("email","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
+                      "SMA Stock Analyzer · Gmail test", "SIMULATED TEST · Gmail API email delivery is working.")
+        self._authorize_delivery((alert,), test_email=True)
 
     def deliver_eod_alerts(self, *_):
         alerts = self.preview_eod_alerts()
-        if alerts:
-            self.eod_deliver_button.disabled = True
-            future = self.executor.submit(deliver_alerts,self.model.store,alerts)
-            future.add_done_callback(lambda completed: Clock.schedule_once(
-                lambda _: self._finish_alert_delivery(completed),0))
+        if not alerts:
+            return
+        self._delivery_controls(True)
+        def after_permission(_allowed):
+            # A denied phone permission must not prevent an enabled email channel.
+            self._on_ui(lambda: self._authorize_delivery(alerts))
+        try:
+            if any(alert.channel=="phone" for alert in alerts):
+                AndroidNotifier.request_permission(after_permission)
+            else:
+                self._authorize_delivery(alerts)
+        except RuntimeError:
+            self._authorize_delivery(alerts)
+
+    def _authorize_delivery(self, alerts, test_email=False):
+        self._delivery_controls(True)
+        needs_email = any(alert.channel=="email" and
+                          (test_email or not self.model.store.was_delivered(alert.key)) for alert in alerts)
+        if not needs_email:
+            self._run_delivery(alerts)
+            return
+        self.gmail_status.text = "Authorizing Gmail sending…"
+        def success(token):
+            self.gmail_sender.accept_access_token(token)
+            self.gmail_status.text = f"Connected sender: {GMAIL_SENDER_ADDRESS}"
+            self._run_delivery(alerts, self.gmail_sender, test_email)
+        def failure(message):
+            self.gmail_status.text = message
+            # Keep phone delivery independent when Gmail permission is missing.
+            self._run_delivery(alerts, test_email=test_email)
+        try:
+            self.gmail_authorizer.authorize(GMAIL_SENDER_ADDRESS,
+                lambda token: self._on_ui(lambda: success(token)),
+                lambda message: self._on_ui(lambda: failure(message)))
+        except RuntimeError as error:
+            failure(str(error))
+
+    def _run_delivery(self, alerts, mailer=None, test_email=False):
+        def work():
+            if test_email:
+                if mailer is None:
+                    return ["No email sent. Connect Gmail using the Android build; see Gmail status above."]
+                mailer.send(alerts[0],self.model.store.notification_settings().email)
+                return ["Test email accepted by Gmail. Check the recipient inbox and sender Sent folder."]
+            return deliver_alerts(self.model.store,alerts,mailer=mailer)
+        future = self.executor.submit(work)
+        future.add_done_callback(lambda completed: self._on_ui(lambda: self._finish_alert_delivery(completed)))
 
     def _finish_alert_delivery(self, future):
-        if self.closed:
-            return
-        self.eod_deliver_button.disabled = False
+        self._delivery_controls(False)
         try:
             self.notification_status.text = "\n".join(future.result())
+        except RuntimeError as error:
+            self.notification_status.text = str(error)
         except Exception:
-            self.notification_status.text = "Delivery failed. Check Android notification setup; email remains preview-only."
+            self.notification_status.text = "Delivery could not be confirmed. Check Android permission, Gmail status and Sent before retrying."
 
     def _crossing_table(self, rows):
         table = GridLayout(cols=3, size_hint_y=None, row_default_height=dp(30),
@@ -886,6 +1002,8 @@ class AnalyzerScreen(AnchorLayout):
 
     def close(self):
         self.closed = True
+        self.gmail_sender.disconnect()
+        self.gmail_authorizer.close()
         self.executor.shutdown(wait=False, cancel_futures=True)
 
 
@@ -905,6 +1023,10 @@ class SMAStockAnalyzerApp(App):
             return WrappedLabel(text=f"Local storage could not be opened: {error}\n"
                                 "Choose a writable SMA_ANALYZER_DATA_DIR and restart.", color=ERROR)
         return self.screen
+
+    def on_pause(self):
+        # Google consent can temporarily cover the Kivy activity.
+        return True
 
     def on_stop(self):
         if hasattr(self, "screen"):

@@ -109,9 +109,12 @@ Latest user direction: complete Android notification implementation/integration
 and physical-device testing when building the Android app later. The existing
 adapter is preparatory and unverified on-device; current desktop behavior stays
 manual previews/testing. Do not start Android packaging or background work now.
-Email remains preview-only. Expected future volume is at most about 50 messages
-per month. Resend is a proposed custom-domain sender, not an approved or
-configured provider; current free-plan terms need confirmation before setup.
+Email remains preview-only. The user selected Gmail API as the future sender,
+replacing the Resend suggestion; expected volume is at most about 50 messages
+per month. Use Google OAuth with send-only gmail.send access, not a Gmail
+password. A custom domain is unnecessary. Google Cloud/OAuth configuration,
+secure token storage, consent/testing status and delivery integration remain
+future implementation work. No Gmail account is connected or sending enabled.
 
 History icon selection: the user chose option A from
 `docs/HISTORY_ICON_OPTIONS.md`. Its native canvas implementation uses an open

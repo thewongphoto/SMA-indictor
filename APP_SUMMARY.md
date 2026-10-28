@@ -247,6 +247,9 @@ specified calculations and controls, not investment performance.
   gaps and warm-up do not invent alerts. Both channel and type must be enabled.
 - Email remains preview-only by user choice. Preview shows exact subjects and
   bodies; no email service, domain, sender or credentials have been configured.
+  Gmail API is the chosen future provider (about 50 emails/month), using Google
+  OAuth with send-only access. No custom domain is required. Provider selection
+  does not connect an account or enable actual email delivery.
 - A lazy Android local-notification adapter and manual test controls are present.
   Desktop Kivy integration checks inject a fake sender. Physical OS delivery,
   permission prompts, sounds and background behavior have not been verified.

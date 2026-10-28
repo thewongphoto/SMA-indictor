@@ -127,21 +127,35 @@ Automatic daily operation while closed will need a separate approved design for
 genuine EOD arrivals, market calendars/time zones, Android background execution
 or a trusted server. The current implementation has no such scheduler.
 
-## Email service and domains
+## Selected email service: Gmail API
 
-Email remains preview-only. A recipient address alone does not supply a sender.
-A future sending service requires a verified sender and a secure delivery design.
-Do not put provider passwords or API keys in source code or ship shared sending
-secrets inside an Android app; a trusted relay is the appropriate next stage.
+The user selected **Gmail API** for future delivery, replacing the Resend
+suggestion. Expected volume is at most about 50 messages per month. Sending can
+use the user's existing Gmail address; buying or verifying a custom domain is
+unnecessary. Account-specific sending limits still apply.
 
-I cannot register a free domain or create a sender account on your behalf from
-this workspace. A service-provided sender address may avoid buying a domain,
-subject to the provider's current conditions. A custom domain normally requires
-registration and DNS verification. Provider/free-plan selection can wait until
-actual email delivery is approved.
+The current app remains **preview-only**. The email address field stores a
+recipient, not a connected Google sender. No Gmail account has been connected,
+Google Cloud project configured, token requested or email sent.
 
-Expected volume is no more than about 50 emails per month. Resend is a proposed
-option for a verified custom-domain sender; it has offered a free transactional
-tier suitable for this scale. Current pricing could not be verified from this
-workspace, so check [Resend pricing](https://resend.com/pricing) before choosing
-or configuring a provider. No provider has been selected or account created.
+When delivery is implemented:
+
+1. Enable Gmail API in a Google Cloud project and configure the OAuth consent
+   screen and appropriate desktop/Android OAuth clients.
+2. Let the user authorize their Google account using Google's supported sign-in
+   flow. Request only `https://www.googleapis.com/auth/gmail.send`, which permits
+   sending without granting inbox-reading access.
+3. Keep refresh/access tokens in secure platform storage, separate from source
+   code, screenshots, logs and the ordinary SQLite preferences. Never collect a
+   Gmail password in the app or distribute a shared client secret in Android.
+4. Connect the existing preview subject/body and deduplication rules to Gmail
+   delivery. Test with a fake transport before an explicitly authorized real
+   send; provide disconnect/revoke and clear expired-authorization errors.
+5. Review OAuth consent/testing status, scope-verification requirements and
+   refresh-token lifetime before relying on unattended delivery. Scheduling
+   remains a separate task from permission to send an email.
+
+See Google's [Gmail API guide](https://developers.google.com/workspace/gmail/api/guides)
+and [authorization scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
+when implementing. This provider decision adds no runtime dependency, network
+request, credentials or background work to the present prototype.

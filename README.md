@@ -153,6 +153,9 @@ Press **Preview EOD alerts** for a chosen simulated session. Buy uses the tested
 upward-crossing rules; Monitor means a strictly below-SMA close once per session.
 The preview shows exact phone text and email subject/body, labelled simulated.
 Email is **preview-only**, following the user's choice; nothing is sent.
+**Gmail API** is the selected future sender, using Google OAuth and send-only
+access with an existing Gmail address. No custom domain is needed; Google
+account connection and actual delivery have not been implemented yet.
 The Android buttons use a lazy native local-notification adapter and explain the
 platform requirement on desktop. They are not a remote push service, and there
 is no automatic monitoring while the app is closed.

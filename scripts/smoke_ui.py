@@ -19,6 +19,8 @@ os.environ["SMA_ANALYZER_DATA_DIR"] = temporary.name
 from sma_analyzer.app import SMAStockAnalyzerApp
 from sma_analyzer.engine import crossover_events, simple_moving_average
 from sma_analyzer.mock_data import Dataset
+from unittest.mock import Mock, patch
+from sma_analyzer.notifications import evaluate_eod
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.base import EventLoop
@@ -109,6 +111,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.hide_button.parent.parent is ui.optimal_panel
         assert ui.optimal_panel.top > ui.chart.parent.top
         assert ui.save_button.disabled
+        assert not ui.save_button.selected and ui.save_button.text == ""
         self.check("initial unoptimized state")
 
         for target in [12, 6, 1]:
@@ -198,6 +201,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         yield from self.wait_for_calculation()
         ui.save_button.dispatch("on_release")
         assert len(ui.model.saved_lines()) == 1
+        assert ui.save_button.selected
         ui.hide_button.dispatch("on_release")
         assert not ui.chart.series
         ui.hide_button.dispatch("on_release")
@@ -213,6 +217,97 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.save_button.dispatch("on_release")
         assert len(ui.model.saved_lines()) == 2
         self.check("save, multiple overlays, hide/show, persistent saved-line toggles")
+
+        saved = ui.model.current_saved_line()
+        row = ui.saved_rows[saved.id]
+        row["email"].dispatch("on_release")
+        for _ in range(4): yield
+        assert ui.validation_popup._is_open
+        assert "email address" in ui.notification_status.text
+        assert not ui.model.current_saved_line().email_enabled
+        ui.validation_popup.dismiss()
+        ui.email_input.text = "bad-address"
+        ui.email_save_button.dispatch("on_release")
+        assert "valid email" in ui.notification_status.text
+        ui.email_input.text = "reader@example.com"
+        ui.email_save_button.dispatch("on_release")
+        assert ui.model.store.notification_settings().email == "reader@example.com"
+        for switch in ui.notification_switches.values():
+            switch.active = True
+        switch = ui.notification_switches["phone_buy"]
+        ui.scroll.scroll_to(switch,animate=False)
+        for _ in range(6): yield
+        for expected in (False,True):
+            pointer = Pointer(*switch.to_window(*switch.center))
+            pointer.down()
+            pointer.up()
+            for _ in range(14): yield
+            assert switch.active == expected
+            assert ui.model.store.notification_settings().phone_buy == expected
+        ui.saved_rows[saved.id]["email"].dispatch("on_release")
+        ui.saved_rows[saved.id]["push"].dispatch("on_release")
+        assert ui.model.current_saved_line().email_enabled
+        assert ui.model.current_saved_line().push_enabled
+        assert ui.saved_rows[saved.id]["email"].text.endswith("On")
+        assert ui.saved_rows[saved.id]["push"].text.endswith("On")
+        self.check("email validation popup, saved address, four persistent type switches, independent saved-line channels")
+
+        session = ui.model.result.events[-1].index + 1
+        ui.alert_session.text = str(session)
+        ui.preview_alert_button.dispatch("on_release")
+        assert len(ui.last_alerts) == 2
+        assert "Buy Signal for DEMO-US" in ui.alert_preview.text
+        assert "SIMULATED DATA" in ui.alert_preview.text
+        assert all(not ui.model.store.was_delivered(a.key) for a in ui.last_alerts)
+        phone = Mock()
+        with patch("sma_analyzer.notifications.AndroidNotifier",return_value=phone):
+            ui.eod_deliver_button.dispatch("on_release")
+            deadline = time.monotonic()+5
+            while ui.eod_deliver_button.disabled:
+                assert time.monotonic()<deadline
+                yield
+            assert phone.send.call_count == 1
+            assert "Email preview only" in ui.notification_status.text
+            ui.eod_deliver_button.dispatch("on_release")
+            while ui.eod_deliver_button.disabled:
+                assert time.monotonic()<deadline
+                yield
+            assert phone.send.call_count == 1
+        below = next(i+1 for i,(price,sma) in enumerate(zip(ui.chart.prices,ui.model.result.sma))
+                     if sma is not None and price < sma)
+        ui.alert_session.text = str(below)
+        ui.preview_alert_button.dispatch("on_release")
+        assert all(a.kind == "monitor" for a in ui.last_alerts) and len(ui.last_alerts)==2
+        assert "Impending buy signal for DEMO-US" in ui.alert_preview.text
+        ui.phone_test_button.dispatch("on_release")
+        assert "Android development build" in ui.notification_status.text
+        ui.alert_session.text = "0"
+        ui.preview_alert_button.dispatch("on_release")
+        assert "between 1 and" in ui.alert_preview.text
+        self.check("real EOD preview buttons, buy/monitor contents, mocked Android delivery, duplicate suppression, desktop limitation")
+
+        ui.scroll.scroll_to(ui.optimal_panel,animate=False)
+        for _ in range(6): yield
+        pointer = Pointer(*ui.save_button.to_window(*ui.save_button.center))
+        pointer.down()
+        pointer.up()
+        for _ in range(6): yield
+        assert not ui.save_button.selected and len(ui.model.saved_lines()) == 1
+        history = ui.model.store.recent_unsaved()[0]
+        assert history.target_frequency == 6
+        ui.scroll.scroll_to(ui.saved_panel,animate=False)
+        for _ in range(6): yield
+        pointer = Pointer(*ui.history_button.to_window(*ui.history_button.center))
+        pointer.down()
+        pointer.up()
+        for _ in range(4): yield
+        assert ui.history_popup._is_open and len(ui.history_restore_buttons)==1
+        ui.history_popup.export_to_png("artifacts/recent-unsaved.png")
+        ui.history_restore_buttons[history.id].dispatch("on_release")
+        assert ui.save_button.selected and len(ui.model.saved_lines())==2
+        assert not ui.model.store.recent_unsaved()
+        assert ui.model.current_saved_line().email_enabled
+        self.check("outline/red heart toggles, history popup and restore preserve saved notification flags")
 
         # Measure the completed analysis layout, after save feedback has cleared.
         ui.optimize_button.dispatch("on_release")
@@ -241,11 +336,19 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert ui.counter.y > ui.target.y
                 assert ui.controls.height < dp(185)
-            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button,
-                           ui.save_button, ui.hide_button]:
+            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button,ui.hide_button]:
                 assert widget.width >= dp(110)
                 assert widget.x >= ui.content.x and widget.right <= ui.content.right
                 assert widget.height >= dp(44)
+            assert ui.save_button.width == dp(44) and ui.save_button.height >= dp(44)
+            for line in ui.model.saved_lines():
+                row = ui.saved_rows[line.id]
+                for key in ("push","email"):
+                    assert row[key].width >= row[key].texture_size[0], "Saved notification label must fit"
+                assert row["hide"].right <= row["heart"].x
+                assert abs(row["heart"].right - (ui.saved_panel.right-dp(14))) < dp(1)
+                active = ui.model.result is not None and line.period == ui.model.result.period
+                assert row["swatch"].ink == ui.chart.period_color(line.period,active)
             if size[0] == 320:
                 ui.export_to_png("artifacts/prototype-small-phone.png")
         Window.size = (440, 920)
@@ -255,6 +358,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         Path("artifacts").mkdir(exist_ok=True)
         ui.export_to_png("artifacts/prototype-phone.png")
         ui.content.export_to_png("artifacts/prototype-full.png")
+        ui.alert_session.text = str(ui.model.result.events[-1].index+1)
+        ui.preview_alert_button.dispatch("on_release")
+        for _ in range(4): yield
+        ui.saved_panel.export_to_png("artifacts/saved-lines-phone.png")
+        ui.settings_panel.export_to_png("artifacts/notification-settings.png")
         self.check("five portrait sizes: compact aligned controls, responsive Optimal card, touch targets and screenshots")
 
         # Hit the arrow in each top selector through normal window routing.
@@ -435,6 +543,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("taps/jitter ignored, outside-plot release clamped, new scenario resets zoom")
 
         # Page scrolling is still available when the gesture starts outside the plot.
+        # Start away from either scroll boundary; settings make the page longer.
+        ui.scroll.scroll_y = 0.5
+        for _ in range(6): yield
         before = ui.scroll.scroll_y
         x = ui.scroll.x + dp(5)
         finger = Pointer(x, ui.scroll.center_y)
@@ -465,6 +576,40 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "At least 4 sessions" in ui.status.text
         assert ui.model.result is None
         self.check("remove line, empty chart, insufficient-data error without crash")
+
+        # Real optimizer results for the requested example: SGX Trending chooses
+        # SMA 11 for target 12 and SMA 18 for target 1. Capture both saved rows.
+        ui.counter.text = "DEMO-SGX"
+        ui.scenario.text = "Trending"
+        for target, expected in ((12,11),(1,18),(12,11)):
+            ui.target.text = str(target)
+            ui.optimize_button.dispatch("on_release")
+            yield from self.wait_for_calculation()
+            assert ui.model.result.period == expected
+            if ui.model.current_saved_line() is None:
+                ui.save_button.dispatch("on_release")
+        line = ui.model.current_saved_line()
+        ui.model.store.set_notifications(line.id,"phone",True)
+        ui.model.store.set_notifications(line.id,"email",True)
+        ui.refresh()
+        ui.alert_session.text = str(ui.model.result.events[-1].index+1)
+        ui.preview_alert_button.dispatch("on_release")
+        assert len(ui.last_alerts)==2
+        assert {p.period for p in ui.chart.series} == {11,18}
+        for plotted in ui.chart.series:
+            saved = next(s for s in ui.model.saved_lines() if s.period == plotted.period)
+            assert ui.saved_rows[saved.id]["swatch"].ink == ui.chart.line_color(plotted,0)
+        for _ in range(8): yield
+        ui.saved_panel.export_to_png("artifacts/saved-lines-phone.png")
+        ui.settings_panel.export_to_png("artifacts/notification-settings.png")
+        ui.scroll.scroll_y = 1
+        for _ in range(6): yield
+        ui.export_to_png("artifacts/prototype-phone.png")
+        Window.size = (960,1440)
+        for _ in range(8): yield
+        ui.saved_panel.export_to_png("artifacts/saved-lines-wide.png")
+        ui.export_to_png("artifacts/prototype-wide.png")
+        self.check("SMA 11 and 18 real results: distinct chart-matched swatches, hearts, channels and final screenshots")
 
 
 if __name__ == "__main__":

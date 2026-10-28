@@ -57,14 +57,15 @@ only. No Android SDK, Java, Buildozer, or emulator is required for this stage.
    upward crossings. The full-width Optimal SMA card and its save/hide actions
    sit above the chart. Target Crossing Frequency and Actual Crossing Frequency
    sit side by side below it. The raw crossing count appears in section 03.
-4. Press **Save SMA line** to retain a line locally. Optimize another target to
+4. Tap the **outline heart** in Optimal SMA to save a line locally (it turns red). Optimize another target to
    compare multiple overlays. Saved lines belong to their counter, scenario,
    and mock-data version; they reappear when you return to that combination.
 5. Use **Hide/Show** for saved lines and **Hide/Show SMA line** for the
    current result. If a saved line has the same period as the selected result,
    the selected visibility controls that period, and it is drawn only once.
    The selected toggle lasts for the current result; saved-row toggles persist.
-   Removing a saved line leaves the current analysis available until changed.
+   Tap a red heart to unsave a line; the current analysis remains until changed.
+   The history icon in section 02 restores the last 10 unsaved configurations.
 
 Changing a scenario, counter, or target clears the selected statistics. Press
 Optimize again to compute the new result; saved overlays remain available.
@@ -135,6 +136,32 @@ Custom targets must fit a positive SQLite signed 64-bit integer. A target can
 be mathematically unreachable: the app still displays the closest candidate
 and its actual count instead of claiming an exact match.
 
+## Hearts, history and notification previews
+
+Saved rows now show chart-matched colour dashes, separate **Push notifications
+On/Off** and **Email notifications On/Off** controls, compact Hide/Show and a red
+heart at the far right. The outline/red heart in Optimal SMA also saves/unsaves.
+The clock/history icon in section 02 restores the ten most recently unsaved
+configurations across all scenarios/counters; older entries are discarded.
+
+**04 / Notification Settings**, at the bottom, contains phone/email sections,
+Buy/Monitor switches and a locally saved email address. Email cannot be enabled
+for a saved line until a valid address is saved. Both the per-line channel and
+its type switch must be On. Settings and channel choices survive restarts.
+
+Press **Preview EOD alerts** for a chosen simulated session. Buy uses the tested
+upward-crossing rules; Monitor means a strictly below-SMA close once per session.
+The preview shows exact phone text and email subject/body, labelled simulated.
+Email is **preview-only**, following the user's choice; nothing is sent.
+The Android buttons use a lazy native local-notification adapter and explain the
+platform requirement on desktop. They are not a remote push service, and there
+is no automatic monitoring while the app is closed.
+
+See [the notification testing guide](docs/NOTIFICATIONS.md) for beginner steps,
+message templates, delivery/deduplication limits, Android permission requirements
+and what the automated fake-sender checks prove. No new desktop dependency,
+live API, sender account, domain registration or APK packaging was added.
+
 ## Mathematical rules
 
 For period `N`, `SMA[t] = sum(P[t-N+1:t+1]) / N`.
@@ -188,7 +215,8 @@ A target may be unattainable. With the current five-year DEMO-SGX Sideways data 
 Saved lines from earlier versions remain available and retain their original
 period and target. Lines above the current cap are labelled as previously saved
 and outside the current search limit; they are not silently retuned or deleted.
-The database needs no migration because it stores parameters, not derived rates.
+The history-length update preserves these parameters. The notification update
+adds columns/tables automatically without changing existing periods or targets.
 
 ## Run automated checks
 
@@ -244,8 +272,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **44 passed**, including production/reference integration checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **18 groups passed**, 0 failed |
+| Standard-library test suite | **53 passed**, including production/reference and notification checks, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **22 groups passed**, 0 failed |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Phone viewport and full scrollable page generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
@@ -277,7 +305,10 @@ target frequency, visibility (0/1), and a mock-data version. A uniqueness
 constraint prevents duplicate saves. Derived series and event counts are
 recomputed from the deterministic dataset. No user identity or financial
 account data is stored. Back up the database to preserve saved lines; deleting
-it resets them. Future genuine market data needs its own schema and migrations.
+it resets them. The current additive migration preserves existing lines while adding channel flags,
+last-10 unsaved history, recipient/type preferences and successful-delivery keys.
+No passwords or provider credentials are stored. Future genuine market data needs
+its own schema and migrations.
 
 ```text
 main.py                    # Launches the Kivy application
@@ -287,7 +318,8 @@ sma_analyzer/
   engine.py                # SMA, events, capped annual-frequency optimizer
   policy.py                # Automatic cap, observable coverage, exact annual rates
   mock_data.py             # Seeded five-year (1,260-session) synthetic series
-  storage.py               # Local SQLite saved-line repository
+  storage.py               # SQLite lines, history, preferences, delivery dedup
+  notifications.py         # Pure EOD alert rules and lazy Android local delivery
   model.py                 # Shared chart/card/table presentation state
   chart.py                 # Android-compatible Kivy canvas chart
   viewport.py              # Timeline presets, inclusive zoom ranges, y scaling
@@ -324,4 +356,6 @@ warm-up exposure with you before changing the objective. Then validate native
 Android touch, keyboard, safe areas, pause/resume, and persistence, and prepare
 Buildozer/python-for-android configuration with portrait orientation. Any
 provider credentials should be configured securely only at that later stage.
-No live API, scheduling, messaging, APK, or release build is included now.
+No live API, background scheduler, email sending, APK, or release build is included now.
+Foreground Android local notification delivery is implemented but requires a future
+Android development build for device validation.

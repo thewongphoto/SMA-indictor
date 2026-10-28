@@ -14,6 +14,9 @@ connected to the running app; the status table records the remaining scope.
 | Warm-up-adjusted frequency and automatic history-dependent SMA cap below | Active in `sma_analyzer/engine.py` and `policy.py`; checked against the research reference |
 | Default chart view and available presets | 1Y on startup/new data; 3Y and 5Y only when available; Max shows all history |
 | Live market data, background scheduling, Android APK packaging | Not implemented |
+| Saved hearts, ten-entry unsave history, channel/type settings and EOD previews | Implemented and tested |
+| Foreground Android local-notification adapter | Implemented; device validation pending |
+| Email sending | Preview only, by user choice |
 
 Download the updated repository to use the new calculations. Files already
 downloaded to a Mac do not update automatically when GitHub changes.
@@ -171,12 +174,12 @@ policy excludes that result by requiring at least 126 usable comparisons.
 
 Validation after application integration:
 
-- 44 unit tests passed, including active-engine/reference agreement, coverage,
+- 53 unit tests passed, including active-engine/reference agreement, coverage,
   caps, displayed model results, and preservation of earlier saved lines; none
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The current Kivy UI run passed 18 check groups, including the known
+- The current Kivy UI run passed 22 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -188,7 +191,7 @@ specified calculations and controls, not investment performance.
 
 ## Chart, zoom, and local saving
 
-- A full-width Optimal SMA card, including Save SMA line and Hide/Show SMA line,
+- A full-width Optimal SMA card, including an outline/red save heart and Hide/Show SMA line,
   sits above the chart. Only two frequency cards sit below it: Target Crossing
   Frequency on the left and Actual Crossing Frequency on the right.
 - The raw crossing count is part of section 03, Crossovers — Selected SMA,
@@ -223,6 +226,38 @@ specified calculations and controls, not investment performance.
 - No account or cloud synchronization is provided. Derived SMA/event values are
   recalculated; changing the dataset version will require deliberate handling
   of older saved lines in a future integration.
+
+## Saved hearts, recovery and notifications
+
+- Each saved SMA label has a dash matching its chart colour. Colours are stable
+  when other periods are hidden; the active period remains gold.
+- The Optimal SMA heart is grey/outlined when unsaved and red/filled when saved
+  for that exact period and target. Tapping again unsaves it. Saved-row hearts
+  also unsave; the current calculated overlay can remain visible independently.
+- The history icon in section 02 opens the last ten distinct saved-then-unsaved
+  configurations, newest first across counters/scenarios. Older entries are
+  discarded; restore recovers period, target, visibility and channel flags.
+- Per saved line, Phone/Email On/Off controls are separate from Hide/Show.
+  Bottom Settings holds two type switches per channel and a locally stored
+  recipient address. All toggles start Off. Missing-address validation blocks
+  enabling email, and clearing the address is blocked while a saved line has
+  email On.
+- Buy uses the existing upward-crossing engine at the selected EOD observation.
+  Monitor means a strictly below-SMA close, once per simulated session; equality,
+  gaps and warm-up do not invent alerts. Both channel and type must be enabled.
+- Email remains preview-only by user choice. Preview shows exact subjects and
+  bodies; no email service, domain, sender or credentials have been configured.
+- A lazy Android local-notification adapter and manual test controls are present.
+  Desktop Kivy integration checks inject a fake sender. Physical OS delivery,
+  permission prompts, sounds and background behavior have not been verified.
+  No APK or scheduler was built. Local notification delivery while running is
+  distinct from remote push delivery or reliable closed-app monitoring.
+- Successful EOD sends are deduplicated persistently by data version, channel,
+  type, counter, scenario, period, target and session. Failures remain retryable;
+  a crash between posting and recording can still cause a repeat.
+- The SQLite migration is additive and preserves older saved lines. Email,
+  settings, history and delivery records remain on the device. No shared sending
+  secrets are stored. See [notification testing](docs/NOTIFICATIONS.md).
 
 ## Current app behavior and remaining work
 

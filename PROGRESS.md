@@ -15,7 +15,7 @@
   translucent selection, auto-scaled visible y-range, and a top-right Zoom out
   button that appears only while zoomed. Touches in the plot bypass scroll delay;
   page swipes outside the plot and mouse-wheel scrolling remain available.
-- 44 standard-library tests passed; 18 running Kivy smoke groups passed.
+- 53 standard-library tests passed; 22 running Kivy smoke groups passed.
   Screenshots generated in ignored `artifacts/`. No failed or skipped checks.
 
 ## Decisions to preserve
@@ -52,13 +52,13 @@
 - `experiments/observable_frequency.py` is the independent pre-integration
   reference. Production code does not import it. The comparison runner checks
   active results against that reference across all scenarios/targets.
-- 44 unit tests and 18 running Kivy smoke groups passed in the current version,
+- 53 unit tests and 22 running Kivy smoke groups passed in the current version,
   including the active five-year Sideways result: SMA 254, 125 crossings / 1,006
   comparisons, 31.31/year. Scenario, target, zoom, save/load and error checks passed.
 - `APP_SUMMARY.md`, README and Mac instructions now describe active behavior.
   The evaluation report is retained as a historical pre-integration record.
-- Mock history is now five years; generator seed/version and SQLite schema
-  remain unchanged.
+- Mock history is now five years; generator seed/version remain unchanged. The notification update adds an
+  additive SQLite migration for flags/history/settings/delivery records.
   Existing saved periods are preserved; those above the cap are labelled as
   outside the current search limit.
 - Remaining: genuine data, Android device validation
@@ -78,6 +78,30 @@
   Legend line swatches match actual series colors and have no color prefixes.
 - `docs/ui-current.png` is a screenshot of the working app; `ui-preview.png`
   remains the approved illustrative design reference.
+
+## Saved-line and notification enhancement
+
+- Heart save/unsave controls (grey outline/red fill), chart-matched saved-row
+  swatches, compact right-aligned hide/heart actions, and independent On/Off
+  phone/email buttons. Period colours stay stable when overlays are hidden.
+- Global last-10 distinct unsaved history with restore popup; only saved then
+  unsaved entries qualify. Oldest entries are discarded. Restore preserves
+  scope, period, target, visibility and channel flags.
+- Bottom settings with native canvas phone/mail icons and rounded switches,
+  persistent recipient/type settings, email syntax/missing-address validation.
+- `notifications.py` contains pure EOD Buy/Monitor rules using the existing
+  engine and an optional lazy native Android local notifier. Preview is default
+  and email stays preview-only, explicitly selected by the user. No SMTP or
+  network sender, provider account, domain, API, scheduler, backend or APK added.
+- Manual session preview / Android test / enabled-EOD delivery buttons. Persistent
+  successful-send deduplication, failure retry and clear desktop limitation.
+  There is no automatic/background EOD arrival source or remote push service.
+- 53 unit tests and 22 running UI groups pass, including real window clicks on
+  the heart/history/switches, fake Android delivery and duplicate suppression,
+  actual subject/body text, migration, ten-entry pruning, restore and five sizes.
+- `docs/NOTIFICATIONS.md` explains novice testing, exact templates, limitations
+  and future device permissions. Settings and saved-line screenshots are linked
+  from the GitHub preview page. Physical Android delivery remains unverified.
 
 ## Stop point
 

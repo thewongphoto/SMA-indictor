@@ -26,6 +26,21 @@ Loading, save feedback and errors appear below the controls when needed. The
 ordinary completed state keeps that area compact. Both images are captures of
 the running app, rather than generated design images.
 
+## Saved lines and notification settings
+
+![Saved SMA lines with chart-matched swatches and hearts](ui-saved-lines.png)
+
+![Notification settings and simulated alert previews](ui-notification-settings.png)
+
+The example uses computed SMA 11 (target 12) and SMA 18 (target 1) for the
+Trending simulation. Filled hearts mean saved; the outline heart means unsaved.
+The history icon recovers the last ten unsaved configurations. Phone/email
+switches and email address persist locally. Email is preview-only; Android
+local delivery needs an Android development build and permission. See the
+[testing and notification limitations](NOTIFICATIONS.md).
+
+[View the recently unsaved popup](ui-unsaved-history.png).
+
 ## Original design reference
 
 [View the approved illustrative mockup](ui-preview.png). Its dates and numbers

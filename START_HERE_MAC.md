@@ -60,7 +60,7 @@ you use the app.
 2. Choose **12** crossings per year.
 3. Click **Optimize SMA**.
 4. Scroll down to see the statistics and crossover table.
-5. Click **Save SMA line**. Try a different target and optimize again to compare
+5. Click the **outline heart** in Optimal SMA to save a line; it turns red. Try a different target and optimize again to compare
    lines. These controls are in the Optimal SMA card above the chart. The
    crossing count is in section 03, below the two frequency cards.
 6. To zoom, click and hold inside the chart, drag left or right, then release.
@@ -85,6 +85,23 @@ Close the app window when finished. To open it another day, repeat the Terminal
 folder step and run `.venv/bin/python main.py`; installation is needed only once
 for this downloaded copy.
 
+## Try notification previews
+
+At the bottom of the app, open **04 / Notification Settings**. Save an email
+address and enable the Phone/Email Buy or Impending buy switches you want.
+In **02 / Saved SMA Lines**, turn on the corresponding channel for a saved line.
+Enter a session from the crossover table and press **Preview EOD alerts**.
+The app displays the simulated phone text and email subject/body. No email is sent.
+
+To unsave a line, click its red heart. The history/clock icon in section 02 lets
+you restore the last ten unsaved lines. Older ones are discarded. The compact
+Hide button only hides the chart line; notification preferences are separate.
+
+On your Mac, the Android test button explains that phone delivery needs an
+Android development build. Desktop tests verify the dispatch logic with a fake
+sender. See [the full testing guide](docs/NOTIFICATIONS.md) for step-by-step
+preview testing and the later physical-phone check.
+
 ## Optional: run the tests
 
 After closing the app, run this in the same Terminal folder:
@@ -93,7 +110,7 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 44 tests, including checks that the active app
+The current test suite contains 53 tests, including checks that the active app
 uses the agreed warm-up-adjusted frequency and automatic SMA cap. Successful
 output ends with `OK`.
 

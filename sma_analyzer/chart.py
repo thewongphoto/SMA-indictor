@@ -70,7 +70,12 @@ class PriceChart(Widget):
 
     @staticmethod
     def line_color(line, index):
-        return ACTIVE_COLOR if line.active else SAVED_COLORS[index % len(SAVED_COLORS)]
+        return PriceChart.period_color(line.period, line.active)
+
+    @staticmethod
+    def period_color(period, active=False):
+        # Stable across hiding/showing other periods; shared with saved-row swatches.
+        return ACTIVE_COLOR if active else SAVED_COLORS[(period - 2) % len(SAVED_COLORS)]
 
     def update(self, prices, series):
         # Keep exact engine output; never recalculate an approximation for plotting.

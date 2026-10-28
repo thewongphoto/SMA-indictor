@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
+from dataclasses import replace
 
 from kivy.config import Config
 
@@ -25,6 +26,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.stacklayout import StackLayout
+from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
@@ -33,7 +36,8 @@ from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
 from .viewport import available_timelines
-from .widgets import TimelineSelector, RoundedSelector, LegendItem
+from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol, IconButton, IconSymbol, RuleSwitch
+from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -183,7 +187,7 @@ class AnalyzerScreen(AnchorLayout):
         self.optimal_panel.add_widget(self.optimal_value)
         actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
         self.optimal_actions = actions
-        self.save_button = LabButton(text="Save SMA line")
+        self.save_button = IconButton(kind="heart")
         self.hide_button = LabButton(text="Hide SMA line")
         self.save_button.bind(on_release=self.on_save)
         self.hide_button.bind(on_release=self.on_active_visibility)
@@ -248,6 +252,7 @@ class AnalyzerScreen(AnchorLayout):
         self.content.add_widget(self.saved_panel)
         self.table_panel = Panel()
         self.content.add_widget(self.table_panel)
+        self._build_notification_settings()
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
                  "All prices are simulated; 252 sessions represent one trading year.",
@@ -282,6 +287,7 @@ class AnalyzerScreen(AnchorLayout):
             widget.font_size = sp(16 if wide else 13)
             widget.height = dp(52 if wide else 44)
         self.optimize_cell.height = dp(78 if wide else 65)
+        self.save_button.width = dp(44)
         self.optimal_actions.height = dp(52 if wide else 44)
         self.optimal_caption.font_size = sp(14 if wide else 12)
         self.card_values["period"].font_size = sp(30 if wide else 26)
@@ -300,6 +306,8 @@ class AnalyzerScreen(AnchorLayout):
         self.optimal_actions.pos_hint = {"center_y": 0.5}
         # BoxLayout.minimum_height adds vertically only in vertical orientation.
         self.chart.height = dp(max(245, min(320, self.scroll.width * 0.33)))
+        if hasattr(self,"saved_rows"):
+            self._refresh_saved()
 
     def message(self, text, error=False, quiet=False):
         self.status.text = text
@@ -385,9 +393,9 @@ class AnalyzerScreen(AnchorLayout):
 
     def on_save(self, *_):
         try:
-            self.model.save_current()
+            saved = self.model.toggle_current_saved()
             self.refresh()
-            self.message("SMA line saved on this device for this counter and scenario.")
+            self.message("SMA line saved on this device." if saved else "SMA line unsaved. Restore it from the last-10 history.")
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Could not save line: {error}. Check local storage permissions.", True)
 
@@ -416,7 +424,10 @@ class AnalyzerScreen(AnchorLayout):
             self.message(f"Could not remove saved line: {error}", True)
 
     def refresh(self):
+        self.last_alerts = ()
+        self.alert_preview.text = "No current preview. Choose a session and press Preview EOD alerts."
         data = self.model.dataset
+        self.alert_session_label.text = f"Test an end-of-day session (1–{len(data.prices)})"
         self.plot_title.text = f"{data.counter} · {data.scenario}"
         lines = self.model.plot_lines()
         self.chart.update(data.prices, lines)
@@ -438,6 +449,7 @@ class AnalyzerScreen(AnchorLayout):
             if key in self.card_values:
                 self.card_values[key].text = value
         self._set_busy(self.busy)
+        self.save_button.selected = self.model.current_saved_line() is not None
         self.hide_button.text = "Hide SMA line" if self.model.active_visible else "Show SMA line"
         result = self.model.result
         self.explanation.text = (
@@ -468,26 +480,257 @@ class AnalyzerScreen(AnchorLayout):
 
     def _refresh_saved(self):
         self.saved_panel.clear_widgets()
-        self.saved_panel.add_widget(WrappedLabel(text="02  /  SAVED SMA LINES", font_size=sp(11), bold=True, color=MUTED))
+        header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+        header.add_widget(WrappedLabel(text="02  /  SAVED SMA LINES", font_size=sp(11), bold=True, color=MUTED))
+        self.history_button = IconButton(kind="history")
+        self.history_button.bind(on_release=self.open_unsaved_history)
+        header.add_widget(self.history_button)
+        self.saved_panel.add_widget(header)
         saved = self.model.saved_lines()
+        self.saved_rows = {}
         if not saved:
-            self.saved_panel.add_widget(WrappedLabel(text="No saved lines for this simulation. Optimize, then tap Save SMA line.", color=MUTED))
+            self.saved_panel.add_widget(WrappedLabel(text="No saved lines for this simulation. Optimize, then tap the heart.", color=MUTED))
         for line in saved:
             label = f"SMA {line.period} · target {line.target_frequency}/yr"
             if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
                 label += " · saved previously; outside current search limit"
-            self.saved_panel.add_widget(WrappedLabel(text=label))
-            row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
-            visible = line.visible
-            if self.model.result and line.period == self.model.result.period:
-                visible = self.model.active_visible
-            toggle = LabButton(text="Hide" if visible else "Show")
-            toggle.bind(on_release=lambda button, saved_line=line: self.on_saved_visibility(saved_line))
-            delete = LabButton(text="Remove saved line")
-            delete.bind(on_release=lambda button, saved_line=line: self.on_delete(saved_line))
-            row.add_widget(toggle)
-            row.add_widget(delete)
-            self.saved_panel.add_widget(row)
+            title = BoxLayout(size_hint_y=None, height=dp(28), spacing=dp(5))
+            active = self.model.result is not None and self.model.result.period == line.period
+            swatch = LegendSymbol(self.chart.period_color(line.period, active))
+            title.add_widget(swatch)
+            title_label = WrappedLabel(text=label)
+            title.add_widget(title_label)
+            title_label.bind(height=lambda _, height, box=title: setattr(box, "height", max(dp(28), height)))
+            self.saved_panel.add_widget(title)
+            # At phone widths two left controls share a row; hide/heart stay at right below.
+            row = GridLayout(cols=4 if self.scroll.width >= dp(620) else 2,
+                             size_hint_y=None, spacing=dp(6))
+            row.bind(minimum_height=row.setter("height"))
+            push = LabButton(text="Push notifications " + ("On" if line.push_enabled else "Off"))
+            email = LabButton(text="Email notifications " + ("On" if line.email_enabled else "Off"))
+            for button, enabled in ((push,line.push_enabled),(email,line.email_enabled)):
+                button.font_size = sp(11)
+                button.text_size = (None, None)
+                if enabled:
+                    button.fill = (0.12,0.35,0.32,1)
+                    button._draw()
+            push.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"phone"))
+            email.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"email"))
+            visible = self.model.active_visible if active else line.visible
+            toggle = LabButton(text="Hide" if visible else "Show", size_hint_x=None, width=dp(64))
+            toggle.bind(on_release=lambda _, saved_line=line: self.on_saved_visibility(saved_line))
+            heart = IconButton(kind="heart", selected=True)
+            heart.bind(on_release=lambda _, saved_line=line: self.on_delete(saved_line))
+            if row.cols == 4:
+                row.add_widget(push)
+                row.add_widget(email)
+                row.add_widget(toggle)
+                row.add_widget(heart)
+            else:
+                # Full-width notification row, then a right-aligned compact action row.
+                row.add_widget(push)
+                row.add_widget(email)
+                actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(6))
+                actions.add_widget(Label())
+                actions.add_widget(toggle)
+                actions.add_widget(heart)
+                self.saved_panel.add_widget(row)
+                self.saved_panel.add_widget(actions)
+            if row.cols == 4:
+                self.saved_panel.add_widget(row)
+            self.saved_rows[line.id] = dict(push=push,email=email,hide=toggle,heart=heart,swatch=swatch)
+
+    def on_line_alert(self, line, channel):
+        enabled = line.push_enabled if channel == "phone" else line.email_enabled
+        try:
+            self.model.store.set_notifications(line.id,channel,not enabled)
+            self.refresh()
+        except (ValueError,sqlite3.Error) as error:
+            self.notification_status.text = str(error)
+            content = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
+            content.add_widget(WrappedLabel(text=str(error)))
+            go = LabButton(text="Open notification settings")
+            content.add_widget(go)
+            self.validation_popup = Popup(title="Notification settings", content=content,
+                                          size_hint=(.9,None),height=dp(210))
+            go.bind(on_release=lambda _: (self.validation_popup.dismiss(),
+                                         self.scroll.scroll_to(self.settings_panel,animate=False)))
+            self.validation_popup.open()
+
+    def open_unsaved_history(self, *_):
+        content = BoxLayout(orientation="vertical", spacing=dp(10),padding=dp(10))
+        content.add_widget(WrappedLabel(text="Last 10 unsaved lines · all counters/scenarios. Older entries are discarded.",color=MUTED))
+        scroll = ScrollView(do_scroll_x=False)
+        entries = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(10))
+        entries.bind(minimum_height=entries.setter("height"))
+        self.history_restore_buttons = {}
+        for line in self.model.store.recent_unsaved():
+            label = WrappedLabel(text=f"{line.counter} · {line.scenario} · SMA {line.period} · target {line.target_frequency}/yr")
+            entries.add_widget(label)
+            restore = LabButton(text="Restore saved line")
+            restore.bind(on_release=lambda _, entry=line: self.restore_unsaved(entry))
+            entries.add_widget(restore)
+            self.history_restore_buttons[line.id] = restore
+        if not self.history_restore_buttons:
+            entries.add_widget(WrappedLabel(text="No unsaved lines yet. Only lines you saved and then unsaved appear here."))
+        scroll.add_widget(entries)
+        content.add_widget(scroll)
+        self.history_status = WrappedLabel(text="",color=ERROR,font_size=sp(11))
+        content.add_widget(self.history_status)
+        close = LabButton(text="Close")
+        content.add_widget(close)
+        self.history_popup = Popup(title="Recently unsaved SMA lines",content=content,size_hint=(.94,.8))
+        close.bind(on_release=self.history_popup.dismiss)
+        self.history_popup.open()
+
+    def restore_unsaved(self, line):
+        try:
+            self.model.store.restore(line.id)
+            self.history_popup.dismiss()
+            self.refresh()
+            self.message(f"Restored SMA {line.period} for {line.counter} · {line.scenario}.")
+        except (ValueError,sqlite3.Error) as error:
+            self.history_status.text = str(error)
+
+    def _build_notification_settings(self):
+        self.settings_panel = Panel()
+        self.content.add_widget(self.settings_panel)
+        self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
+        self.settings_panel.add_widget(WrappedLabel(text="SIMULATED DATA · Manual EOD tests only. No background monitoring. Email stays in preview mode.",color=MUTED,font_size=sp(11)))
+        settings = self.model.store.notification_settings()
+        self.notification_switches = {}
+        descriptions = {
+            "buy": ("Buy signal: Upward crossing detected", "Triggers an alert when the end-of-day price crosses above a SMA."),
+            "monitor": ("Impending buy signal", "Triggers an alert once per EOD session when the close is strictly below a SMA."),
+        }
+        for channel, icon, title in (("phone","phone","Phone notifications"),("email","mail","Email notifications")):
+            heading = BoxLayout(size_hint_y=None,height=dp(28),spacing=dp(6))
+            heading.add_widget(IconSymbol(icon))
+            heading.add_widget(WrappedLabel(text=title,bold=True))
+            self.settings_panel.add_widget(heading)
+            for kind in ("buy","monitor"):
+                key = f"{channel}_{kind}"
+                row = BoxLayout(size_hint_y=None,spacing=dp(8))
+                row.bind(minimum_height=row.setter("height"))
+                words = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(2))
+                words.bind(minimum_height=words.setter("height"))
+                name, description = descriptions[kind]
+                words.add_widget(WrappedLabel(text=name))
+                words.add_widget(WrappedLabel(text=description,color=MUTED,font_size=sp(11)))
+                row.add_widget(words)
+                switch = RuleSwitch(active=getattr(settings,key))
+                switch.bind(active=lambda _, active, field=key: self.on_notification_rule(field,active))
+                row.add_widget(switch)
+                self.notification_switches[key] = switch
+                self.settings_panel.add_widget(row)
+        self.settings_panel.add_widget(WrappedLabel(text="Email address · saved only on this device",color=MUTED,font_size=sp(11)))
+        address_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+        self.email_input = TextInput(text=settings.email,multiline=False,font_size=sp(13),
+                                    padding=(dp(8),dp(12)),write_tab=False,
+                                    background_normal="",background_active="",background_color=(.12,.17,.23,1),
+                                    foreground_color=TEXT,cursor_color=PRICE_COLOR)
+        self.email_save_button = LabButton(text="Save",size_hint_x=None,width=dp(68))
+        self.email_save_button.bind(on_release=self.on_save_email)
+        address_row.add_widget(self.email_input)
+        address_row.add_widget(self.email_save_button)
+        self.settings_panel.add_widget(address_row)
+        self.notification_status = WrappedLabel(text="Email previews never send messages. Enable a type above and a channel on each saved line.",color=MUTED,font_size=sp(11))
+        self.settings_panel.add_widget(self.notification_status)
+        self.alert_session_label = WrappedLabel(text="Test an end-of-day session (1–1260)",color=MUTED,font_size=sp(11))
+        self.settings_panel.add_widget(self.alert_session_label)
+        test_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+        self.alert_session = TextInput(text="1260",multiline=False,input_filter="int",font_size=sp(13),
+                                      size_hint_x=None,width=dp(70),padding=(dp(8),dp(12)),
+                                      background_normal="",background_active="",background_color=(.12,.17,.23,1),
+                                      foreground_color=TEXT,cursor_color=PRICE_COLOR)
+        self.preview_alert_button = LabButton(text="Preview EOD alerts")
+        self.preview_alert_button.bind(on_release=self.preview_eod_alerts)
+        test_row.add_widget(self.alert_session)
+        test_row.add_widget(self.preview_alert_button)
+        self.settings_panel.add_widget(test_row)
+        self.phone_test_button = LabButton(text="Test Android phone notification")
+        self.phone_test_button.bind(on_release=self.test_phone_notification)
+        self.settings_panel.add_widget(self.phone_test_button)
+        self.eod_deliver_button = LabButton(text="Show enabled EOD phone alerts (Android)")
+        self.eod_deliver_button.font_size = sp(11)
+        self.eod_deliver_button.bind(on_release=self.deliver_eod_alerts)
+        self.settings_panel.add_widget(self.eod_deliver_button)
+        self.alert_preview = WrappedLabel(text="No alert preview yet.",color=MUTED,font_size=sp(12))
+        self.settings_panel.add_widget(self.alert_preview)
+        self.last_alerts = ()
+
+    def on_notification_rule(self, key, active):
+        if getattr(self,"_reverting_rule",False):
+            return
+        try:
+            settings = replace(self.model.store.notification_settings(), **{key:active})
+            self.model.store.save_notification_settings(settings)
+            self.last_alerts = ()
+            self.alert_preview.text = "Notification types changed. Press Preview EOD alerts to refresh."
+        except (ValueError,sqlite3.Error) as error:
+            self._reverting_rule = True
+            self.notification_switches[key].active = not active
+            self._reverting_rule = False
+            self.notification_status.text = str(error)
+
+    def on_save_email(self, *_):
+        try:
+            settings = replace(self.model.store.notification_settings(),email=self.email_input.text)
+            self.model.store.save_notification_settings(settings)
+            self.email_input.text = settings.email.strip()
+            self.notification_status.text = "Email address saved locally. Email remains preview-only."
+        except (ValueError,sqlite3.Error) as error:
+            self.notification_status.text = str(error)
+
+    def preview_eod_alerts(self, *_):
+        try:
+            self.notification_status.text = "Preview only · no notification or email was sent."
+            try:
+                session = int(self.alert_session.text)
+            except ValueError:
+                raise ValueError("Enter a valid EOD session number, such as 1260.") from None
+            settings = self.model.store.notification_settings()
+            self.last_alerts = tuple(alert for line in self.model.saved_lines()
+                                    for alert in evaluate_eod(self.model.dataset.prices,line,settings,session))
+            self.alert_preview.text = ("\n\n".join(
+                f"{alert.channel.upper()} PREVIEW · {alert.subject}\n{alert.body}" for alert in self.last_alerts)
+                or "No alerts at this close. Check saved-line channels, notification types, session and SMA warm-up.")
+            if not self.model.saved_lines():
+                self.alert_preview.text = "Save an SMA line with the heart before testing notifications."
+            return self.last_alerts
+        except (ValueError,sqlite3.Error) as error:
+            self.last_alerts = ()
+            self.alert_preview.text = str(error) if str(error) else "Enter a valid EOD session number."
+            return ()
+
+    def test_phone_notification(self, *_):
+        try:
+            AndroidNotifier.request_permission()
+            alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
+                          "SMA Stock Analyzer · Test", "SIMULATED TEST · Phone notifications are working.")
+            # Permission dialog is asynchronous. Press again after granting it.
+            AndroidNotifier().send(alert)
+            self.notification_status.text = "Android test notification posted. Check the notification shade."
+        except Exception as error:
+            self.notification_status.text = (str(error) if isinstance(error,RuntimeError)
+                                             else "Android notification failed. Check permission and device setup.")
+
+    def deliver_eod_alerts(self, *_):
+        alerts = self.preview_eod_alerts()
+        if alerts:
+            self.eod_deliver_button.disabled = True
+            future = self.executor.submit(deliver_alerts,self.model.store,alerts)
+            future.add_done_callback(lambda completed: Clock.schedule_once(
+                lambda _: self._finish_alert_delivery(completed),0))
+
+    def _finish_alert_delivery(self, future):
+        if self.closed:
+            return
+        self.eod_deliver_button.disabled = False
+        try:
+            self.notification_status.text = "\n".join(future.result())
+        except Exception:
+            self.notification_status.text = "Delivery failed. Check Android notification setup; email remains preview-only."
 
     def _refresh_table(self):
         self.table_panel.clear_widgets()

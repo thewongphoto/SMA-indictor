@@ -1,6 +1,9 @@
 """Small native controls shared by the timeline and the symbol legend."""
-from kivy.graphics import Color, Line, RoundedRectangle, Triangle
+import math
+from kivy.graphics import Color, Line, Mesh, RoundedRectangle, Triangle, Ellipse
 from kivy.metrics import dp, sp
+from kivy.properties import BooleanProperty, StringProperty
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner, SpinnerOption
@@ -98,3 +101,84 @@ class LegendItem(BoxLayout):
     def _size_label(self, label, size):
         label.width = size[0]
         self.width = label.width + dp(29)
+
+
+def draw_icon(kind, x, y, radius, selected=False):
+    """Canvas icons avoid missing heart/emoji glyphs on desktop and Android."""
+    Color(*( (0.96, 0.25, 0.32, 1) if selected and kind == "heart" else MUTED))
+    if kind == "heart":
+        points = []
+        for n in range(65):
+            t = n * 2 * math.pi / 64
+            points.extend((x + radius * 16 * math.sin(t)**3 / 17,
+                           y + radius * (13*math.cos(t)-5*math.cos(2*t)-2*math.cos(3*t)-math.cos(4*t)) / 17))
+        if selected:
+            vertices = [x, y, 0, 0]
+            for px, py in zip(points[::2], points[1::2]):
+                vertices.extend((px, py, 0, 0))
+            Mesh(vertices=vertices, indices=list(range(len(vertices)//4)), mode="triangle_fan")
+        Line(points=points, close=True, width=dp(1.2))
+    elif kind == "history":
+        points = []
+        for n in range(41):
+            angle = math.radians(-70 + n * 330 / 40)
+            points.extend((x + radius*math.cos(angle), y + radius*math.sin(angle)))
+        Line(points=points, width=dp(1.3))
+        Line(points=[x-radius, y+radius*.8, x-radius, y+radius*.05, x-radius*.25, y+radius*.05], width=dp(1.3))
+        Line(points=[x,y+radius*.65,x,y,x+radius*.5,y-radius*.3], width=dp(1.3))
+    elif kind == "phone":
+        Line(rounded_rectangle=(x-radius*.55,y-radius,radius*1.1,radius*2,dp(2)), width=dp(1))
+        Line(points=[x-radius*.2,y-radius*.7,x+radius*.2,y-radius*.7], width=dp(1))
+    elif kind == "mail":
+        Line(rectangle=(x-radius,y-radius*.7,radius*2,radius*1.4), width=dp(1))
+        Line(points=[x-radius,y+radius*.7,x,y-radius*.1,x+radius,y+radius*.7], width=dp(1))
+
+
+class IconButton(Button):
+    selected = BooleanProperty(False)
+    kind = StringProperty("heart")
+
+    def __init__(self, **kwargs):
+        super().__init__(text="", size_hint=(None,None), size=(dp(44),dp(44)),
+                         background_normal="", background_down="", background_color=(0,0,0,0), **kwargs)
+        self.bind(pos=self._paint, size=self._paint, selected=self._paint, kind=self._paint)
+        self._paint()
+
+    def _paint(self, *_):
+        self.canvas.after.clear()
+        with self.canvas.after:
+            draw_icon(self.kind, self.center_x, self.center_y, dp(11), self.selected)
+
+
+class IconSymbol(Widget):
+    def __init__(self, kind, **kwargs):
+        super().__init__(size_hint=(None,None), size=(dp(24),dp(28)), **kwargs)
+        self.kind = kind
+        self.bind(pos=self._paint, size=self._paint)
+
+    def _paint(self, *_):
+        self.canvas.clear()
+        with self.canvas:
+            draw_icon(self.kind, self.center_x, self.center_y, dp(8))
+
+
+class RuleSwitch(Button):
+    """Small native canvas switch, with a 44 dp touch target and no font icons."""
+    active = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(size_hint=(None,None), size=(dp(64),dp(44)),
+                         background_normal="", background_down="", background_color=(0,0,0,0), **kwargs)
+        self.bind(pos=self._paint,size=self._paint,active=self._paint)
+        self._paint()
+
+    def on_release(self):
+        self.active = not self.active
+
+    def _paint(self, *_):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(*( (0.18,0.65,0.57,1) if self.active else (0.23,0.29,0.36,1)))
+            RoundedRectangle(pos=(self.center_x-dp(24),self.center_y-dp(12)),size=(dp(48),dp(24)),radius=[dp(12)])
+            Color(0.93,0.96,0.98,1)
+            Ellipse(pos=(self.center_x + dp(3 if self.active else -21),self.center_y-dp(9)),size=(dp(18),dp(18)))

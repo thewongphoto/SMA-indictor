@@ -62,6 +62,21 @@ class AnalyzerModel:
         self.store.save(self.dataset.counter, self.dataset.scenario,
                         self.result.period, self.result.target_frequency)
 
+    def current_saved_line(self) -> SavedLine | None:
+        if self.result is None:
+            return None
+        return next((line for line in self.saved_lines()
+                     if (line.period, line.target_frequency) ==
+                     (self.result.period, self.result.target_frequency)), None)
+
+    def toggle_current_saved(self) -> bool:
+        saved = self.current_saved_line()
+        if saved is not None:
+            self.store.delete(saved.id)
+            return False
+        self.save_current()
+        return True
+
     def plot_lines(self) -> list[PlotLine]:
         # One visual line per period; the selected result has the primary color.
         lines: dict[int, PlotLine] = {}

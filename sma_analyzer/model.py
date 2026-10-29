@@ -1,8 +1,9 @@
 """Testable presentation state shared by buttons, chart, cards, and event table."""
 from dataclasses import dataclass
 
-from .engine import OptimizationResult, Price, optimize_sma, simple_moving_average
+from .engine import OptimizationResult, Price, crossover_events, optimize_sma, simple_moving_average
 from .mock_data import generate_mock_data
+from .policy import observable_comparisons
 from .storage import LineStore, SavedLine
 
 
@@ -22,12 +23,14 @@ class AnalyzerModel:
         self.target_frequency = 12
         self.result: OptimizationResult | None = None
         self.active_visible = True
+        self.viewing_saved = False
 
     def select_dataset(self, counter: str, scenario: str) -> None:
         # Generate before replacing state so invalid choices leave the current data intact.
         self.dataset = generate_mock_data(counter, scenario)
         self.result = None
         self.active_visible = True
+        self.viewing_saved = False
 
     def set_target(self, text: str) -> None:
         try:
@@ -42,6 +45,7 @@ class AnalyzerModel:
             self.target_frequency = value
             self.result = None
             self.active_visible = True
+            self.viewing_saved = False
 
     def calculate(self) -> OptimizationResult:
         """Synchronous route for tests and non-UI clients."""
@@ -52,6 +56,29 @@ class AnalyzerModel:
     def apply_result(self, result: OptimizationResult) -> None:
         self.result = result
         self.active_visible = True
+        self.viewing_saved = False
+
+    def view_saved_line(self, line_id: int) -> SavedLine:
+        """Open exact saved parameters; never rerun or silently retune the optimizer.
+
+        View reveals the selected overlay for this visit, even if it was hidden.
+        Other lines' visibility and the saved settings themselves are unchanged.
+        Validate before replacing the existing analysis so errors are recoverable.
+        """
+        line = self.store.get_line(line_id)
+        data = generate_mock_data(line.counter, line.scenario)
+        average = tuple(simple_moving_average(data.prices, line.period))
+        comparisons = observable_comparisons(data.prices, average)
+        if not comparisons:
+            raise ValueError("Not enough observable history to display this saved SMA.")
+        result = OptimizationResult(line.period, line.target_frequency, len(data.prices),
+                                    comparisons, average, crossover_events(data.prices, average))
+        self.dataset = data
+        self.target_frequency = line.target_frequency
+        self.result = result
+        self.active_visible = True
+        self.viewing_saved = True
+        return line
 
     def saved_lines(self) -> list[SavedLine]:
         return self.store.list_lines(self.dataset.counter, self.dataset.scenario)

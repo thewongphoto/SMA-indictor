@@ -20,12 +20,20 @@ Prices remain simulated. There is no live-stock feed or automatic daily schedule
 - The first GitHub build reached Java compilation and failed because the pinned
   Google library lacked the bridge's Gmail disconnect API. The pin is now
   **play-services-auth 21.4.0**; the unchanged bridge passes a targeted compile
-  against the real Google libraries and Android API 35. A complete APK build
-  still needs a fresh workflow run on **main**.
+  against the real Google libraries and Android API 35. The user subsequently
+  installed an APK and confirmed the native test notification works.
+- Source version **0.2.1** adds Android Back navigation, safe system-bar/keyboard
+  layout, editing fixes and an all-counter saved-SMA library on Parameters.
+  These changes still need a new APK/device test.
+- Before the next build, use [the one-time signing guide](ANDROID_SIGNING.md) to
+  retain the existing key permanently. The workflow now refuses to generate a
+  different SHA-1 if the old key is unavailable.
 - No Google account has been connected or real email sent here. You must do the
   one-time Google setup and authorize your account on your own phone.
 
 See [actual validation results](ANDROID_TEST_STATUS.md).
+Use the saved [Android release checklist](ANDROID_RELEASE_CHECKLIST.md) for
+this build and all future releases.
 
 ## Part 1 — ask GitHub to build your test APK
 
@@ -35,8 +43,11 @@ See [actual validation results](ANDROID_TEST_STATUS.md).
    Actions for your repository, enable them.
 3. Select **Build Android test APK** in the left sidebar.
 4. Click **Run workflow**, choose **main**, then click the green **Run workflow**
-   button. If it is not visible on your phone, use Chrome's **Desktop site** view.
-5. Open the new run. The first build downloads a substantial Android toolchain
+   button. Leave the one-time signing checkbox unchecked for normal builds;
+   use it only during the signing-guide migration. If Run workflow is not
+   visible on your phone, use Chrome's **Desktop site** view.
+5. Open the new run. Unit and Kivy UI regression tests run before packaging.
+   The first build downloads a substantial Android toolchain
    and may take tens of minutes. The workflow has a 90-minute timeout.
 6. Wait for a **green check mark**. Scroll to **Artifacts** at the bottom of the
    run summary and download **sma-android-test**.
@@ -155,15 +166,17 @@ resolve the project's audience/test-user/scope configuration; do not request ful
 mailbox access to work around it. Google testing grants can expire or be revoked;
 reconnect when prompted. Public distribution may require further verification.
 
-### Keep the signing fingerprint matched to the APK
+### Keep the signing fingerprint unchanged
 
-The workflow caches its debug keystore to reuse the certificate. GitHub caches
-can expire or be deleted: always use the fingerprint bundled with the APK you
-are testing. If the signing key changes, update/create the Android OAuth client
-for that fingerprint. An APK with a different certificate cannot update the old
-installation directly; uninstalling loses app-local saved lines/settings.
-For longer-term use, move to a deliberately managed signing key before release.
-Never commit a keystore or its password. This workflow is for personal testing.
+Follow [the signing preservation guide](ANDROID_SIGNING.md) once to retain the
+existing cached key as an Actions secret and record its SHA-1. Normal builds
+reuse that identity even after cache eviction. Missing/mismatched signing
+material stops the build; it no longer silently generates another key.
+
+Ordinary updates then need no Google Cloud fingerprint change. Install over
+the existing app to retain its private SQLite data. If an APK reports a signing
+mismatch, recover the original key rather than routinely uninstalling: uninstall
+deletes saved lines/settings. Never commit signing material to the repository.
 
 ## Part 5 — connect Gmail and send one test email
 
@@ -252,8 +265,9 @@ but this repository's native build/device compatibility is not yet verified.
   The implemented phone alerts are native **local Android notifications**, posted
   by the explicit test/send action. They may remain visible after leaving the app.
 - It is not a signed Play Store release. There is no automatic updater, Android
-  emulator/physical-device result, Gmail account connection or real-send result
-  from this cloud session.
+  emulator attached to this workspace, or confirmed Gmail real-send result.
+  The user's prior APK test notification succeeded; version 0.2.1 corrections
+  still require device testing.
 
 Complete Parts 1–3 first. Then use Parts 4–5 for Gmail. If either stage fails,
 report the exact step and error message so it can be fixed without guessing.

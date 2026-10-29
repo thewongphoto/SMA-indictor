@@ -69,6 +69,22 @@ class LineStore:
             ).fetchall()
         return [SavedLine(*row[:5], *map(bool, row[5:])) for row in rows]
 
+    def list_all_lines(self) -> list[SavedLine]:
+        """Landing-page library: all counters/scenarios, including hidden lines."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id,counter,scenario,period,target_frequency,visible,push_enabled,email_enabled "
+                "FROM saved_lines WHERE data_version=? ORDER BY counter,scenario,id",
+                (DATA_VERSION,),
+            ).fetchall()
+        return [SavedLine(*row[:5], *map(bool, row[5:])) for row in rows]
+
+    def get_line(self, line_id: int) -> SavedLine:
+        line = next((line for line in self.list_all_lines() if line.id == line_id), None)
+        if line is None:
+            raise ValueError("This SMA is no longer saved. Choose another saved line.")
+        return line
+
     def save(self, counter: str, scenario: str, period: int, target: int) -> None:
         with self._connect() as connection:
             connection.execute(

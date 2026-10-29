@@ -17,7 +17,10 @@ import traceback
 temporary = tempfile.TemporaryDirectory(prefix="sma-ui-")
 os.environ["SMA_ANALYZER_DATA_DIR"] = temporary.name
 
-from sma_analyzer.app import SMAStockAnalyzerApp
+from sma_analyzer.app import SMAStockAnalyzerApp, AnalyzerScreen
+from sma_analyzer.android_window import WindowMetrics
+from sma_analyzer.model import AnalyzerModel
+from sma_analyzer.storage import LineStore
 from sma_analyzer.engine import crossover_events, simple_moving_average
 from sma_analyzer.mock_data import Dataset
 from unittest.mock import Mock, patch
@@ -95,6 +98,12 @@ class SmokeApp(SMAStockAnalyzerApp):
         print(f"PASS: {name}", flush=True)
 
     def exercise(self):
+        if "--android-regressions-only" in sys.argv:
+            # Keep a 440×920 dp viewport when exercising phone pixel densities.
+            Window.size=(int(dp(440)),int(dp(920)))
+            for _ in range(8): yield
+            yield from self.android_regressions()
+            return
         ui = self.screen
         # Font textures and minimum-height bindings settle over multiple frames.
         # Wait for actual layout instead of relying on a fixed startup delay.
@@ -778,6 +787,116 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.saved_panel.export_to_png("artifacts/saved-lines-wide.png")
         ui.export_to_png("artifacts/prototype-wide.png")
         self.check("SMA 11 and 18 real results: distinct chart-matched swatches, hearts, channels and final screenshots")
+        yield from self.android_regressions()
+
+    def android_regressions(self):
+        ui = self.screen
+        if ui.model.result is None or ui.model.result.crossing_count<=35:
+            ui.counter.text="DEMO-SGX"
+            ui.scenario.text="Trending"
+            ui.target.text="12"
+            ui.on_optimize()
+            yield from self.wait_for_calculation()
+            ui.model.save_current()
+            ui.refresh()
+        for _ in range(8): yield
+
+        # Android regression: the text beside the menu icon is also a hit target.
+        ui.show_results()
+        pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
+        pointer.down(); pointer.up()
+        for _ in range(10): yield
+        assert ui.saved_sheet.is_open and ui.saved_sheet.body.height > 0
+        assert ui.saved_sheet.body.y >= ui.y+ui.results_footer.height-dp(1)
+        assert self._on_keyboard(Window,27)  # Native Back closes the sheet first.
+        for _ in range(8): yield
+        assert not ui.saved_sheet.is_open and ui.manager.current=="results"
+        self.check("Android regression: full Saved SMAs menu target opens a visible sheet; Back dismisses it")
+
+        ui.show_settings()
+        result = ui.model.result
+        assert Window.dispatch("on_keyboard",27,None,None,[])  # Uses the real Window binding.
+        assert ui.manager.current=="results" and ui.model.result is result, (
+            ui.manager.current,ui._page_stack,[editor.focus for editor in ui.editors],
+            [str(callback) for callback in Window.get_property_observers("on_keyboard")])
+        ui.visible_crossovers=35
+        ui.show_more_crossings()
+        assert ui.manager.current=="crossovers"
+        assert self._on_keyboard(Window,27)
+        assert ui.manager.current=="results"
+        assert self._on_keyboard(Window,27)
+        assert ui.manager.current=="parameters"
+        assert not self._on_keyboard(Window,27)  # Default Kivy handler may now exit.
+        self.check("Android regression: native Back traverses full table/settings/results to Parameters; exit only there")
+
+        # Real fields/layout, injected native geometry. Desktop has no Android IME.
+        ui.show_settings()
+        frame=self.device_frame
+        for editor,value in ((ui.email_input,"reader@example.com"),(ui.alert_session,"273")):
+            ui.settings_scroll.scroll_to(editor, padding=dp(20), animate=False)
+            for _ in range(6): yield
+            pointer=Pointer(*editor.to_window(*editor.center))
+            pointer.down(); pointer.up()
+            for _ in range(4): yield
+            assert editor.focus
+            frame.apply_metrics(WindowMetrics(top=int(dp(24)),bottom=int(dp(24)),keyboard=int(dp(300)),
+                                             width=int(Window.width),height=int(Window.height)))
+            for _ in range(8): yield
+            assert editor.focus, "IME/layout changes must not clear editing focus"
+            editor.select_all()
+            for _ in range(2): yield
+            Window.dispatch("on_textinput",value)
+            assert editor.text==value, (editor.text,value,editor.selection_text)
+            bottom=editor.to_window(editor.x,editor.y)[1]
+            assert bottom>=ui.y-dp(1), ("Editor must remain above the injected keyboard",
+                bottom,ui.pos,ui.size,ui.settings_scroll.pos,ui.settings_scroll.size,editor.pos,
+                ui.settings_scroll.scroll_y)
+            assert editor.to_window(editor.x,editor.top)[1]<=ui.top+dp(1)
+            assert ui.settings_back_button.to_window(*ui.settings_back_button.center)[1]<Window.height-dp(24)
+            assert self._on_keyboard(Window,27) and not editor.focus
+            assert ui.manager.current=="settings"
+            frame.apply_metrics(WindowMetrics(width=int(Window.width),height=int(Window.height)))
+            for _ in range(6): yield
+        ui.email_save_button.dispatch("on_release")
+        assert ui.model.store.notification_settings().email=="reader@example.com"
+        frame.metrics=None; frame._arrange()
+        self.check("Android regression: email/EOD fields retain focus and accept text through keyboard/safe-area reflow; Back ends editing")
+
+        # A fresh screen reads all committed rows without needing optimization,
+        # including counters/scenarios different from the startup selection.
+        ui.model.store.save("DEMO-US","Sideways",254,9)
+        us_line=ui.model.store.list_lines("DEMO-US","Sideways")[0]
+        ui.model.store.set_visible(us_line.id,False)
+        expected_ids={line.id for line in ui.model.store.list_all_lines()}
+        fresh=AnalyzerScreen(AnalyzerModel(LineStore(ui.model.store.path)))
+        ui.close()
+        frame.remove_widget(ui)
+        frame.screen=self.screen=fresh
+        frame.add_widget(fresh)
+        frame._arrange()
+        ui=fresh
+        for _ in range(8): yield
+        assert ui.manager.current=="parameters"
+        assert set(ui.landing_saved_rows)==expected_ids
+        assert all(row["hide"].text=="View" for row in ui.landing_saved_rows.values())
+        ui.parameter_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["hide"],animate=False)
+        for _ in range(8): yield
+        button=ui.landing_saved_rows[us_line.id]["hide"]
+        pointer=Pointer(*button.to_window(*button.center))
+        pointer.down(); pointer.up()
+        for _ in range(8): yield
+        assert ui.manager.current=="results" and ui.model.dataset.counter=="DEMO-US"
+        assert ui.model.dataset.scenario=="Sideways" and ui.model.result.period==254
+        assert ui.model.result.target_frequency==9 and ui.target.text=="Custom"
+        assert ui.optimal_caption.text=="SAVED SMA"
+        assert next(line for line in ui.chart.series if line.active).sma==ui.model.result.sma
+        assert ui.saved_rows[us_line.id]["hide"].text=="Hide"
+        assert set(ui.landing_saved_rows)==expected_ids
+        ui.show_parameters()
+        ui.parameter_scroll.scroll_y=1
+        for _ in range(8): yield
+        ui.export_to_png("artifacts/android-regression-landing.png")
+        self.check("Android regression: fresh launch lists all saved SMAs; real View tap opens exact counter/scenario/period/custom target")
 
 
 if __name__ == "__main__":
@@ -790,6 +909,7 @@ if __name__ == "__main__":
         report = {"started_unix": started, "passed": app.passed,
                   "passed_count": len(app.passed), "failure": app.failure,
                   "exit_code": app.exit_code}
-        Path("artifacts/ui-smoke.json").write_text(json.dumps(report, indent=2) + "\n")
+        report_name = "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke"
+        Path(f"artifacts/{report_name}.json").write_text(json.dumps(report, indent=2) + "\n")
         temporary.cleanup()
     raise SystemExit(app.exit_code)

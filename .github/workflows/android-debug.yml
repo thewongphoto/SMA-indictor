@@ -1,6 +1,11 @@
 name: Build Android test APK
 on:
   workflow_dispatch:
+    inputs:
+      persist_signing_key:
+        description: 'One-time: save the existing cached key as a durable Actions secret (see guide)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -19,22 +24,48 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip build-essential autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          sudo apt-get install -y git zip unzip build-essential autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev xvfb libegl1 libgl1-mesa-dri
           python -m pip install --upgrade pip
-          python -m pip install -r requirements-android.txt
+          python -m pip install -r requirements-android.txt -r requirements.txt
+      - name: Run calculation, persistence and signing regression tests
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          python -m unittest discover -s tests -v 2>&1 | tee artifacts/unit-tests.log
+      - name: Run Kivy UI regression checks
+        env:
+          KIVY_HOME: ${{ github.workspace }}/.local/kivy
+          XDG_CACHE_HOME: ${{ github.workspace }}/.local/cache
+          KIVY_NO_ARGS: '1'
+          KIVY_CLIPBOARD: dummy
+          SDL_VIDEODRIVER: x11
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -o pipefail
+          xvfb-run -a python -m scripts.smoke_ui 2>&1 | tee artifacts/ui-smoke.log
       - name: Reuse debug signing identity
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: sma-android-debug-key-v1
       - name: Prepare debug identity for Google OAuth
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+          ANDROID_EXPECTED_SHA1: ${{ vars.ANDROID_SIGNING_SHA1 }}
         run: |
-          mkdir -p "$HOME/.android" artifacts
-          if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -dname 'CN=Android Debug,O=Android,C=US' -keyalg RSA -keysize 2048 -validity 10000
+          python -m scripts.prepare_android_signing
+      - name: Persist the existing signing identity (one-time migration)
+        if: ${{ inputs.persist_signing_key }}
+        env:
+          GH_TOKEN: ${{ secrets.SIGNING_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Add SIGNING_ADMIN_TOKEN in repository Actions secrets first; see the signing guide."
+            exit 1
           fi
-          keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android > artifacts/android-signing-info.txt
-          printf 'Android package: org.thewongphoto.smaanalyzer\n' >> artifacts/android-signing-info.txt
+          base64 -w 0 "$HOME/.android/debug.keystore" | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64 --repo "$GITHUB_REPOSITORY"
+          signing_sha1=$(sed -n 's/^SHA1: //p' artifacts/android-signing-info.txt)
+          gh variable set ANDROID_SIGNING_SHA1 --body "$signing_sha1" --repo "$GITHUB_REPOSITORY"
       - name: Build portrait debug APK
         run: |
           set -o pipefail
@@ -49,3 +80,6 @@ jobs:
             bin/*.apk
             artifacts/android-signing-info.txt
             artifacts/android-build.log
+            artifacts/unit-tests.log
+            artifacts/ui-smoke.log
+            artifacts/ui-smoke.json

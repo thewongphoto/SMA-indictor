@@ -1,5 +1,47 @@
 # Prototype handoff
 
+## Android corrections — version 0.2.1
+
+- User tested the installed prior APK: generic Android test notification works.
+  Back, email/EOD editing, saved menu/discovery and system-bar overlap were
+  reported failing. Do not label these new corrections as phone-verified yet.
+- Native Back now routes through a page stack, dismissing editor/modal/sheet
+  before navigation. Exit only on Parameters. Results navigation resets its
+  canonical parent stack, including after returning from Parameters/Settings.
+- AndroidWindowBridge reports overlapping system bars/cutout/IME relative to
+  SDL's actual surface. DeviceFrame sizes/positions the entire app, including
+  the saved sheet, without double-counting OS-resized/inset surfaces. Desktop
+  minimum dimensions are no longer imposed on Android. EditingField preserves
+  focus through touch replay/reflow; focused fields scroll above the keyboard.
+- Saved menu icon and text both respond; sheet geometry follows the safe root.
+  Parameters displays all saved rows across scopes, with View instead of Hide.
+  Titles are clickable. View restores exact parameters, full-history statistics
+  and selected overlay without optimizing, including older above-cap periods.
+- Existing SQLite commits/private user-data path/data version are retained.
+  A subprocess saves all-scope rows, channel/visibility/recipient settings and
+  delivery records, then calls os._exit; reopening verifies persistence. The old
+  current-scenario-only discovery could make rows appear missing after launch.
+- Signing restores ANDROID_DEBUG_KEYSTORE_BASE64, with the original cache as
+  migration fallback. It verifies ANDROID_SIGNING_SHA1 and never generates a
+  new key on a cache miss. The one-time workflow checkbox plus temporary scoped
+  SIGNING_ADMIN_TOKEN can persist the existing cached key in Actions secrets.
+  User must do this browser setup; current tools cannot set repository secrets.
+  Missing original key cannot be reconstructed from its fingerprint. Do not
+  generate a replacement or uninstall the user's app as a routine workaround.
+- 75 unit tests pass, including eight new persistence/view/inset/signing checks.
+  Real keytool restore round-trip passes; both Java bridges compile against
+  actual Android API 35/Google 21.4.0 classes. Focused Kivy regression checks pass.
+  The full latest UI run passes all 30 groups, including four new Android
+  regression groups. Details are in docs/ANDROID_TEST_STATUS.md.
+- docs/ANDROID_RELEASE_CHECKLIST.md is the saved device regression list;
+  docs/ANDROID_SIGNING.md explains permanent fingerprint preservation. The APK
+  workflow now runs unit and Kivy UI checks before native packaging and uploads
+  their reports. It needs a fresh run on main; no phone/emulator is attached.
+- No mock data, math, Gmail sender, notification rules, database schema or
+  background-work behavior changed. No real email was sent. Next: retain the
+  original signing key, build 0.2.1, install over the existing APK and execute
+  the device checklist. No live-price or background-scheduler work is authorized.
+
 ## Completed
 
 - Pure SMA engine with documented crossing/equality/gap rules, adjusted annual

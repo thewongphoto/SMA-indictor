@@ -7,12 +7,14 @@ import sqlite3
 from dataclasses import replace
 
 from kivy.config import Config
+from kivy.utils import platform
 
 # A portrait desktop window is a convenient stand-in for the eventual phone UI.
-Config.set("graphics", "width", "440")
-Config.set("graphics", "height", "920")
-Config.set("graphics", "resizable", "1")
-Config.set("input", "mouse", "mouse,disable_multitouch")
+if platform != "android":
+    Config.set("graphics", "width", "440")
+    Config.set("graphics", "height", "920")
+    Config.set("graphics", "resizable", "1")
+    Config.set("input", "mouse", "mouse,disable_multitouch")
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -23,6 +25,7 @@ from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.stacklayout import StackLayout
@@ -42,6 +45,7 @@ from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol
 from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
 from .gmail import GmailSender
 from .android_gmail import AndroidGmailAuthorizer
+from .android_window import AndroidWindow
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -100,9 +104,40 @@ def choice(text, values):
     return RoundedSelector(text=text, values=values)
 
 
-class AnalyzerScreen(AnchorLayout):
+class EditingField(TextInput):
+    """Keep focus through touch replay/IME layout; Done, Back or an action ends editing."""
+    def __init__(self, **kwargs):
+        kwargs.setdefault("unfocus_on_touch", False)
+        kwargs.setdefault("write_tab", False)
+        super().__init__(**kwargs)
+
+
+class DeviceFrame(FloatLayout):
+    """All pages and the sheet share the same measured safe/keyboard viewport."""
+    def __init__(self, screen, **kwargs):
+        super().__init__(**kwargs)
+        self.screen = screen
+        self.metrics = None
+        screen.size_hint = (None, None)
+        self.add_widget(screen)
+        self.bind(pos=self._arrange, size=self._arrange)
+
+    def apply_metrics(self, metrics):
+        self.metrics = metrics
+        self._arrange()
+
+    def _arrange(self, *_):
+        bounds = (self.metrics.content_bounds(*self.size) if self.metrics else
+                  (0, 0, *self.size))
+        x, y, width, height = bounds
+        self.screen.pos = (self.x+x, self.y+y)
+        self.screen.size = (width, height)
+        self.screen.keep_editor_visible()
+
+
+class AnalyzerScreen(FloatLayout):
     def __init__(self, model, **kwargs):
-        super().__init__(anchor_x="center", anchor_y="top", **kwargs)
+        super().__init__(**kwargs)
         with self.canvas.before:
             Color(*BG)
             self._background = Rectangle(pos=self.pos, size=self.size)
@@ -112,10 +147,12 @@ class AnalyzerScreen(AnchorLayout):
         self.busy = False
         self.closed = False
         self._job = 0
+        self._syncing_controls = False
+        self._page_stack = ["parameters"]
         self.gmail_sender = GmailSender(GMAIL_SENDER_ADDRESS)
         self.gmail_authorizer = AndroidGmailAuthorizer()
         self.delivery_busy = False
-        self.manager = ScreenManager(transition=NoTransition())
+        self.manager = ScreenManager(transition=NoTransition(), pos_hint={"x": 0, "y": 0})
         self.add_widget(self.manager)
         self.pages = {}
         for name in ("parameters", "results", "crossovers", "settings"):
@@ -170,7 +207,7 @@ class AnalyzerScreen(AnchorLayout):
         target_values = tuple(f"{n} / year" for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
         self.target = choice(f"{model.target_frequency} / year", target_values)
         target_row.add_widget(self.target)
-        self.custom_target = TextInput(text="9", multiline=False, input_type="number",
+        self.custom_target = EditingField(text="9", multiline=False, input_type="number",
                                        size_hint_y=None, height=dp(44),
                                        font_size=sp(16), padding=[dp(10), dp(12)],
                                        background_normal="", background_active="", background_color=(0.12, 0.17, 0.23, 1),
@@ -264,6 +301,8 @@ class AnalyzerScreen(AnchorLayout):
         self.saved_panel = Panel()
         self.saved_sheet = SavedLinesSheet(self, self.saved_panel)
         self.saved_sheet.bind(is_open=lambda _, opened: setattr(self.saved_menu_button,"kind","down" if opened else "menu"))
+        self.landing_saved_panel = Panel()
+        self.parameter_content.add_widget(self.landing_saved_panel)
         self.table_panel = Panel()
         self.content.add_widget(self.table_panel)
         self.settings_back_button = self._page_heading("settings","Notification settings")
@@ -271,6 +310,10 @@ class AnalyzerScreen(AnchorLayout):
         self.full_table_panel = Panel()
         self.full_crossovers_content.add_widget(self.full_table_panel)
         self._build_notification_settings()
+        for editor in self.editors:
+            editor.bind(focus=self._editor_focus)
+        self._editor_scroll_trigger = Clock.create_trigger(self._scroll_editor, .12)
+        self.settings_scroll.bind(size=self.keep_editor_visible)
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
                  "All prices are simulated; 252 sessions represent one trading year.",
@@ -312,7 +355,9 @@ class AnalyzerScreen(AnchorLayout):
             self.saved_menu_button = IconButton(kind="menu")
             self.saved_menu_button.bind(on_release=self.toggle_saved_sheet)
             bar.add_widget(self.saved_menu_button)
-            bar.add_widget(WrappedLabel(text="Saved SMAs",pos_hint={"center_y":.5}))
+            self.saved_menu_label = LabButton(text="Saved SMAs", halign="left")
+            self.saved_menu_label.bind(on_release=self.toggle_saved_sheet)
+            bar.add_widget(self.saved_menu_label)
             self.settings_button = IconButton(kind="settings")
             self.settings_button.bind(on_release=self.show_settings)
             bar.add_widget(self.settings_button)
@@ -325,7 +370,7 @@ class AnalyzerScreen(AnchorLayout):
         # Keep Back reachable even at the bottom of a long event list/settings.
         row = BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(8),padding=(dp(16),dp(6)))
         button = IconButton(kind="back")
-        button.bind(on_release=self.show_results)
+        button.bind(on_release=self.go_back)
         row.add_widget(button)
         row.add_widget(WrappedLabel(text=title,bold=True,font_size=sp(18),pos_hint={"center_y":.5}))
         column = self.pages[page_name].children[0]
@@ -337,17 +382,77 @@ class AnalyzerScreen(AnchorLayout):
             scroll.width = min(self.width, dp(1000))
 
     def show_parameters(self, *_):
-        self.saved_sheet.dismiss(animate=False)
-        self.manager.current = "parameters"
+        self._navigate("parameters")
+        self._refresh_saved()
         self.parameter_scroll.scroll_y = 1
 
     def show_results(self, *_):
-        self.saved_sheet.dismiss(animate=False)
-        self.manager.current = "results"
+        self._navigate("results")
 
     def show_settings(self, *_):
+        self._navigate("settings")
+
+    def _navigate(self, name):
+        self.finish_editing()
         self.saved_sheet.dismiss(animate=False)
-        self.manager.current = "settings"
+        if name == "results":
+            self._page_stack = ["parameters", "results"]
+        elif name in self._page_stack:
+            self._page_stack = self._page_stack[:self._page_stack.index(name)+1]
+        else:
+            self._page_stack.append(name)
+        self.manager.current = name
+
+    def go_back(self, *_):
+        self.finish_editing()
+        self.saved_sheet.dismiss(animate=False)
+        if len(self._page_stack) > 1:
+            self._page_stack.pop()
+            self.manager.current = self._page_stack[-1]
+            if self.manager.current == "parameters":
+                self._refresh_saved()
+
+    @property
+    def editors(self):
+        return (self.custom_target, self.email_input, self.alert_session)
+
+    def finish_editing(self):
+        for editor in self.editors:
+            editor.focus = False
+
+    def handle_back(self):
+        """Consume overlays/editing first, then pages; only Parameters may exit."""
+        for name in ("history_popup", "validation_popup"):
+            popup = getattr(self, name, None)
+            if popup is not None and popup._is_open:
+                popup.dismiss()
+                return True
+        if self.saved_sheet.is_open:
+            self.saved_sheet.dismiss()
+            return True
+        if any(editor.focus for editor in self.editors):
+            self.finish_editing()
+            return True
+        if len(self._page_stack) > 1:
+            self.go_back()
+            return True
+        return False
+
+    def _editor_focus(self, editor, focused):
+        if focused:
+            self.keep_editor_visible()
+
+    def keep_editor_visible(self, *_):
+        trigger = getattr(self, "_editor_scroll_trigger", None)
+        if trigger is not None:
+            trigger()
+
+    def _scroll_editor(self, *_):
+        for editor in self.editors:
+            if editor.focus:
+                scroll = self.settings_scroll if editor is not self.custom_target else self.parameter_scroll
+                scroll.scroll_to(editor, padding=dp(20), animate=False)
+                break
 
     def toggle_saved_sheet(self, *_):
         if self.saved_sheet.is_open:
@@ -413,6 +518,8 @@ class AnalyzerScreen(AnchorLayout):
             self.controls.add_widget(self.status)
 
     def on_dataset_change(self, *_):
+        if self._syncing_controls:
+            return
         self._job += 1
         try:
             self.model.select_dataset(self.counter.text, self.scenario.text)
@@ -429,14 +536,16 @@ class AnalyzerScreen(AnchorLayout):
             self.target_row.add_widget(self.custom_target)
         elif self.target.text != "Custom" and self.custom_target.parent is not None:
             self.target_row.remove_widget(self.custom_target)
-        self._target_edited()
+        if not self._syncing_controls:
+            self._target_edited()
 
     def on_custom_target(self, *_):
-        if self.target.text == "Custom":
+        if self.target.text == "Custom" and not self._syncing_controls:
             self._target_edited()
 
     def _target_edited(self):
         self._job += 1
+        self.model.viewing_saved = False
         # Never leave stale statistics visible for a newly entered target.
         self.model.result = None
         try:
@@ -523,6 +632,28 @@ class AnalyzerScreen(AnchorLayout):
         except (sqlite3.Error, OSError) as error:
             self.message(f"Could not remove saved line: {error}", True)
 
+    def on_view_saved(self, line, *_):
+        if self.busy:
+            return
+        try:
+            self._job += 1
+            selected = self.model.view_saved_line(line.id)
+            self._syncing_controls = True
+            try:
+                self.counter.text, self.scenario.text = selected.counter, selected.scenario
+                self.custom_target.text = str(selected.target_frequency)
+                self.target.text = (f"{selected.target_frequency} / year"
+                                    if selected.target_frequency in TARGET_FREQUENCIES else "Custom")
+            finally:
+                self._syncing_controls = False
+            self.refresh()
+            self.chart.set_timeline("1Y")
+            self.show_results()
+            self.scroll.scroll_y = 1
+            self.message(f"Viewing saved SMA {selected.period} for {selected.counter} · {selected.scenario}.", quiet=True)
+        except (ValueError, sqlite3.Error, OSError) as error:
+            self.message(f"Could not open saved SMA: {error}", True)
+
     def refresh(self):
         self.last_alerts = ()
         self.alert_preview.text = "No current preview. Choose a session and press Preview EOD alerts."
@@ -550,15 +681,19 @@ class AnalyzerScreen(AnchorLayout):
                 self.card_values[key].text = value
         self._set_busy(self.busy)
         self.save_button.selected = self.model.current_saved_line() is not None
+        self.optimal_caption.text = "SAVED SMA" if self.model.viewing_saved else "OPTIMAL SMA"
         self.hide_button.text = "Hide SMA" if self.model.active_visible else "Show SMA"
         result = self.model.result
         self.explanation.text = (
             f"Based on {result.comparisons} usable comparisons "
             f"({result.usable_years:.2f} trading years) from {result.history_sessions} sessions. "
-            f"Target difference: {float(result.frequency_error):.2f}/yr. "
-            f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. "
-            "Warm-up and gaps are excluded. Ties choose the shorter SMA. "
-            + ("Closest eligible result; target not matched exactly." if result.frequency_error else "Target matched.")
+            f"Target difference: {float(result.frequency_error):.2f}/yr. " +
+            ("Viewing the exact saved period. " if self.model.viewing_saved else
+             f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. ") +
+            "Warm-up and gaps are excluded. "
+            + ("Saved parameters have not been re-optimized." if self.model.viewing_saved else
+               "Ties choose the shorter SMA. " +
+               ("Closest eligible result; target not matched exactly." if result.frequency_error else "Target matched."))
             if result else "Optimize across all observable history. Warm-up and gaps are excluded from annual frequency.")
         self._refresh_saved()
         self._refresh_table()
@@ -579,29 +714,48 @@ class AnalyzerScreen(AnchorLayout):
             self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
 
     def _refresh_saved(self):
-        self.saved_panel.clear_widgets()
+        self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.saved_lines())
+        self.landing_saved_rows = self._populate_saved_panel(
+            self.landing_saved_panel, self.model.store.list_all_lines(), landing=True)
+
+    def _populate_saved_panel(self, panel, saved, landing=False):
+        panel.clear_widgets()
         header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
         header.add_widget(WrappedLabel(text="02  /  SAVED SMA LINES", font_size=sp(11), bold=True, color=MUTED))
-        self.history_button = IconButton(kind="history")
-        self.history_button.bind(on_release=self.open_unsaved_history)
-        header.add_widget(self.history_button)
-        self.saved_panel.add_widget(header)
-        saved = self.model.saved_lines()
-        self.saved_rows = {}
+        history = IconButton(kind="history")
+        history.bind(on_release=self.open_unsaved_history)
+        if landing:
+            self.landing_history_button = history
+        else:
+            self.history_button = history
+        header.add_widget(history)
+        panel.add_widget(header)
+        rows = {}
         if not saved:
-            self.saved_panel.add_widget(WrappedLabel(text="No saved lines for this simulation. Optimize, then tap the heart.", color=MUTED))
+            panel.add_widget(WrappedLabel(text=("No saved SMAs yet. Optimize, then tap the heart." if landing else
+                "No saved lines for this simulation. Your other counters/scenarios are on the parameters page."), color=MUTED))
         for line in saved:
             label = f"SMA {line.period} · target {line.target_frequency}/yr"
+            if landing:
+                label = f"{line.counter} · {line.scenario}\n" + label
             if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
                 label += " · saved previously; outside current search limit"
             title = BoxLayout(size_hint_y=None, height=dp(28), spacing=dp(5))
-            active = self.model.result is not None and self.model.result.period == line.period
+            active = (self.model.result is not None and self.model.result.period == line.period
+                      and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
             swatch = LegendSymbol(self.chart.period_color(line.period, active))
             title.add_widget(swatch)
-            title_label = WrappedLabel(text=label)
+            title_label = (Button(text=label, color=TEXT, font_size=sp(13), halign="left",
+                                  background_normal="", background_down="", background_color=(0,0,0,0))
+                           if landing else WrappedLabel(text=label))
+            if landing:
+                title.height = dp(48)
+                title_label.bind(size=lambda widget, size: setattr(widget, "text_size", size))
+                title_label.bind(on_release=lambda _, saved_line=line: self.on_view_saved(saved_line))
             title.add_widget(title_label)
-            title_label.bind(height=lambda _, height, box=title: setattr(box, "height", max(dp(28), height)))
-            self.saved_panel.add_widget(title)
+            if not landing:
+                title_label.bind(height=lambda _, height, box=title: setattr(box, "height", max(dp(28), height)))
+            panel.add_widget(title)
             # At phone widths two left controls share a row; hide/heart stay at right below.
             row = GridLayout(cols=4 if self.scroll.width >= dp(620) else 2,
                              size_hint_y=None, spacing=dp(6))
@@ -617,8 +771,9 @@ class AnalyzerScreen(AnchorLayout):
             push.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"phone"))
             email.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"email"))
             visible = self.model.active_visible if active else line.visible
-            toggle = LabButton(text="Hide" if visible else "Show", size_hint_x=None, width=dp(64))
-            toggle.bind(on_release=lambda _, saved_line=line: self.on_saved_visibility(saved_line))
+            toggle = LabButton(text="View" if landing else "Hide" if visible else "Show", size_hint_x=None, width=dp(64))
+            action = self.on_view_saved if landing else self.on_saved_visibility
+            toggle.bind(on_release=lambda _, saved_line=line, callback=action: callback(saved_line))
             heart = IconButton(kind="heart", selected=True)
             heart.bind(on_release=lambda _, saved_line=line: self.on_delete(saved_line))
             if row.cols == 4:
@@ -634,11 +789,12 @@ class AnalyzerScreen(AnchorLayout):
                 actions.add_widget(Label())
                 actions.add_widget(toggle)
                 actions.add_widget(heart)
-                self.saved_panel.add_widget(row)
-                self.saved_panel.add_widget(actions)
+                panel.add_widget(row)
+                panel.add_widget(actions)
             if row.cols == 4:
-                self.saved_panel.add_widget(row)
-            self.saved_rows[line.id] = dict(push=push,email=email,hide=toggle,heart=heart,swatch=swatch)
+                panel.add_widget(row)
+            rows[line.id] = dict(push=push,email=email,hide=toggle,heart=heart,swatch=swatch,title=title_label)
+        return rows
 
     def on_line_alert(self, line, channel):
         enabled = line.push_enabled if channel == "phone" else line.email_enabled
@@ -739,7 +895,8 @@ class AnalyzerScreen(AnchorLayout):
         self.settings_panel.add_widget(self.gmail_test_button)
         self.settings_panel.add_widget(WrappedLabel(text="Recipient email address · saved only on this device",color=MUTED,font_size=sp(11)))
         address_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-        self.email_input = TextInput(text=settings.email,multiline=False,font_size=sp(13),
+        self.email_input = EditingField(text=settings.email,multiline=False,font_size=sp(13),
+                                    input_type="mail", keyboard_suggestions=False,
                                     padding=(dp(8),dp(12)),write_tab=False,
                                     background_normal="",background_active="",background_color=(.12,.17,.23,1),
                                     foreground_color=TEXT,cursor_color=PRICE_COLOR)
@@ -753,7 +910,7 @@ class AnalyzerScreen(AnchorLayout):
         self.alert_session_label = WrappedLabel(text="Test an end-of-day session (1–1260)",color=MUTED,font_size=sp(11))
         self.settings_panel.add_widget(self.alert_session_label)
         test_row = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-        self.alert_session = TextInput(text="1260",multiline=False,input_filter="int",font_size=sp(13),
+        self.alert_session = EditingField(text="1260",multiline=False,input_filter="int",input_type="number",font_size=sp(13),
                                       size_hint_x=None,width=dp(70),padding=(dp(8),dp(12)),
                                       background_normal="",background_active="",background_color=(.12,.17,.23,1),
                                       foreground_color=TEXT,cursor_color=PRICE_COLOR)
@@ -788,6 +945,7 @@ class AnalyzerScreen(AnchorLayout):
             self.notification_status.text = str(error)
 
     def on_save_email(self, *_):
+        self.email_input.focus = False
         try:
             settings = replace(self.model.store.notification_settings(),email=self.email_input.text)
             self.model.store.save_notification_settings(settings)
@@ -797,6 +955,7 @@ class AnalyzerScreen(AnchorLayout):
             self.notification_status.text = str(error)
 
     def preview_eod_alerts(self, *_):
+        self.alert_session.focus = False
         try:
             self.notification_status.text = "Preview only · no notification or email was sent."
             try:
@@ -993,8 +1152,7 @@ class AnalyzerScreen(AnchorLayout):
                 text=f"{data.counter} · {data.scenario} · SMA {result.period} · {result.crossing_count} upward crossings",bold=True))
             self.full_crossover_table = self._crossing_table(self.model.event_rows())
             self.full_table_panel.add_widget(self.full_crossover_table)
-            self.saved_sheet.dismiss(animate=False)
-            self.manager.current = "crossovers"
+            self._navigate("crossovers")
             self.full_crossovers_scroll.scroll_y = 1
         else:
             self.visible_crossovers = min(35,self.visible_crossovers+10)
@@ -1002,6 +1160,8 @@ class AnalyzerScreen(AnchorLayout):
 
     def close(self):
         self.closed = True
+        self._editor_scroll_trigger.cancel()
+        self.finish_editing()
         self.gmail_sender.disconnect()
         self.gmail_authorizer.close()
         self.executor.shutdown(wait=False, cancel_futures=True)
@@ -1012,8 +1172,9 @@ class SMAStockAnalyzerApp(App):
 
     def build(self):
         Window.clearcolor = BG
-        Window.minimum_width = dp(320)
-        Window.minimum_height = dp(480)
+        if platform != "android":
+            Window.minimum_width = dp(320)
+            Window.minimum_height = dp(480)
         try:
             # Avoid evaluating user_data_dir when an explicit writable path is supplied.
             configured = os.environ.get("SMA_ANALYZER_DATA_DIR")
@@ -1022,12 +1183,32 @@ class SMAStockAnalyzerApp(App):
         except (sqlite3.Error, OSError) as error:
             return WrappedLabel(text=f"Local storage could not be opened: {error}\n"
                                 "Choose a writable SMA_ANALYZER_DATA_DIR and restart.", color=ERROR)
-        return self.screen
+        # SDL2 reports keyboard_height as zero on Android: use measured native
+        # surface/inset geometry instead of Kivy's unsupported resize mode.
+        Window.softinput_mode = ""
+        self.device_frame = DeviceFrame(self.screen)
+        self.android_window = AndroidWindow()
+        Window.bind(on_keyboard=self._on_keyboard)
+        if platform == "android":
+            try:
+                self.android_window.start(lambda metrics: Clock.schedule_once(
+                    lambda _: self.device_frame.apply_metrics(metrics) if not self.screen.closed else None, 0))
+            except Exception:
+                logging.exception("Android window metrics could not be installed")
+        return self.device_frame
+
+    def _on_keyboard(self, _window, key, *_):
+        if key == 27 and hasattr(self, "screen"):
+            return self.screen.handle_back()
+        return False
 
     def on_pause(self):
         # Google consent can temporarily cover the Kivy activity.
         return True
 
     def on_stop(self):
+        Window.unbind(on_keyboard=self._on_keyboard)
+        if hasattr(self, "android_window"):
+            self.android_window.stop()
         if hasattr(self, "screen"):
             self.screen.close()

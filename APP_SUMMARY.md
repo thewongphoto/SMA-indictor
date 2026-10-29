@@ -16,7 +16,7 @@ connected to the running app; the status table records the remaining scope.
 | Live market data / background EOD scheduler | Not implemented |
 | Debug Android APK configuration/workflow | First GitHub Java failure diagnosed; Google library pin corrected; full rebuild/device result pending |
 | Saved hearts, ten-entry unsave history, channel/type settings and EOD previews | Implemented and tested |
-| Android local notifications and native Google authorization | Implemented; native build/device validation pending |
+| Android local notifications and native Google authorization | Generic phone notification passed per user report; 0.2.1 fixes and Gmail device tests pending |
 | Gmail sending | MIME/HTTPS + native OAuth implemented; user Google setup/consent required |
 
 Download the updated repository to use the new calculations. Files already
@@ -177,12 +177,12 @@ policy excludes that result by requiring at least 126 usable comparisons.
 
 Validation after application integration:
 
-- 67 unit tests passed, including active-engine/reference agreement, coverage,
+- 75 unit tests passed, including active-engine/reference agreement, coverage,
   caps, displayed model results, and preservation of earlier saved lines; none
   failed or were skipped.
 - The comparison runner evaluated all six current datasets at all three preset
   targets, plus eight isolated longer-history boundary cases.
-- The current Kivy UI run passed 26 check groups, including the known
+- The current Kivy UI run passed 30 check groups, including the known
   adjusted-frequency result in actual widgets, usable coverage, touch routing,
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
@@ -274,7 +274,10 @@ specified calculations and controls, not investment performance.
 
 ## Screen structure
 
-- Screen 1 contains only the heading and parameters, and is the launch screen.
+- Screen 1 contains the heading, parameters and an all-counter/scenario library
+  of saved SMAs, and is the launch screen. Library actions say View; the title
+  is also clickable. View opens the exact saved period/target without rerunning
+  optimization, reveals its selected overlay and shows a Saved SMA caption.
   Successful optimization navigates to Screen 2. Change parameters returns to 1
   with the controls retained; failed/invalid calculations remain on 1.
 - Screen 2 contains Optimal SMA, chart, two frequency cards and coverage. The

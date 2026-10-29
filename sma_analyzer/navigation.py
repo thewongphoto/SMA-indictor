@@ -60,9 +60,9 @@ class SavedLinesSheet(FloatLayout):
     is_open = BooleanProperty(False)
 
     def __init__(self, host, panel, **kwargs):
-        super().__init__(size_hint=(1,None), **kwargs)
+        super().__init__(size_hint=(None,None), **kwargs)
         self.host = host
-        self.host.bind(size=self._fit_host)
+        self.host.bind(pos=self._fit_host, size=self._fit_host)
         self.host.results_footer.bind(height=self._fit_host)
         self.backdrop = Button(background_normal="", background_down="",
                                background_color=(0, 0, 0, .4))
@@ -84,7 +84,9 @@ class SavedLinesSheet(FloatLayout):
     def _fit_host(self, *_):
         # Leave the persistent result navigation accessible, including the
         # same bottom-left button that toggles the sheet closed.
-        self.height = max(dp(100),self.host.height-self.host.results_footer.height)
+        footer = self.host.results_footer.height
+        self.pos = (self.host.x, self.host.y + footer)
+        self.size = (self.host.width, max(dp(100), self.host.height-footer))
 
     def _layout(self, *_):
         self.backdrop.pos, self.backdrop.size = self.pos, self.size
@@ -95,7 +97,10 @@ class SavedLinesSheet(FloatLayout):
         self._background.pos, self._background.size = self.body.pos, self.body.size
 
     def open(self, *_):
+        if self.host.manager.current != "results":
+            return
         Animation.cancel_all(self, "progress")
+        self._fit_host()
         self.is_open = True
         if self.parent is None:
             self.host.add_widget(self)

@@ -173,6 +173,17 @@ heart at the far right. The outline/red heart in Optimal SMA also saves/unsaves.
 The clock/history icon in section 02 restores the ten most recently unsaved
 configurations across all scenarios/counters; older entries are discarded.
 
+The Parameters landing page now lists **all** saved counters/scenarios below
+the form, including hidden lines. Tap a row or **View** to open its exact saved
+period and target on Results; this does not re-optimize it. Results keeps its
+Hide/Show controls. Both the bottom menu icon and **Saved SMAs** text open the
+partial saved-lines sheet.
+
+On Android, Back first closes an editor/popup/sheet, then returns to the previous
+page. It exits only from Parameters. Native system-bar/cutout/keyboard geometry
+keeps the app inside its usable surface and scrolls focused fields into view.
+Phone keyboard behavior still needs retesting on the updated APK.
+
 **Screen 3 / Notification Settings**, opened with the bottom-right gear, contains phone/email sections,
 Buy/Monitor switches and a locally saved email address. Email cannot be enabled
 for a saved line until a valid address is saved. Both the per-line channel and
@@ -191,8 +202,10 @@ Android permission callbacks, notification channels, a monochrome icon and
 tap-to-open are implemented. These are local OS alerts; this prototype has no
 remote push server, daily scheduler or live EOD-price source. Desktop tests fake
 the Android/Google transports. The Gmail Java bridge now passes a targeted
-compile against real Android API 35 and Google libraries. Full APK packaging,
-phone delivery and Google consent still require the GitHub build/device checks.
+compile against real Android API 35 and Google libraries, as does the native
+window/insets helper. The user confirmed the preceding APK's generic phone test
+notification works. Version 0.2.1 fixes and Gmail consent/sending still require
+the new GitHub build and device checks.
 
 Start with [the APK/Gmail guide](docs/ANDROID_APK_GUIDE.md) to run the new manual
 GitHub Actions build, install its artifact, register its signing fingerprint in
@@ -200,6 +213,10 @@ Google Cloud and authorize Gmail. [Validation status](docs/ANDROID_TEST_STATUS.m
 records the first GitHub build failure and its Google-library fix: start a new
 workflow run on **main**. No complete APK has been produced here. No
 passwords, OAuth tokens or client secrets belong in source control.
+Follow [signing preservation](docs/ANDROID_SIGNING.md) once to keep the original
+SHA-1 in a durable Actions secret. The build now refuses to silently replace
+a missing signing key. Use the [Android release checklist](docs/ANDROID_RELEASE_CHECKLIST.md)
+for every future APK; automated unit/UI checks also run before packaging.
 
 ## Mathematical rules
 
@@ -311,14 +328,16 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **67 passed**, including production/reference and notification checks, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **26 groups passed**, 0 failed |
+| Standard-library test suite | **75 passed**, including production/reference, abrupt process-exit persistence and signing policy, 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **30 groups passed**, 0 failed; four focused Android regressions included |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
 | Gmail Java bridge compile | Old Google library reproduces the 3 errors; replacement 21.4.0 passes against real Android API 35/Google libraries |
-| Android APK build | First GitHub run failed on the old Google library pin; fix supplied, fresh workflow run on main needed |
-| Physical Android / Google consent / real sending | Not run; requires user build/account/device setup |
+| Android window/insets helper | Compiles against real Android API 35 |
+| Signing identity | Real keytool secret-restore round trip preserves SHA-1; unavailable key fails closed |
+| Android APK build | User installed the prior APK; 0.2.1 needs a fresh workflow run on main |
+| Physical Android / Google consent / real sending | Generic phone notification passed per user report; 0.2.1 fixes and Gmail sending need device tests |
 
 Tests include requested A–G, missing data, invalid inputs, a 3-year target,
 all six counter/scenario combinations, SQLite reload and deduplication,

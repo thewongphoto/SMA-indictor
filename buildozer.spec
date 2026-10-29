@@ -5,7 +5,7 @@ package.domain = org.thewongphoto
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 source.exclude_dirs = tests,scripts,experiments,docs,artifacts,.venv,.venv-android,.local,.git,.github,android,bin
-version = 0.2.0
+version = 0.2.1
 requirements = python3,kivy==2.3.1,pyjnius,openssl,sqlite3,certifi
 orientation = portrait
 fullscreen = 0

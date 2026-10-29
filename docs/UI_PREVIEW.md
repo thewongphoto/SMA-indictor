@@ -5,7 +5,7 @@ from the tested Kivy application, with calculated results and simulated prices.
 
 | Screen | Contents | Navigation |
 | --- | --- | --- |
-| 1 | App heading and parameter controls | Opens at launch; successful Optimize SMA opens 2 |
+| 1 | App heading, parameter controls and all-counter saved SMA library | Opens at launch; Optimize SMA or a saved row's View opens 2 |
 | 2 | Optimal SMA, chart, frequency cards, coverage explanation | Change parameters returns to 1; fixed bottom-left Saved SMAs and bottom-right Settings controls |
 | 2a | Crossovers below the results, in the same scroll view | Starts with 5 rows; downward arrows add up to 10 at a time, through 35 |
 | Expanded 2a | All selected-result crossing events | Show all opens this screen when more than 35 events exist; fixed top-left Back returns to 2 |
@@ -15,6 +15,10 @@ from the tested Kivy application, with calculated results and simulated prices.
 ## Screen 1 — parameters
 
 ![Parameter screen](screen-parameters.png)
+
+Saved rows appear immediately after launch, including other counters/scenarios.
+View and the row title open the exact saved parameters without re-optimization.
+Only this landing-page library replaces Hide with View; Results retains Hide.
 
 ## Screen 2 — results
 
@@ -57,10 +61,12 @@ Native Android/Google authorization needs the
 [APK + Gmail setup guide](ANDROID_APK_GUIDE.md). Preview still sends nothing;
 real sends require the sender account's consent. See [validation status](ANDROID_TEST_STATUS.md).
 
-The layouts were checked at five portrait sizes, including 320 pixels wide.
-Native fonts can vary slightly between operating systems. Physical Android
-validation is pending. Stock prices remain simulated. The Android build config is now included, but
-no APK has been produced in this cloud; certifi was added for Gmail TLS.
+The layouts were checked at five portrait sizes, including 320 pixels wide,
+and the focused Android regressions also pass at density 2 in a 440×920 dp
+viewport. Native fonts can vary slightly between operating systems. The user
+confirmed the prior APK's test notification works; the 0.2.1 Back/keyboard/inset
+corrections need a new APK/device retest. Stock prices remain simulated.
+See the [saved Android release checklist](ANDROID_RELEASE_CHECKLIST.md).
 
 ## Earlier design references
 

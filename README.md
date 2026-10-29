@@ -190,13 +190,15 @@ A recipient address alone does not connect or authorize the sender.
 Android permission callbacks, notification channels, a monochrome icon and
 tap-to-open are implemented. These are local OS alerts; this prototype has no
 remote push server, daily scheduler or live EOD-price source. Desktop tests fake
-the Android/Google transports. Actual native compilation, phone delivery and
-Google consent are not verified here because the cloud lacks Android tooling.
+the Android/Google transports. The Gmail Java bridge now passes a targeted
+compile against real Android API 35 and Google libraries. Full APK packaging,
+phone delivery and Google consent still require the GitHub build/device checks.
 
 Start with [the APK/Gmail guide](docs/ANDROID_APK_GUIDE.md) to run the new manual
 GitHub Actions build, install its artifact, register its signing fingerprint in
 Google Cloud and authorize Gmail. [Validation status](docs/ANDROID_TEST_STATUS.md)
-reports the local build failure honestly: no APK has been produced here. No
+records the first GitHub build failure and its Google-library fix: start a new
+workflow run on **main**. No complete APK has been produced here. No
 passwords, OAuth tokens or client secrets belong in source control.
 
 ## Mathematical rules
@@ -314,7 +316,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
-| Android APK build | Attempted locally; blocked at missing javac, SDK/NDK absent; manual GitHub workflow supplied |
+| Gmail Java bridge compile | Old Google library reproduces the 3 errors; replacement 21.4.0 passes against real Android API 35/Google libraries |
+| Android APK build | First GitHub run failed on the old Google library pin; fix supplied, fresh workflow run on main needed |
 | Physical Android / Google consent / real sending | Not run; requires user build/account/device setup |
 
 Tests include requested A–G, missing data, invalid inputs, a 3-year target,

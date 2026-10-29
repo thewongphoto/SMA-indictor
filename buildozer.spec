@@ -16,7 +16,8 @@ android.ndk = 28c
 android.archs = arm64-v8a
 android.accept_sdk_license = True
 android.enable_androidx = True
-android.gradle_dependencies = com.google.android.gms:play-services-auth:21.3.0
+# GmailAuthBridge uses RevokeAccessRequest/revokeAccess, introduced in 21.4.0.
+android.gradle_dependencies = com.google.android.gms:play-services-auth:21.4.0
 android.add_src = android/src
 android.add_resources = android/res
 android.debug_artifact = apk

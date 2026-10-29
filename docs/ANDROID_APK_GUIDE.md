@@ -14,11 +14,14 @@ Prices remain simulated. There is no live-stock feed or automatic daily schedule
 - Python alert rules, Gmail MIME/HTTPS sending and UI connections are implemented.
 - Native Android permission/channel/icon/tap behavior and Google Identity
   authorization bridge are included, along with the build configuration.
-- **No APK has been compiled in this workspace.** The local attempt stopped at
-  missing `javac`; the SDK/NDK are also absent, and Google downloads are blocked.
-- The GitHub workflow has been added but has **not been run here**. Its first
-  successful run will validate the Android/Java compilation. If it fails, use
-  the build log rather than expecting an APK to be present.
+- **No complete APK has been compiled in this workspace.** The original local
+  attempt stopped at a missing `javac` executable. A full SDK/NDK toolchain is
+  still unavailable; the targeted Java check below uses downloaded API classes.
+- The first GitHub build reached Java compilation and failed because the pinned
+  Google library lacked the bridge's Gmail disconnect API. The pin is now
+  **play-services-auth 21.4.0**; the unchanged bridge passes a targeted compile
+  against the real Google libraries and Android API 35. A complete APK build
+  still needs a fresh workflow run on **main**.
 - No Google account has been connected or real email sent here. You must do the
   one-time Google setup and authorize your account on your own phone.
 
@@ -39,6 +42,11 @@ See [actual validation results](ANDROID_TEST_STATUS.md).
    run summary and download **sma-android-test**.
 7. Extract that ZIP. It should contain an `.apk` file, `android-signing-info.txt`
    and `android-build.log`. The exact APK filename can vary.
+
+**After a code fix:** return to the workflow's main page and use **Run workflow →
+main → Run workflow** to create a new run. Re-running failed jobs on an older
+run rebuilds its original commit, so it will not pick up the fix. Your computer
+can be closed or disconnected while GitHub builds the APK.
 
 **If the run is red or there is no APK:** the build failed. Open the failed step
 and inspect `android-build.log` in the artifact. Artifacts may still contain the

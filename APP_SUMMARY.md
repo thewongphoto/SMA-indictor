@@ -14,7 +14,7 @@ connected to the running app; the status table records the remaining scope.
 | Warm-up-adjusted frequency and automatic history-dependent SMA cap below | Active in `sma_analyzer/engine.py` and `policy.py`; checked against the research reference |
 | Default chart view and available presets | 1Y on startup/new data; 3Y and 5Y only when available; Max shows all history |
 | Live market data / background EOD scheduler | Not implemented |
-| Debug Android APK configuration/workflow | Added; local build blocked; no APK/device result yet |
+| Debug Android APK configuration/workflow | First GitHub Java failure diagnosed; Google library pin corrected; full rebuild/device result pending |
 | Saved hearts, ten-entry unsave history, channel/type settings and EOD previews | Implemented and tested |
 | Android local notifications and native Google authorization | Implemented; native build/device validation pending |
 | Gmail sending | MIME/HTTPS + native OAuth implemented; user Google setup/consent required |
@@ -187,6 +187,11 @@ Validation after application integration:
   zoom selection, reset, chart/table consistency, persistence, and errors.
 - UI rendering was exercised with SDL offscreen/Mesa on Linux. No automated
   Mac GUI, physical Android, or APK validation has been performed.
+- Following the first GitHub build failure, a targeted compile of the unchanged
+  Gmail Java bridge reproduced the three errors with Google auth 21.3.0 and
+  passed with 21.4.0 against real Android API 35/Google libraries. The build
+  now pins 21.4.0. Full APK packaging and actual account/device tests remain
+  pending; see [Android validation status](docs/ANDROID_TEST_STATUS.md).
 
 See [the full evaluation report](docs/observable-frequency-evaluation.md) for
 reproducible commands and all results. Passing these tests demonstrates the

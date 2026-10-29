@@ -129,6 +129,7 @@
 
 Latest user direction now authorizes Android test packaging and Gmail delivery.
 Implemented Buildozer 1.6.0 / p4a v2026.05.09 / NDK 28c / API35 ARM64 config,
+with Google play-services-auth now pinned to 21.4.0 for its revocation API,
 manual GitHub APK workflow with debug signing SHA-1 artifact, native Google
 Identity Java bridge, send-only Gmail MIME/HTTPS transport and configurable
 GMAIL_SENDER_ADDRESS="kelwong98@gmail.com". Tokens remain in memory, with consent
@@ -138,9 +139,15 @@ Native notification permission continues after callback; channel/global disabled
 checks, monochrome icon and tap intent are included. No live market data, remote
 push server or background EOD scheduler added.
 67 unit tests and 26 real Kivy UI groups pass (fake native/Google/HTTP). Native
-Java/Gradle compilation, physical phone permission/consent and real sending are
-unverified. Local build attempt reached checks but failed: javac missing; SDK/NDK
-absent, Google downloads blocked. No APK produced. GitHub CLI cannot dispatch
+Gradle packaging, physical phone permission/consent and real sending are
+unverified. The first local build attempt reached checks but failed: javac
+executable missing; SDK/NDK absent, Google downloads initially blocked. The
+later supplied GitHub log reached Java compilation and failed on the old Google
+auth 21.3.0 pin. A targeted native check with real API 35/Google classes reproduces
+its three missing-symbol errors with 21.3.0 and passes with the fixed 21.4.0.
+It invokes the installed JDK's compiler module through java, without a javac
+launcher; the full local SDK/NDK toolchain remains unavailable. No APK produced.
+GitHub CLI cannot dispatch
 the workflow with current authentication; Git pushes work. User must run the
 manual workflow, then follow docs/ANDROID_APK_GUIDE.md for install and Google
 Cloud Android OAuth registration using that APK's SHA-1/package. Validation

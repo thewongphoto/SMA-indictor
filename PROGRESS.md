@@ -1,5 +1,20 @@
 # Prototype handoff
 
+## Fresh GitHub runner startup fix
+
+- Run 40888955510 passed all 75 unit tests, then failed before UI startup:
+  FileNotFoundError for the configured .local/kivy directory. Kivy's mkdir
+  could not create its absent .local parent on a clean checkout. No signing or
+  APK build steps were reached.
+- The workflow explicitly creates KIVY_HOME/XDG_CACHE_HOME/artifacts before
+  launch. The smoke runner also prepares configured directories before Kivy
+  imports, so standalone execution works with fresh nested paths.
+- Original failure reproduced with an absent temporary nested KIVY_HOME.
+  All 30 running UI groups then passed using fresh temporary nested Kivy/cache
+  directories; workflow YAML/shell syntax checks passed. The supplied GitHub
+  log already records 75 passing unit tests before the startup failure.
+  App code, SMA math, Android behavior and signing identity are unchanged.
+
 ## Android corrections — version 0.2.1
 
 - User tested the installed prior APK: generic Android test notification works.

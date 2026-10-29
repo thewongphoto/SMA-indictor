@@ -1,5 +1,26 @@
 # Android/Gmail validation status
 
+## Fresh-runner workflow startup fix
+
+[Run 40888955510](https://github.com/thewongphoto/SMA-indictor/actions/runs/40888955510)
+passed **75 unit tests**, then stopped in Kivy initialization with
+`FileNotFoundError` for `.local/kivy`. Its parent directory did not exist on the
+fresh runner. Kivy calls `mkdir` rather than recursively creating parents.
+Signing migration and APK packaging were not reached in that run.
+
+The workflow now creates its configured Kivy/cache/artifact directories before
+launching. The smoke runner does the same before importing Kivy. The original
+exception was reproduced with a missing nested temporary path; validation uses
+fresh directories instead of relying on existing workspace folders.
+All **30 running Kivy UI groups passed** with those fresh paths after the fix.
+Workflow YAML and shell syntax checks also passed. The 75-unit-test pass above
+is from the supplied GitHub log; unit logic did not change in this fix.
+
+Start a new workflow run on **main** to pick up the fix. Keep the one-time
+signing-migration checkbox selected if you were attempting that setup: the
+failed run did not reach it. Full GitHub/Xvfb/Android execution still needs the
+new run; local UI checks use SDL offscreen rendering.
+
 ## Android device feedback and 0.2.1 corrections
 
 The user installed the preceding APK and reported on **29 October 2026

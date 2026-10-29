@@ -13,6 +13,13 @@ import tempfile
 import time
 import traceback
 
+# Kivy creates its home with mkdir, which cannot create missing parent folders.
+# Initialize configured paths before importing Kivy, including on fresh runners.
+for directory_name in ("KIVY_HOME", "XDG_CACHE_HOME"):
+    if os.environ.get(directory_name):
+        Path(os.environ[directory_name]).expanduser().mkdir(parents=True, exist_ok=True)
+Path("artifacts").mkdir(exist_ok=True)
+
 # Test storage never touches the user's saved lines.
 temporary = tempfile.TemporaryDirectory(prefix="sma-ui-")
 os.environ["SMA_ANALYZER_DATA_DIR"] = temporary.name

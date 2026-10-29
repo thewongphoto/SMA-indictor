@@ -92,3 +92,24 @@ class ViewportTests(unittest.TestCase):
                 view.show_timeline("3Y")
             with self.assertRaises(ValueError):
                 view.show_timeline("5Y")
+
+
+class PinchTests(unittest.TestCase):
+    def test_spread_and_contract_are_inverse_around_anchor(self):
+        view = ChartViewport(1260)
+        view.show_timeline('1Y')
+        initial = view.bounds
+        anchor = view.index_at(0.5)
+        self.assertTrue(view.pinch(initial, anchor, .5, 2))
+        self.assertLess(view.end-view.start, initial[1]-initial[0])
+        self.assertAlmostEqual((view.start+view.end)/2, anchor, delta=1)
+        zoomed = view.bounds
+        view.pinch(zoomed, anchor, .5, .5)
+        self.assertAlmostEqual(view.end-view.start, initial[1]-initial[0], delta=2)
+
+    def test_pinch_bounds_and_minimum_span(self):
+        view = ChartViewport(10)
+        view.pinch((0, 9), 0, .9, .001)
+        self.assertEqual(view.bounds, (0, 9))
+        view.pinch((0, 9), 9, .1, 1000)
+        self.assertEqual(view.bounds, (8, 9))

@@ -237,3 +237,26 @@ is now authorized; a successful build and physical-device test remain pending.
 Recommended next work: compare pasted article text if supplied, agree EOD data
 and adjustment rules, add fixture-backed local caching, then validate an Android
 development build with portrait orientation and device lifecycle tests.
+
+
+## 0.3.0 — chart inspection and investment comparison
+
+- Results saved sheet now lists the full library across counters/scenarios;
+  titles open exact saved parameters, while plot overlays remain dataset-scoped.
+- One-finger EOD inspection replaces drag-to-zoom. The tooltip uses stable,
+  explicitly synthetic weekday dates and full-history selected SMA values.
+  Two-finger spread/contract performs continuous midpoint-anchored zoom; quick
+  views and Zoom out remain independent of statistics and backtest periods.
+- Section 03 compares equal-budget $100 close-to-final investments at crossings,
+  fixed-seed random sessions and ranked daily percentage changes, for rolling
+  1Y/3Y/5Y/Max/custom periods. It reports buys and ending values (no separate contribution figure),
+  with b/c percentage differences relative to a beside their ending values,
+  and discloses warm-up, simulated data, hindsight and in-sample SMA selection.
+  Full crossing details remain accessible on their separate page.
+- Gmail previously conflated all non-OK Android results with user cancellation.
+  It now parses structured Google errors even with RESULT_CANCELED, checks Play
+  services, and displays safe codes with actionable account/OAuth/network advice.
+  The underlying phone authorization failure cannot be determined from the old
+  generic message alone; a new APK and real Google account check remain required.
+- User reports the preceding Android fixes pass on their device. New 0.3.0
+  interactions are cloud-validated; they are not yet confirmed on a phone.

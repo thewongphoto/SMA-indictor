@@ -39,7 +39,6 @@ from kivy.graphics import Color, Line, Rectangle, Triangle
 from kivy.input.motionevent import MotionEvent
 from kivy.metrics import dp
 
-from sma_analyzer.chart import START_COLOR, END_COLOR
 
 
 class Pointer(MotionEvent):
@@ -152,26 +151,35 @@ class SmokeApp(SMAStockAnalyzerApp):
             active, = [line for line in ui.chart.series if line.active]
             assert active.sma == tuple(simple_moving_average(ui.chart.prices, result.period))
             assert ui.chart.marker_events["active"] == result.events
-            # Inspect the rendered table, not just the model's row list.
-            rows = ui.model.event_rows()
-            if rows:
-                table = ui.crossover_table
-                rendered = [cell.text for cell in reversed(table.children)]
-                assert rendered[3:] == [value for row in rows[:5] for value in row]
+            # Verify the visible investment values against the independent report.
+            report = ui.backtest_report
+            assert report is not None
+            for key, label in ui.backtest_values.items():
+                assert label.text == f"${getattr(report, key).ending_value:,.2f}"
+                if key in ui.backtest_differences:
+                    delta = getattr(report, key).difference_percent(report.crossings)
+                    assert ui.backtest_differences[key].text == f"({delta:+.2f}% vs a)"
+            assert "contributed" not in ui.backtest_details.text.lower()
             assert ui.manager.current == "results"
-            assert len(ui.rendered_crossover_rows) == min(5,len(rows))
-            self.check(f"target {target}: button, loading, engine, cards, chart markers, table")
+            self.check(f"target {target}: button, engine, cards, chart markers and investment values")
 
-        # A short history of events stops at its actual count, with no Show all.
-        assert len(ui.model.event_rows()) == 26
-        for expected in (15,25,26):
-            assert ui.more_crossings_button.kind == "down"
-            ui.more_crossings_button.dispatch("on_release")
-            assert len(ui.rendered_crossover_rows) == expected
-        assert ui.more_crossings_button is None
+        ui.backtest_period._dropdown.select("Max")
+        assert len(ui.backtest_report.crossings.indices) == ui.model.result.crossing_count
+        ui.backtest_period._dropdown.select("Custom")
+        ui.backtest_years.text = "1.5"
+        ui.backtest_years.dispatch("on_text_validate")
+        assert ui.backtest_report.start == 882
+        previous_report = ui.backtest_report
         ui.hide_button.dispatch("on_release")
-        assert len(ui.rendered_crossover_rows) == 26
+        assert ui.backtest_report == previous_report
         ui.hide_button.dispatch("on_release")
+        ui.backtest_years.text = "invalid"
+        ui.backtest_years.dispatch("on_text_validate")
+        assert ui.backtest_report is None and "positive number of years" in ui.crossing_count_label.text
+        assert all(v.text == "—" for v in ui.backtest_values.values())
+        ui.backtest_years.text = "2"
+        ui.backtest_period._dropdown.select("1Y")
+        self.check("backtest period/custom controls, equal budgets, invalid input and visibility independence")
         old_result = ui.model.result
         ui.scroll.scroll_to(ui.optimal_panel,animate=False)
         for _ in range(6): yield
@@ -185,8 +193,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         # Normal successful calculation returns to Results with a fresh five rows.
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
-        assert ui.manager.current == "results" and len(ui.rendered_crossover_rows)==5
-        self.check("short crossover list ends cleanly; Change parameters preserves form and reoptimization resets five rows")
+        assert ui.manager.current == "results" and ui.backtest_report is not None
+        self.check("Change parameters preserves form and reoptimization refreshes investment values")
 
         result_before = ui.model.result
         summary_before = ui.model.summary()
@@ -224,23 +232,18 @@ class SmokeApp(SMAStockAnalyzerApp):
         yield from self.wait_for_calculation()
         assert ui.card_values["period"].text == "254 sessions"
         assert ui.card_values["actual"].text == "31.31 / yr"
+        ui.backtest_period._dropdown.select("Max")
         assert "125 upward crossings" in ui.crossing_count_label.text
         assert "1006 usable comparisons" in ui.explanation.text
         assert "SMA search: 2–756" in ui.explanation.text
         assert "Warm-up is included" not in ui.explanation.text
         assert "not matched exactly" in ui.explanation.text
         self.check("active adjusted-frequency policy: known sideways result, coverage, cap, unreachable target")
-        # Five rows initially; arrows reveal ten more, then Show all after 35.
+        # Details retain the complete crossing history outside the backtest panel.
         original_result = ui.model.result
-        for expected in (15,25,35):
-            assert ui.more_crossings_button.kind == "down"
-            ui.more_crossings_button.dispatch("on_release")
-            assert len(ui.rendered_crossover_rows) == expected
-            assert ui.rendered_crossover_rows == ui.model.event_rows()[:expected]
-        assert ui.more_crossings_button.text == "Show all"
         ui.scroll.scroll_y = .35
         original_offset = ui.scroll.scroll_y
-        ui.more_crossings_button.dispatch("on_release")
+        ui.crossing_details_button.dispatch("on_release")
         assert ui.manager.current == "crossovers"
         cells = [cell.text for cell in reversed(ui.full_crossover_table.children)]
         assert cells[3:] == [value for row in ui.model.event_rows() for value in row]
@@ -256,8 +259,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(6): yield
         assert ui.manager.current == "results" and ui.model.result is original_result
         assert ui.scroll.scroll_y == original_offset
-        assert len(ui.rendered_crossover_rows) == 35
-        self.check("crossovers 5/15/25/35, Show all exact events and full-screen back preserves state")
+        self.check("crossing details contain exact events and Back preserves result and scroll position")
 
         ui.scenario.text = "Oscillating"
         ui.counter.text = "DEMO-US"
@@ -478,6 +480,11 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.content.width <= size[0]
             assert ui.chart.width > 200
             assert ui.chart.height >= 240
+            for key, difference in ui.backtest_differences.items():
+                value = ui.backtest_values[key]
+                assert value.right <= difference.x
+                assert difference.right <= ui.table_panel.right-dp(12)
+                assert value.x >= ui.table_panel.x+dp(12)
             ui.show_parameters()
             for _ in range(4): yield
             wide = size[0] >= 760
@@ -604,113 +611,64 @@ class SmokeApp(SMAStockAnalyzerApp):
             left, bottom, width, height = chart.plot_rect
             return chart.to_window(left + fraction * width, bottom + y_fraction * height)
 
-        def assert_guides():
-            colors = [instruction.rgba for instruction in chart.canvas.children
-                      if isinstance(instruction, Color)]
-            for actual, expected in zip(colors[-2:], (START_COLOR, END_COLOR)):
-                assert all(abs(a - b) < 1e-6 for a, b in zip(actual, expected))
-            guides = [instruction for instruction in chart.canvas.children if isinstance(instruction, Line)][-2:]
-            assert guides[0].points[0] < guides[1].points[0]
-            shade = [instruction for instruction in chart.canvas.children if isinstance(instruction, Rectangle)][-1]
-            assert shade.size[0] > 0
-
         assert not chart.is_zoomed and ui.zoom_out_button.parent is None
-        full_sma = ui.model.result.sma
-        full_events = ui.model.result.events
+        full_result = ui.model.result
         full_summary = ui.model.summary()
-        full_limits = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
+        initial_bounds = chart.viewport.bounds
         scroll_position = ui.scroll.scroll_y
-        finger = Pointer(*location(0.25))
+        finger = Pointer(*location(.25))
         finger.down()
-        assert chart.selection is not None, "Plot selection must start immediately, without scroll timeout"
-        assert chart.selection.anchor == chart.selection.cursor
-        finger.move_to(*location(0.75, 0.6))
-        assert chart.selection.cursor > chart.selection.anchor
-        assert_guides()
+        assert chart.inspection["index"] == round(chart.viewport.index_at(.25))
+        finger.move_to(*location(.75))
+        info = chart.inspection
+        assert info["index"] == round(chart.viewport.index_at(.75))
+        assert info["price"] == ui.model.dataset.prices[info["index"]]
+        assert info["sma"] == ui.model.result.sma[info["index"]]
+        assert info["date"] == ui.model.dataset.dates[info["index"]]
+        finger.up()
+        assert chart.viewport.bounds == initial_bounds and not chart.is_zoomed
         assert ui.scroll.scroll_y == scroll_position
-        # Crossing the original touch position reverses which boundary moves.
-        finger.move_to(*location(0.1))
-        assert chart.selection.cursor < chart.selection.anchor
-        assert_guides()
-        chart.parent.export_to_png("artifacts/zoom-select-left.png")
-        finger.move_to(*location(0.75))
-        assert_guides()
-        chart.parent.export_to_png("artifacts/zoom-select-right.png")
-        second = Pointer(*location(0.5))
-        second.down()
-        assert chart._drag_touch is finger
+        chart.parent.export_to_png("artifacts/eod-inspector.png")
+        self.check("one-finger real touch snaps date/EOD/SMA inspector without zoom or page scroll")
+
+        first, second = Pointer(*location(.35)), Pointer(*location(.65))
+        first.down(); second.down()
+        assert chart.inspection is None and len(chart._touches) == 2
+        first.move_to(*location(.2)); second.move_to(*location(.8))
+        spread_bounds = chart.viewport.bounds
+        assert spread_bounds[1]-spread_bounds[0] < initial_bounds[1]-initial_bounds[0]
+        first.move_to(*location(.42)); second.move_to(*location(.58))
+        assert chart.viewport.end-chart.viewport.start > spread_bounds[1]-spread_bounds[0]
+        first.move_to(*location(.2)); second.move_to(*location(.8))
         second.up()
-        finger.up()
-        assert chart.selection is None and chart._drag_touch is None
-        assert chart.viewport.bounds == (1070, 1197), chart.viewport.bounds
+        before_lift = chart.viewport.bounds
+        first.move_to(*location(.4)); first.up()
+        assert chart.viewport.bounds == before_lift and not chart._touches
+        assert chart.inspection is None
         assert chart.is_zoomed and ui.zoom_out_button.parent is ui.plot_header
-        zoom_limits = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
-        assert zoom_limits != full_limits
-        assert ui.model.result.sma is full_sma and ui.model.result.events is full_events
-        assert ui.model.summary() == full_summary
-        assert "sessions 1071–1198" in ui.plot_subtitle.text
-        outlines = [item for item in chart.canvas.children if isinstance(item, Line) and item.close and len(item.points) == 24]
-        assert not any(isinstance(item, Triangle) for item in chart.canvas.children)
-        expected_markers = sum(1070 <= event.index <= 1197
-                               for events in chart.marker_events.values() for event in events)
-        assert len(outlines) == expected_markers
-        for _ in range(4):
-            yield
+        assert ui.model.result is full_result and ui.model.summary() == full_summary
         chart.parent.export_to_png("artifacts/zoom-active.png")
-        self.check("real touch routing, immediate guides, both colors, shading, crossing anchor, y rescale, unchanged calculations")
+        self.check("two-finger spread/contract changes range continuously; lifting one finger preserves view and full-history analysis")
 
-        Window.size = (320, 640)
-        for _ in range(6):
-            yield
-        assert chart.viewport.bounds == (1070, 1197)
-        assert ui.zoom_out_button.right <= chart.parent.right
-        chart.parent.export_to_png("artifacts/zoom-phone-320.png")
-        Window.size = (440, 920)
-        for _ in range(6):
-            yield
+        ui.hide_button.dispatch("on_release")
+        assert chart.viewport.bounds == before_lift
+        ui.hide_button.dispatch("on_release")
         ui.scroll.scroll_to(chart, animate=False)
-        for _ in range(4):
-            yield
-
-        finger = Pointer(*location(0.8))
-        finger.profile.append("button")
-        finger.button = "left"
-        finger.down()
-        # Release coordinates also work without a provider sending a final move.
-        finger.move_to(*location(0.2), dispatch=False)
-        finger.up()
-        assert chart.viewport.bounds == (1095, 1172), chart.viewport.bounds
-        ui.hide_button.dispatch("on_release")
-        assert chart.viewport.bounds == (1095, 1172)
-        ui.hide_button.dispatch("on_release")
-        # Use actual window touches for the top-right button, not its callback.
-        for _ in range(4):
-            yield
+        for _ in range(4): yield
         button = Pointer(*ui.zoom_out_button.to_window(*ui.zoom_out_button.center))
-        button.down()
-        button.up()
-        for _ in range(12):
-            yield
-        assert chart.viewport.bounds == (1008, 1259)
-        assert not chart.is_zoomed and ui.zoom_out_button.parent is None
-        self.check("leftward nested zoom, overlays preserve view, zoom-out button restores selected timeline and disappears")
-
-        for movement in [0, dp(2)]:
-            finger = Pointer(*location(0.4))
-            finger.down()
-            x, y = location(0.4)
-            finger.move_to(x + movement, y)
-            finger.up()
-            assert not chart.is_zoomed
-        finger = Pointer(*location(0.5))
-        finger.down()
-        finger.move_to(*location(1.3, 1.2))
-        finger.up()
-        assert chart.viewport.bounds == (1133, 1259)
-        ui.scenario.text = "Trending"
-        assert chart.viewport.bounds == (1008, 1259) and not chart.is_zoomed
+        button.down(); button.up()
+        for _ in range(8): yield
+        assert chart.viewport.bounds == initial_bounds and not chart.is_zoomed
         assert ui.zoom_out_button.parent is None
-        self.check("taps/jitter ignored, outside-plot release clamped, new scenario resets zoom")
+        self.check("overlay visibility preserves pinch range; real Zoom out button restores selected timeline")
+
+        finger = Pointer(*location(.5)); finger.down()
+        finger.move_to(*location(1.3, 1.2)); finger.up()
+        assert chart.inspection["index"] == initial_bounds[1]
+        assert chart.viewport.bounds == initial_bounds
+        ui.scenario.text = "Trending"
+        assert chart.inspection is None and not chart.is_zoomed and not chart._touches
+        self.check("outside-plot inspection clamps to EOD; changing dataset clears gestures and restores 1Y")
 
         # Page scrolling is still available when the gesture starts outside the plot.
         # Start away from either scroll boundary; settings make the page longer.
@@ -868,6 +826,25 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.model.store.notification_settings().email=="reader@example.com"
         frame.metrics=None; frame._arrange()
         self.check("Android regression: email/EOD fields retain focus and accept text through keyboard/safe-area reflow; Back ends editing")
+
+        # Reproduce interleaved SGX/US saves across scenarios. Every saved row
+        # must remain discoverable in the results sheet, whichever line is viewed.
+        for counter, scenario, period, target in (("DEMO-SGX","Trending",11,12),
+                ("DEMO-US","Oscillating",50,6), ("DEMO-US","Trending",18,1),
+                ("DEMO-SGX","Sideways",254,12)):
+            ui.model.store.save(counter, scenario, period, target)
+        all_lines = ui.model.store.list_all_lines()
+        all_ids = {line.id for line in all_lines}
+        for line in all_lines:
+            ui.on_view_saved(line)
+            assert set(ui.saved_rows) == all_ids
+            assert set(ui.landing_saved_rows) == all_ids
+            expected_periods = {saved.period for saved in ui.model.saved_lines() if saved.visible} | {line.period}
+            assert {plotted.period for plotted in ui.chart.series} == expected_periods
+            for other in all_lines:
+                if (other.counter,other.scenario) != (line.counter,line.scenario):
+                    assert ui.saved_rows[other.id]["hide"].text == "View"
+        self.check("interleaved SGX/US and scenario saves remain accessible from every saved result; overlays stay on matching data")
 
         # A fresh screen reads all committed rows without needing optimization,
         # including counters/scenarios different from the startup selection.

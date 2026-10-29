@@ -71,6 +71,19 @@ class ChartViewport:
         self.start, self.end = start, end
         return True
 
+    def pinch(self, initial_bounds, anchor, fraction, scale):
+        """Scale a two-finger gesture around its midpoint within the full history."""
+        if self.session_count < 2 or not math.isfinite(scale) or scale <= 0:
+            return False
+        span = min(self.session_count - 1, max(1, (initial_bounds[1] - initial_bounds[0]) / scale))
+        start = min(self.session_count - 1 - span, max(0, anchor - fraction * span))
+        bounds = (round(start), round(start + span))
+        if bounds[0] == bounds[1]:
+            return False
+        changed = bounds != self.bounds
+        self.start, self.end = bounds
+        return changed
+
     def y_limits(self, prices, averages=()) -> tuple[float, float] | None:
         """Scale only visible prices/overlays, ignoring gaps and adding padding."""
         values = [value for series in (prices, *averages)

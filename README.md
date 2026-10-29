@@ -57,17 +57,32 @@ The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens
 Hide/Show SMA and **Change parameters**, which returns to Screen 1 with the
 selected parameters retained.
 
-**Screen 2a** is the crossover section below the chart, in the same scroll view.
-It starts with the first five events in ascending session order. The down arrow
-reveals up to ten more: 5 → 15 → 25 → 35. If events remain after 35, **Show all**
-opens a separate full-list screen with a fixed top-left Back arrow. Short lists
-stop at their actual count. A new optimization resets the preview to five rows;
-returning from another screen preserves its current size and the chart view.
+**Section 03: Backtesting** compares three equal-budget historical illustrations:
+$100 at each upward crossing, at reproducibly sampled random days, or at the
+highest daily percentage changes. Choose 1Y, 3Y, 5Y, Max or Custom years, independently
+of the chart range. Each scenario has the same number of purchases and shows its
+combined ending value; observable opportunities are shown. Only ending dollar values are displayed;
+scenarios b and c show the percentage difference from a beside their values.
+A zero ending value in a makes that percentage undefined (N/A).
+Fractional units are bought at the selected close and held to the final close,
+without fees, tax, dividends or sells. One year is 252 sessions; periods clamp to
+available data. All comparisons exclude SMA warm-up/gap days equally. Random
+sampling uses a fixed seed without replacement; highest ranks close/previous close
+minus one, with earlier days breaking ties. If there are too few positive returns,
+the remaining ranked days are the smallest declines so budgets remain equal.
+
+The highest-return-day comparison uses hindsight. The selected SMA was itself
+chosen from the same history: these illustrations are not an out-of-sample
+strategy test or a forecast. **View all upward crossings** still opens the complete
+event list with its own Back control.
 
 **Screen 2b** is a partial saved-lines bottom sheet. Saving a new configuration
 opens it automatically; the fixed bottom-left menu also opens/closes it. Swipe
 the top handle downward or tap the dimmed area to dismiss it. Its list scrolls
-independently, and the bottom navigation stays reachable.
+independently, and the bottom navigation stays reachable. Both saved libraries
+show every counter/scenario. Tap any saved title to view its exact parameters;
+rows from other datasets offer View, while matching rows retain Hide/Show.
+Only matching counter/scenario lines are overlaid on a chart.
 
 The fixed bottom-right **gear** opens **Screen 3: Settings**. Its fixed top-left
 Back arrow returns to Results. Each page has its own scroll position; navigation
@@ -114,31 +129,23 @@ Re-selecting a preset resets any custom drag zoom within that preset. Gold/teal
 dash symbols identify SMA/close lines in the legend, and the outlined plus
 symbol identifies upward crossings, without color-name prefixes or colons.
 
-### Zoom into a chart range
+### Inspect EOD prices and pinch to zoom
 
-Press and hold inside the plot, then drag left or right (on a Mac, click and
-hold with the mouse or trackpad). A vertical line appears immediately. While
-dragging, the **left/start boundary is green**, the **right/end boundary is red**,
-and the selected area is shaded. If you cross your original touch point, the
-moving boundary changes color to keep that ordering.
+Drag one finger inside the plot to move a vertical cursor to the nearest EOD
+point. Its tooltip shows the simulated date, close and selected SMA's value,
+including when that SMA is hidden. Warm-up/gap values are labelled unavailable.
+The cursor remains on release; this gesture never zooms.
 
-Release to zoom to the selected sessions. The y-axis automatically scales to
-the visible prices and displayed SMA lines, with a little padding. The small
-**Zoom out** button appears at the top right beside the counter/scenario title;
-click it to restore the selected timeline preset. It disappears when no custom
-selection zoom is active; choose Max to display all available sessions.
+Two fingers switch the chart into pinch mode: spread to zoom in, bring them
+closer to zoom out, around their midpoint. Lifting one finger ends the pinch;
+the remaining finger cannot accidentally change the range or start a cursor.
+Use **Zoom out**, or reselect a timeline preset, to restore the preset's range.
+1Y, 3Y, 5Y and Max quick views remain. Prices and SMA values still use the full
+history; chart gestures do not change crossing statistics or the backtest period.
+Page scrolling remains available outside the plot.
 
-You can drag again for a closer zoom. Selections round outward to include both
-bordering sessions; taps or horizontal movements under 6 display-independent
-pixels do not zoom. A drag that leaves the plot is clamped to the plot's x-range.
-Scroll the page by starting a swipe outside the plot, or use the mouse wheel.
-Changing the counter or scenario resets zoom. Optimizing a new target or
-hiding/showing a line keeps the current range and updates the y-axis.
-
-Zoom changes only the view: SMAs are still calculated from the full history,
-including prices before the visible range. Crossing statistics and the table
-still describe the full-history analysis; only visible crossover markers are
-drawn on the chart. There is no panning or pinch zoom in this stage.
+Dates are **synthetic weekday labels** starting on 2021-01-04, not historical
+exchange dates. No SGX/US holiday calendar or actual market feed is implied.
 
 The window starts at 440 × 920 and supports narrower portrait sizes down to
 320 pixels wide. Content scrolls vertically. On wider desktops the portrait
@@ -284,10 +291,10 @@ python -m unittest discover -s tests -v
 
 The real-widget smoke runner starts Kivy, dispatches button/selector events,
 waits for asynchronous calculations, and checks the displayed cards, actual
-chart arrays/markers, table cells, saving, visibility, input errors, empty data,
+chart arrays/markers, investment values/period controls, crossing details, saving, visibility, input errors, empty data,
 and 320×640, 440×920, 560×1000, 760×1100 and 960×1440 portrait sizes. It also sends synthetic
-touches through the real window/scroll-view pipeline to test range selection,
-boundary colors/shading, nested zoom, outside-plot release, and the zoom-out button:
+touches through the real window/scroll-view pipeline to test snapped EOD inspection,
+two-finger spread/contract, finger lift, outside-plot release, and the zoom-out button:
 
 ```sh
 python -m scripts.smoke_ui
@@ -328,8 +335,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **75 passed**, including production/reference, abrupt process-exit persistence and signing policy, 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **30 groups passed**, 0 failed; four focused Android regressions included |
+| Standard-library test suite | **85 passed** in the full suite, plus **4** additional focused tests; 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **33 groups passed**, 0 failed; five focused Android/library regressions included |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |
@@ -345,10 +352,10 @@ visibility, and empty history with saved lines. See `PROGRESS.md` for the handof
 default and seeded prefix, timeline availability, whole-button dropdown clicks,
 selected-option shading, same-preset reset, outlined plus markers, revised
 card hierarchy, and full-history result stability while changing views.
-Zoom checks cover both drag directions, crossing the anchor, immediate visual
-feedback, nested ranges, visible y-limits including SMA values, tap/jitter
-rejection, release beyond the plot, a second finger, page scrolling, reset on
-new data, unchanged full-history calculations, and the actual zoom-out control.
+Gesture checks cover one-finger EOD inspection, continuous two-finger zoom in/out,
+visible y-limits including SMA values, finger lift, release beyond the plot,
+page scrolling, reset on new data, unchanged full-history calculations, and the
+actual zoom-out control. See docs/ANDROID_TEST_STATUS.md for current limitations.
 
 ## Local data and project layout
 
@@ -409,8 +416,8 @@ The prototype implements the detailed rules in your request; it does not claim
 to reproduce unverified details from that article. Pasted article text can be
 compared with these rules in a later session.
 
-Known limits: synthetic five-year datasets, no date axis or exchange calendar,
-no price adjustments, no return/backtest analysis, no panning or pinch zoom,
+Known limits: synthetic five-year datasets, synthetic dates with no exchange calendar,
+no price adjustments, no return/backtest analysis, no separate pan gesture,
 one calculation worker, and no Android device/keyboard/lifecycle validation.
 An exhaustive search is suitable for this prototype but will need profiling for
 long genuine histories. Saved-line visibility is persistent; the active analysis

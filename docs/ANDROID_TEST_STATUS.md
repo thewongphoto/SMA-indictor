@@ -1,5 +1,41 @@
 # Android/Gmail validation status
 
+## 0.3.0 — current cloud validation
+
+The user reports that the preceding Android fixes pass on their phone. This
+version adds the saved-library, chart-inspection/pinch and investment changes.
+These new changes have not yet been installed or verified on a physical phone.
+
+- Full standard-library suite: **85 passed**, zero failures/skips. The three
+  subsequently added Python/native callback lifecycle tests and the ending-value
+  percentage-difference test also pass (**89 passing tests across those runs**).
+- Full real-widget smoke: **33 groups passed**, zero failures. Exercises the
+  ending values, b/c percentage differences versus a and period/custom validation; cursor date/EOD/SMA accuracy;
+  single-finger drag without zoom; two-finger spread/contract and finger lift;
+  preserved quick views; SGX/US interleaved saved lines across scenarios; the
+  existing settings, Gmail mocks, notification previews and portrait layouts.
+- After the final saved-title wrapping adjustment, the focused UI run passed
+  all **5 groups**, including complete library discovery from every saved view.
+- Modified Gmail Java bridge compiles against official Google auth 21.4.0,
+  auth-base 18.0.10, base/basement 18.5.0 and tasks 18.2.0. This targeted compile
+  uses the Android SDK API stub JAR from Maven; it is not a full APK build.
+- A local JVM harness with real Google ApiException/Status classes exercises
+  seven status-code branches plus unknown errors: pending callbacks clear and
+  exception messages are not exposed. TextUtils.isEmpty is a JVM shim for the
+  Android stub; no actual consent or Google account is involved in this check.
+- Inspected exported EOD tooltip and full results screenshots: investment
+  captions/values align right, dates say simulated, and full crossing details
+  remain reachable separately.
+
+Gmail's old message is insufficient to diagnose the phone's underlying problem:
+the old bridge treated every non-OK Android result as cancellation. The new
+bridge reads the returned Intent even with RESULT_CANCELED and shows numeric
+Google failure codes, with separate handling for missing result data and Play
+services availability. A new APK and real consent/send test are still required;
+no cloud test establishes that the user's OAuth configuration is correct.
+Build source version is **0.3.0**. No full APK was built or workflow launched in
+this change. Keep the existing signing identity for the next build.
+
 ## Fresh-runner workflow startup fix
 
 [Run 40888955510](https://github.com/thewongphoto/SMA-indictor/actions/runs/40888955510)

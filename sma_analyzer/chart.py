@@ -1,13 +1,15 @@
 """Native Kivy canvas chart: no browser, Matplotlib, or platform-specific widget."""
+import math
+
 from kivy.core.text import Label as CoreLabel
-from kivy.graphics import Color, Line, Rectangle, PushMatrix, PopMatrix, Rotate
+from kivy.graphics import Color, Line, Rectangle, Ellipse, RoundedRectangle, PushMatrix, PopMatrix, Rotate
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 
 from .engine import crossover_events
-from .viewport import ChartViewport, RangeSelection
+from .viewport import ChartViewport
 
 PRICE_COLOR = (0.30, 0.87, 0.77, 1)
 ACTIVE_COLOR = (1.0, 0.74, 0.36, 1)
@@ -35,7 +37,8 @@ class ChartScrollView(ScrollView):
 
     Everything outside the plot, including the mouse wheel, uses normal page
     scrolling. Kivy's touch grab delivers the selected pointer's moves/releases
-    to the chart even when it leaves the widget or visible scroll area.
+    to the chart even when it leaves the widget or visible scroll area. One
+    pointer inspects EOD values; two pointers switch to pinch zoom.
     """
     chart = None
 
@@ -63,9 +66,12 @@ class PriceChart(Widget):
         self.series = []
         self.marker_events = {}
         self.viewport = ChartViewport()
-        self.selection = None
-        self._drag_touch = None
-        self._anchor_x = 0
+        self.dates = ()
+        self.inspection_sma = None
+        self.inspection = None
+        self._touches = []
+        self._pinch = None
+        self._pinch_finished = False
         self.bind(pos=self.redraw, size=self.redraw)
 
     @staticmethod
@@ -77,12 +83,14 @@ class PriceChart(Widget):
         # Stable across hiding/showing other periods; shared with saved-row swatches.
         return ACTIVE_COLOR if active else SAVED_COLORS[(period - 2) % len(SAVED_COLORS)]
 
-    def update(self, prices, series):
+    def update(self, prices, series, dates=(), inspection_sma=None):
         # Keep exact engine output; never recalculate an approximation for plotting.
         prices = tuple(prices)
         changed = prices != self.prices
         self.prices = prices
         self.series = list(series)
+        self.dates = tuple(dates)
+        self.inspection_sma = inspection_sma
         self.marker_events = {line.key: crossover_events(self.prices, line.sma) for line in self.series}
         if changed:
             self._cancel_selection()
@@ -90,6 +98,10 @@ class PriceChart(Widget):
             self.viewport.show_timeline("1Y")
             self.timeline = "1Y"
             self._sync_view()
+        if self.inspection is not None:
+            left, _, width, _ = self.plot_rect
+            start, end = self.viewport.bounds
+            self._inspect(left + (self.inspection["index"]-start)/max(1, end-start)*width)
         self.redraw()
 
     def set_timeline(self, label):
@@ -119,10 +131,26 @@ class PriceChart(Widget):
         self.redraw()
 
     def _cancel_selection(self):
-        if self._drag_touch is not None:
-            self._drag_touch.ungrab(self)
-        self._drag_touch = None
-        self.selection = None
+        for touch in self._touches:
+            touch.ungrab(self)
+        self._touches = []
+        self._pinch = None
+        self._pinch_finished = False
+        self.inspection = None
+
+    def _inspect(self, x):
+        start, end = self.viewport.bounds
+        index = round(self._index_at_x(x))
+        valid = [i for i in range(start, end + 1)
+                 if self.prices[i] is not None and math.isfinite(self.prices[i])]
+        if not valid:
+            self.inspection = None
+            return
+        index = min(valid, key=lambda i: (abs(i - index), i))
+        period, average = self.inspection_sma or (None, ())
+        self.inspection = {"index": index, "date": self.dates[index] if self.dates else f"Session {index+1}",
+                           "price": self.prices[index], "period": period,
+                           "sma": average[index] if index < len(average) else None}
 
     def on_touch_down(self, touch):
         if (self.disabled or len(self.prices) < 2
@@ -131,38 +159,51 @@ class PriceChart(Widget):
         left, bottom, width, height = self.plot_rect
         if not (left <= touch.x <= left + width and bottom <= touch.y <= bottom + height):
             return super().on_touch_down(touch)
-        # A second finger in the plot must not start scrolling during selection.
-        if self._drag_touch is not None:
+        if touch in self._touches or len(self._touches) >= 2:
             return True
         if self.viewport.y_limits(self.prices) is None:
             return False
-        self._drag_touch = touch
-        self._anchor_x = touch.x
-        anchor = self._index_at_x(touch.x)
-        self.selection = RangeSelection(anchor, anchor)
+        self._touches.append(touch)
         touch.grab(self)
+        if len(self._touches) == 1:
+            self._pinch_finished = False
+            self._inspect(touch.x)
+        else:
+            first, second = self._touches
+            midpoint = (first.x + second.x) / 2
+            distance = math.hypot(first.x - second.x, first.y - second.y)
+            self._pinch = (self.viewport.bounds, self._index_at_x(midpoint), max(dp(6), distance))
+            self.inspection = None
         self.redraw()
         return True
 
     def on_touch_move(self, touch):
-        if touch is self._drag_touch:
+        if touch in self._touches:
             if touch.grab_current is self:
-                self.selection.cursor = self._index_at_x(touch.x)
+                if len(self._touches) == 2 and self._pinch is not None:
+                    first, second = self._touches
+                    bounds, anchor, initial_distance = self._pinch
+                    distance = max(dp(1), math.hypot(first.x-second.x, first.y-second.y))
+                    left, _, width, _ = self.plot_rect
+                    fraction = min(1, max(0, ((first.x+second.x)/2-left)/width))
+                    self.viewport.pinch(bounds, anchor, fraction, distance/initial_distance)
+                    self._sync_view()
+                elif not self._pinch_finished:
+                    self._inspect(touch.x)
                 self.redraw()
             return True
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
-        if touch is self._drag_touch:
+        if touch in self._touches:
             if touch.grab_current is self:
-                # Use the release position too: providers need not send a final move.
-                final = self._index_at_x(touch.x)
-                left, _, width, _ = self.plot_rect
-                clamped_x = min(left + width, max(left, touch.x))
-                if abs(clamped_x - self._anchor_x) >= dp(6):
-                    self.viewport.select(self.selection.anchor, final)
-                self._cancel_selection()
-                self._sync_view()
+                if self._pinch is not None:
+                    self._pinch_finished = True
+                    self._pinch = None
+                elif not self._pinch_finished:
+                    self._inspect(touch.x)
+                touch.ungrab(self)
+                self._touches.remove(touch)
                 self.redraw()
             return True
         return super().on_touch_up(touch)
@@ -220,7 +261,7 @@ class PriceChart(Widget):
                 Color(*color)
                 for index in range(start, min(end + 1, len(values))):
                     value = values[index]
-                    if value is None:
+                    if value is None or not math.isfinite(value):
                         if len(points) >= 4:
                             Line(points=points, width=thickness)
                         points = []
@@ -239,15 +280,27 @@ class PriceChart(Widget):
                     x, y = point(event.index, event.price)
                     draw_plus(x, y, dp(5), color)
 
-            if self.selection is not None:
-                x_start, _ = point(self.selection.start, low)
-                x_end, _ = point(self.selection.end, low)
-                Color(0.45, 0.73, 1, 0.18)
-                Rectangle(pos=(x_start, bottom), size=(x_end - x_start, height))
-                Color(*START_COLOR)
-                Line(points=[x_start, bottom, x_start, bottom + height], width=dp(1.4))
-                # At first contact show a single green anchor; left-to-right
-                # ordering always assigns green to start and red to end.
-                if x_end > x_start:
-                    Color(*END_COLOR)
-                    Line(points=[x_end, bottom, x_end, bottom + height], width=dp(1.4))
+            if self.inspection is not None:
+                info = self.inspection
+                index = info["index"]
+                if start <= index <= end:
+                    x, y = point(index, info["price"])
+                    Color(*MUTED)
+                    Line(points=[x, bottom, x, bottom + height], width=dp(1))
+                    Color(*PRICE_COLOR)
+                    Ellipse(pos=(x-dp(3), y-dp(3)), size=(dp(6), dp(6)))
+                    sma = "Unavailable (warm-up/gap)" if info["sma"] is None else f'{info["sma"]:.4f}'
+                    caption = f'Simulated date: {info["date"]}\nEOD: {info["price"]:.4f}\n'
+                    caption += f'SMA {info["period"]}: {sma}' if info["period"] else 'SMA: optimize first'
+                    label = CoreLabel(text=caption, font_size=sp(10), color=(0.94, 0.97, 1, 1),
+                                      text_size=(min(dp(205), self.width-dp(20)), None))
+                    label.refresh()
+                    w, h = label.texture.size
+                    box_w, box_h = w+dp(12), h+dp(12)
+                    box_x = x+dp(9) if x+dp(9)+box_w <= self.right else x-box_w-dp(9)
+                    box_x = max(self.x+dp(2), min(self.right-box_w-dp(2), box_x))
+                    box_y = max(bottom, min(bottom+height-box_h, y+dp(8)))
+                    Color(0.08, 0.13, 0.20, 0.97)
+                    RoundedRectangle(pos=(box_x, box_y), size=(box_w, box_h), radius=[dp(5)])
+                    Color(1, 1, 1, 1)
+                    Rectangle(texture=label.texture, pos=(box_x+dp(6), box_y+dp(6)), size=(w, h))

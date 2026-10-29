@@ -123,6 +123,22 @@ also depend on the phone's channel settings and Do Not Disturb mode.
 The configured sender is **kelwong98@gmail.com**. Add/sign in to that Google
 account on the test phone before connecting. The app does not ask for its password.
 
+
+Version 0.3.0 corrects an error-reporting bug: a non-OK Android result was always
+called “cancelled”, even when Google returned an API failure. The bridge now
+parses Google's returned Intent first and shows a safe numeric status with
+specific guidance. Google Play services availability is checked before consent.
+A null result is reported as missing data, rather than assuming you cancelled.
+
+If Connect Gmail still fails, note the **code displayed by the new APK**. Code 10
+or 12500 points toward the Android OAuth/package/signing configuration; code 7
+indicates a network failure; code 16/12501 means consent did not complete and may
+also require checking the configured account/test-user setup. If no Intent was
+returned, the app shows Android result 0 and the checks to perform. Do not share
+tokens or passwords. Completing the console steps alone does not verify that the
+OAuth client's SHA-1 matches the APK actually installed. No credentials or OAuth
+client secrets need to be embedded in this app.
+
 Google setup is separate from building the APK. You can test phone notifications
 without completing this part. Button names in Google Cloud can change; look for
 **Google Auth Platform / OAuth consent screen** and **Clients / Credentials**.

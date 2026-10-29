@@ -46,6 +46,7 @@ from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
 from .gmail import GmailSender
 from .android_gmail import AndroidGmailAuthorizer
 from .android_window import AndroidWindow
+from .backtest import compare_investments, period_sessions
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -266,7 +267,7 @@ class AnalyzerScreen(FloatLayout):
         self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
         self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
-        plot_panel.add_widget(WrappedLabel(text="Drag across the plot to zoom.", font_size=sp(11), color=MUTED))
+        plot_panel.add_widget(WrappedLabel(text="Drag one finger to inspect EOD prices. Pinch with two fingers to zoom in/out.", font_size=sp(11), color=MUTED))
         legend_holder = AnchorLayout(size_hint_y=None, height=dp(24))
         self.legend = StackLayout(size_hint=(None, None), spacing=(dp(12), dp(2)))
         self.legend.bind(minimum_height=self.legend.setter("height"))
@@ -414,7 +415,7 @@ class AnalyzerScreen(FloatLayout):
 
     @property
     def editors(self):
-        return (self.custom_target, self.email_input, self.alert_session)
+        return (self.custom_target, self.email_input, self.alert_session) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ())
 
     def finish_editing(self):
         for editor in self.editors:
@@ -450,7 +451,8 @@ class AnalyzerScreen(FloatLayout):
     def _scroll_editor(self, *_):
         for editor in self.editors:
             if editor.focus:
-                scroll = self.settings_scroll if editor is not self.custom_target else self.parameter_scroll
+                scroll = (self.parameter_scroll if editor is self.custom_target else
+                          self.scroll if editor is getattr(self, "backtest_years", None) else self.settings_scroll)
                 scroll.scroll_to(editor, padding=dp(20), animate=False)
                 break
 
@@ -661,7 +663,8 @@ class AnalyzerScreen(FloatLayout):
         self.alert_session_label.text = f"Test an end-of-day session (1–{len(data.prices)})"
         self.plot_title.text = f"{data.counter} · {data.scenario}"
         lines = self.model.plot_lines()
-        self.chart.update(data.prices, lines)
+        self.chart.update(data.prices, lines, data.dates,
+                          (self.model.result.period, self.model.result.sma) if self.model.result else None)
         self._refresh_chart_header()
         self.legend.clear_widgets()
         self.legend_labels = ["simulated close", "upward crossings"]
@@ -714,7 +717,7 @@ class AnalyzerScreen(FloatLayout):
             self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
 
     def _refresh_saved(self):
-        self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.saved_lines())
+        self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.store.list_all_lines())
         self.landing_saved_rows = self._populate_saved_panel(
             self.landing_saved_panel, self.model.store.list_all_lines(), landing=True)
 
@@ -732,12 +735,11 @@ class AnalyzerScreen(FloatLayout):
         panel.add_widget(header)
         rows = {}
         if not saved:
-            panel.add_widget(WrappedLabel(text=("No saved SMAs yet. Optimize, then tap the heart." if landing else
-                "No saved lines for this simulation. Your other counters/scenarios are on the parameters page."), color=MUTED))
+            panel.add_widget(WrappedLabel(text="No saved SMAs yet. Optimize, then tap the heart.", color=MUTED))
         for line in saved:
+            same_dataset = (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario)
             label = f"SMA {line.period} · target {line.target_frequency}/yr"
-            if landing:
-                label = f"{line.counter} · {line.scenario}\n" + label
+            label = f"{line.counter} · {line.scenario}\n" + label
             if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
                 label += " · saved previously; outside current search limit"
             title = BoxLayout(size_hint_y=None, height=dp(28), spacing=dp(5))
@@ -745,16 +747,14 @@ class AnalyzerScreen(FloatLayout):
                       and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
             swatch = LegendSymbol(self.chart.period_color(line.period, active))
             title.add_widget(swatch)
-            title_label = (Button(text=label, color=TEXT, font_size=sp(13), halign="left",
-                                  background_normal="", background_down="", background_color=(0,0,0,0))
-                           if landing else WrappedLabel(text=label))
-            if landing:
-                title.height = dp(48)
-                title_label.bind(size=lambda widget, size: setattr(widget, "text_size", size))
-                title_label.bind(on_release=lambda _, saved_line=line: self.on_view_saved(saved_line))
+            title_label = Button(text=label, color=TEXT, font_size=sp(13), halign="left",
+                                 background_normal="", background_down="", background_color=(0,0,0,0))
+            title.height = dp(48)
+            title_label.bind(width=lambda widget, width: setattr(widget, "text_size", (width, None)))
+            title_label.bind(texture_size=lambda _, size, box=title: setattr(box, "height", max(dp(48), size[1]+dp(8))))
+            title_label.bind(on_release=lambda _, saved_line=line: self.on_view_saved(saved_line))
             title.add_widget(title_label)
-            if not landing:
-                title_label.bind(height=lambda _, height, box=title: setattr(box, "height", max(dp(28), height)))
+
             panel.add_widget(title)
             # At phone widths two left controls share a row; hide/heart stay at right below.
             row = GridLayout(cols=4 if self.scroll.width >= dp(620) else 2,
@@ -771,8 +771,8 @@ class AnalyzerScreen(FloatLayout):
             push.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"phone"))
             email.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"email"))
             visible = self.model.active_visible if active else line.visible
-            toggle = LabButton(text="View" if landing else "Hide" if visible else "Show", size_hint_x=None, width=dp(64))
-            action = self.on_view_saved if landing else self.on_saved_visibility
+            toggle = LabButton(text="View" if landing or not same_dataset else "Hide" if visible else "Show", size_hint_x=None, width=dp(64))
+            action = self.on_view_saved if landing or not same_dataset else self.on_saved_visibility
             toggle.bind(on_release=lambda _, saved_line=line, callback=action: callback(saved_line))
             heart = IconButton(kind="heart", selected=True)
             heart.bind(on_release=lambda _, saved_line=line: self.on_delete(saved_line))
@@ -1006,6 +1006,7 @@ class AnalyzerScreen(FloatLayout):
             widget.disabled = busy
 
     def connect_gmail(self, *_):
+        self.finish_editing()
         self._delivery_controls(True)
         self.gmail_status.text = "Waiting for Google authorization…"
         try:
@@ -1114,49 +1115,106 @@ class AnalyzerScreen(FloatLayout):
         return table
 
     def _refresh_table(self):
-        if self.model.result is not self._table_result:
-            self.visible_crossovers = 5
-            self._table_result = self.model.result
-        self.table_panel.clear_widgets()
-        self.table_panel.add_widget(WrappedLabel(text="03  /  CROSSOVERS · SELECTED SMA",font_size=sp(11),bold=True,color=MUTED))
-        self.crossing_count_label = WrappedLabel(
-            text=(f"{self.model.result.crossing_count} upward crossings across all observable history"
-                  if self.model.result else "Optimize to calculate upward crossings."),
-            color=ACTIVE_COLOR,bold=True)
-        self.table_panel.add_widget(self.crossing_count_label)
-        rows = self.model.event_rows()
-        self.rendered_crossover_rows = rows[:self.visible_crossovers]
-        self.crossover_table = None
-        self.more_crossings_button = None
-        if not rows:
-            self.table_panel.add_widget(WrappedLabel(text="No upward crossings for the selected SMA.",color=MUTED))
+        # Keep the controls alive: refreshing after a save/hide must retain the period.
+        if not hasattr(self, "backtest_period"):
+            self.table_panel.add_widget(WrappedLabel(text="If you invested $100 at:", bold=True, font_size=sp(16)))
+            self.table_panel.add_widget(WrappedLabel(text="03  /  BACKTESTING · SELECTED SMA", font_size=sp(11), color=MUTED))
+            self.backtest_period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
+            self.table_panel.add_widget(self.backtest_period)
+            self.backtest_custom_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+            self.backtest_custom_row.add_widget(WrappedLabel(text="Custom years"))
+            self.backtest_years = EditingField(text="2", multiline=False, input_type="number", size_hint_y=None, height=dp(44))
+            self.backtest_custom_row.add_widget(self.backtest_years)
+            self.backtest_custom_row.add_widget(LabButton(text="Apply", on_release=self._refresh_backtest))
+            self.backtest_custom_holder = BoxLayout(orientation="vertical", size_hint_y=None, height=0)
+            self.table_panel.add_widget(self.backtest_custom_holder)
+            self.crossing_count_label = WrappedLabel(color=ACTIVE_COLOR, bold=True)
+            self.table_panel.add_widget(self.crossing_count_label)
+            self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(11))
+            self.table_panel.add_widget(self.backtest_details)
+            self.backtest_values = {}
+            self.backtest_differences = {}
+            for key, caption in (("crossings", "a. At upward crossings"), ("random", "b. At random points"),
+                                 ("highest", "c. At the highest price increases")):
+                row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(2))
+                row.bind(minimum_height=row.setter("height"))
+                row.add_widget(WrappedLabel(text=caption, bold=True))
+                row.add_widget(WrappedLabel(text="Value of total investment", halign="right", font_size=sp(11), color=MUTED))
+                value_row = BoxLayout(size_hint_y=None, height=dp(30), spacing=dp(4))
+                value_row.add_widget(Label())
+                value = Label(text="—", size_hint_x=None, bold=True, color=PRICE_COLOR, font_size=sp(17))
+                value.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(2)))
+                value_row.add_widget(value)
+                if key != "crossings":
+                    difference = Label(text="", size_hint_x=None, font_size=sp(11), color=MUTED)
+                    difference.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(2)))
+                    value_row.add_widget(difference)
+                    self.backtest_differences[key] = difference
+                row.add_widget(value_row)
+                self.backtest_values[key] = value
+                self.table_panel.add_widget(row)
+            self.backtest_note = WrappedLabel(text="Illustration using simulated prices. $100 buys fractional units at each selected EOD close, held to the final close; no sells, fees, tax or dividends. Random days use a fixed seed, without replacement. Highest daily % changes are ranked using hindsight. The selected SMA was also chosen from this history: this is not an out-of-sample test or a forecast.", color=MUTED, font_size=sp(11))
+            self.table_panel.add_widget(self.backtest_note)
+            self.crossing_details_button = LabButton(text="View all upward crossings")
+            self.crossing_details_button.bind(on_release=self.show_more_crossings)
+            self.table_panel.add_widget(self.crossing_details_button)
+            self.backtest_period.bind(on_select=self._refresh_backtest)
+            self.backtest_years.bind(on_text_validate=self._refresh_backtest, focus=self._editor_focus)
+        self._refresh_backtest()
+
+    def _refresh_backtest(self, *_):
+        custom = self.backtest_period.text == "Custom"
+        if custom and self.backtest_custom_row.parent is None:
+            self.backtest_custom_holder.add_widget(self.backtest_custom_row)
+        elif not custom and self.backtest_custom_row.parent is not None:
+            self.backtest_custom_holder.remove_widget(self.backtest_custom_row)
+            self.backtest_years.focus = False
+        self.backtest_custom_holder.height = dp(44) if custom else 0
+        self.backtest_report = None
+        self.crossing_details_button.disabled = self.model.result is None
+        for value in self.backtest_values.values():
+            value.text = "—"
+        for difference in self.backtest_differences.values():
+            difference.text = ""
+        if self.model.result is None:
+            self.crossing_count_label.text = "Optimize or view a saved SMA to compare investments."
+            self.backtest_details.text = ""
             return
-        self.crossover_table = self._crossing_table(self.rendered_crossover_rows)
-        self.table_panel.add_widget(self.crossover_table)
-        footer = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-        footer.add_widget(WrappedLabel(text=f"Showing {len(self.rendered_crossover_rows)} of {len(rows)}",color=MUTED,font_size=sp(11)))
-        if len(rows) > self.visible_crossovers:
-            if self.visible_crossovers >= 35:
-                self.more_crossings_button = LabButton(text="Show all",size_hint_x=None,width=dp(110))
-            else:
-                self.more_crossings_button = IconButton(kind="down")
-            self.more_crossings_button.bind(on_release=self.show_more_crossings)
-            footer.add_widget(self.more_crossings_button)
-        self.table_panel.add_widget(footer)
+        try:
+            data, result = self.model.dataset, self.model.result
+            sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices))
+            report = compare_investments(data.prices, result.sma, result.events, sessions)
+            self.backtest_report = report
+            count = len(report.crossings.indices)
+            self.crossing_count_label.text = f"{count} upward crossings / theoretical buys per scenario"
+            self.backtest_details.text = (f"Simulated dates: {data.dates[report.start]} – {data.dates[report.end]}\n"
+                f"{report.end-report.start+1} sessions · {report.eligible_sessions} observable opportunities. "
+                "1Y = 252 sessions; periods clamp to available history. Warm-up/gaps excluded equally. "
+                "Percentages compare ending values with scenario a.")
+            if report.positive_ranked_days < count:
+                self.backtest_details.text += " Too few positive-return days; ranking includes the smallest declines to keep budgets equal."
+            for key, value in self.backtest_values.items():
+                scenario = getattr(report, key)
+                value.text = f"${scenario.ending_value:,.2f}"
+                if key in self.backtest_differences:
+                    percent = scenario.difference_percent(report.crossings)
+                    self.backtest_differences[key].text = ("(N/A vs a)" if percent is None
+                        else f"({percent:+.2f}% vs a)")
+        except ValueError as error:
+            self.crossing_count_label.text = str(error)
+            self.backtest_details.text = ""
 
     def show_more_crossings(self, *_):
-        if self.visible_crossovers >= 35:
-            self.full_table_panel.clear_widgets()
-            data, result = self.model.dataset,self.model.result
-            self.full_table_panel.add_widget(WrappedLabel(
-                text=f"{data.counter} · {data.scenario} · SMA {result.period} · {result.crossing_count} upward crossings",bold=True))
-            self.full_crossover_table = self._crossing_table(self.model.event_rows())
-            self.full_table_panel.add_widget(self.full_crossover_table)
-            self._navigate("crossovers")
-            self.full_crossovers_scroll.scroll_y = 1
-        else:
-            self.visible_crossovers = min(35,self.visible_crossovers+10)
-            self._refresh_table()
+        if self.model.result is None:
+            return
+        self.full_table_panel.clear_widgets()
+        data, result = self.model.dataset, self.model.result
+        self.full_table_panel.add_widget(WrappedLabel(
+            text=f"{data.counter} · {data.scenario} · SMA {result.period} · {result.crossing_count} upward crossings", bold=True))
+        self.full_crossover_table = self._crossing_table(self.model.event_rows())
+        self.full_table_panel.add_widget(self.full_crossover_table)
+        self._navigate("crossovers")
+        self.full_crossovers_scroll.scroll_y = 1
 
     def close(self):
         self.closed = True

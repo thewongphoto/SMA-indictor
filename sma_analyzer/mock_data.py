@@ -1,5 +1,6 @@
 """Reproducible fictional series, never downloaded or described as market history."""
 from dataclasses import dataclass
+from datetime import date, timedelta
 import math
 import random
 
@@ -12,6 +13,13 @@ class Dataset:
     scenario: str
     prices: tuple[float, ...]
     version: int = DATA_VERSION
+
+    @property
+    def dates(self) -> tuple[str, ...]:
+        """Stable fictional weekdays, not SGX/US exchange-calendar dates."""
+        monday = date(2021, 1, 4)
+        return tuple((monday + timedelta(days=(i // 5) * 7 + i % 5)).isoformat()
+                     for i in range(len(self.prices)))
 
     @property
     def label(self) -> str:

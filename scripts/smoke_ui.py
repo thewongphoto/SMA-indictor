@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from dataclasses import replace
+from threading import Event
 import sys
 import tempfile
 import time
@@ -104,6 +105,14 @@ class SmokeApp(SMAStockAnalyzerApp):
         print(f"PASS: {name}", flush=True)
 
     def exercise(self):
+        if "--security-search-only" in sys.argv:
+            if "--after-preview" in sys.argv:
+                Window.size = (960,1440)
+                for _ in range(8): yield
+                yield from self.preview_regressions()
+            for _ in range(8): yield
+            yield from self.security_search_regressions()
+            return
         if "--preview-rules-only" in sys.argv:
             for _ in range(8): yield
             yield from self.preview_regressions()
@@ -529,7 +538,8 @@ class SmokeApp(SMAStockAnalyzerApp):
 
         # Hit the arrow in each top selector through normal window routing.
         ui.show_parameters()
-        for selector, option in [(ui.counter,"DEMO-SGX"), (ui.scenario,"Trending"), (ui.target,"12 / year")]:
+        ui.counter.text = "DEMO-SGX"
+        for selector, option in [(ui.scenario,"Trending"), (ui.target,"12 / year")]:
             ui.parameter_scroll.scroll_y = 1
             for _ in range(6):
                 yield
@@ -564,7 +574,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.target.text = "6"
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
-        self.check("all top dropdown arrows respond to real clicks; annual target labels parse; mockup screenshots captured")
+        self.check("scenario/target dropdown arrows respond to real clicks; annual target labels parse; mockup screenshots captured")
 
         # Scroll first so the real event pipeline must transform coordinates.
         ui.scroll.scroll_to(ui.chart, animate=False)
@@ -743,6 +753,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("SMA 11 and 18 real results: distinct chart-matched swatches, hearts, channels and final screenshots")
         yield from self.android_regressions()
         yield from self.preview_regressions()
+        yield from self.security_search_regressions()
 
     def android_regressions(self):
         ui = self.screen
@@ -995,6 +1006,161 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("desktop preview: security accordions synchronize on both screens; row controls and cross-security visibility remain independent")
 
 
+    def security_search_regressions(self):
+        ui = self.screen
+        provider = ui.model.data_provider
+        spy = Mock(wraps=provider)
+        ui.model.data_provider = spy
+        search_gate, history_gate = Event(), Event()
+
+        def settle():
+            deadline = time.monotonic()+8
+            while ui.search_busy or ui.history_loading:
+                assert time.monotonic() < deadline, ui.search_status.text
+                yield
+            for _ in range(6): yield
+
+        try:
+            Window.size = (440, 920)
+            ui.parameter_scroll.effect_y.velocity = 100000  # Residual scroll after navigation must stop.
+            ui.show_parameters()
+            ui.parameter_scroll.scroll_y = 1
+            for _ in range(8): yield
+            ui.parameter_scroll.scroll_to(ui.search_panel, animate=False)
+            for _ in range(8): yield
+            for text in ("a", "ap", "Apple"):
+                ui.security_search.text = text
+                for _ in range(3): yield
+            spy.search.assert_not_called()
+            spy.historical_data.assert_not_called()
+            submit_pos = ui.search_submit.to_window(*ui.search_submit.center)
+            assert ui.x <= submit_pos[0] <= ui.right and ui.y <= submit_pos[1] <= ui.top, (
+                submit_pos, ui.pos, ui.size, ui.parameter_scroll.scroll_y,
+                ui.parameter_content.size, ui.search_panel.pos, ui.search_panel.size,
+                ui.parameter_scroll.effect_y.velocity, ui.parameter_scroll.effect_y.is_manual)
+            touch = Pointer(*submit_pos)
+            touch.down(); touch.up()
+            for _ in range(14): yield
+            yield from settle()
+            if spy.search.call_count != 1:
+                ui.export_to_png("artifacts/security-search-submit-failure.png")
+            spy.search.assert_called_once_with("apple")
+            spy.historical_data.assert_not_called()
+            assert len(ui.security_match_buttons) == 1
+            button = ui.security_match_buttons[0]
+            assert button.security.ticker == "AAPL" and "Apple" in button.name_label.text
+            assert not button.logo_is_fallback and button.logo_widget.texture is not None
+            ui.export_to_png("artifacts/security-search-apple.png")
+            touch = Pointer(*button.to_window(*button.center)); touch.down(); touch.up()
+            yield from settle()
+            assert ui.model.dataset.counter == "NASDAQ:AAPL"
+            assert ui.model.result is None and "simulated" in ui.search_status.text.lower()
+            spy.historical_data.assert_called_once()
+            self.check("security search: typing makes no requests; Submit searches once; real result tap loads only selected simulated history")
+
+            def delayed_search(query):
+                if query == "microsoft":
+                    assert search_gate.wait(5)
+                return provider.search(query)
+            spy.search.side_effect = delayed_search
+            ui.security_search.text = "Microsoft"
+            ui.security_search.dispatch("on_text_validate")
+            ui.security_search.dispatch("on_text_validate")  # Duplicate pending Enter is ignored.
+            ui.security_search.text = "DBS"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            assert [item.ticker for item in ui.search_results] == ["D05"]
+            assert ui.security_match_buttons[0].logo_is_fallback
+            search_gate.set()
+            for _ in range(10): yield
+            assert [item.ticker for item in ui.search_results] == ["D05"]
+            assert spy.search.call_count == 3
+            spy.search.side_effect = None
+            self.check("security search: Enter submits, duplicate pending submissions are ignored, late search results cannot overwrite newer matches")
+
+            def delayed_history(security, scenario):
+                if security.ticker == "D05":
+                    assert history_gate.wait(5)
+                return provider.historical_data(security, scenario)
+            spy.historical_data.side_effect = delayed_history
+            ui.security_match_buttons[0].dispatch("on_release")
+            assert ui.history_loading and ui.optimize_button.disabled
+            ui.security_search.text = "Microsoft"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            ui.security_match_buttons[0].dispatch("on_release")
+            yield from settle()
+            assert ui.model.dataset.counter == "NASDAQ:MSFT"
+            history_gate.set()
+            for _ in range(10): yield
+            assert ui.model.dataset.counter == "NASDAQ:MSFT"
+            spy.historical_data.side_effect = None
+            self.check("security search: stale history is discarded when the user selects another security")
+
+            previous = ui.model.dataset
+            ui.security_search.text = "Tesla"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            spy.historical_data.side_effect = RuntimeError("simulated unavailable service")
+            ui.security_match_buttons[0].dispatch("on_release")
+            yield from settle()
+            assert ui.model.dataset is previous and "unchanged" in ui.search_status.text
+            assert not ui.optimize_button.disabled
+            spy.historical_data.side_effect = None
+            spy.search.side_effect = RuntimeError("simulated unavailable service")
+            ui.security_search.text = "unknown"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            assert "try again" in ui.search_status.text and not ui.search_submit.disabled
+            spy.search.side_effect = None
+            ui.security_search.text = "no-match-xyz"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            assert not ui.security_match_buttons and "No preview matches" in ui.search_status.text
+            count = spy.search.call_count
+            ui.security_search.text = "  "
+            ui.security_search.dispatch("on_text_validate")
+            assert spy.search.call_count == count
+            self.check("security search: empty/no-match/error states recover; failed history retains the previous dataset")
+
+            ui.security_search.text = "inc"
+            ui.security_search.dispatch("on_text_validate")
+            yield from settle()
+            for size in ((320,640), (440,920), (960,1440)):
+                Window.size = size
+                ui.parameter_scroll.scroll_y = 1
+                for _ in range(10): yield
+                assert ui.security_search.right <= ui.search_submit.x
+                assert ui.search_submit.right <= ui.search_panel.right-dp(12)
+                assert ui.search_results_scroll.height <= dp(288)
+                for button in ui.security_match_buttons:
+                    assert button.ticker_label.x >= button.logo_widget.parent.right
+                    assert button.name_label.right <= button.right
+                    assert button.height >= dp(72)
+                ui.export_to_png(f"artifacts/security-search-{size[0]}.png")
+            Window.size = (440,920)
+            for _ in range(8): yield
+            before_searches = spy.search.call_count
+            ui.counter.dispatch("on_release")
+            for _ in range(4): yield
+            assert ui.security_search.focus and spy.search.call_count == before_searches
+            frame = self.device_frame
+            frame.apply_metrics(WindowMetrics(top=int(dp(24)),bottom=int(dp(24)),keyboard=int(dp(300)),
+                                              width=int(Window.width),height=int(Window.height)))
+            for _ in range(8): yield
+            assert ui.security_search.focus
+            assert ui.security_search.to_window(ui.security_search.x,ui.security_search.y)[1] >= ui.y-dp(1)
+            assert ui.handle_back() and not ui.security_search.focus
+            frame.metrics = None
+            frame._arrange()
+            for _ in range(8): yield
+            self.check("security search: responsive logo/ticker/name rows and Android keyboard-safe search editing")
+        finally:
+            search_gate.set()
+            history_gate.set()
+            ui.model.data_provider = provider
+
+
 if __name__ == "__main__":
     app = SmokeApp()
     started = time.time()
@@ -1005,7 +1171,8 @@ if __name__ == "__main__":
         report = {"started_unix": started, "passed": app.passed,
                   "passed_count": len(app.passed), "failure": app.failure,
                   "exit_code": app.exit_code}
-        report_name = ("ui-preview-rules" if "--preview-rules-only" in sys.argv else
+        report_name = ("ui-security-search" if "--security-search-only" in sys.argv else
+                       "ui-preview-rules" if "--preview-rules-only" in sys.argv else
                        "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke")
         Path(f"artifacts/{report_name}.json").write_text(json.dumps(report, indent=2) + "\n")
         temporary.cleanup()

@@ -1,5 +1,23 @@
 # Android validation status
 
+## 0.5.0 — submit-only security-search preview
+
+Search supports partial ticker/company names with packaged logos or initials,
+exchange-qualified identities, Enter/Submit and explicit history selection.
+Both requests run off the UI thread; duplicate pending submits and stale results
+are suppressed. Search/history failures preserve the current analysis. The same
+UI is used on desktop and Android, including keyboard-safe editing. Twelve Data
+is not connected: the 12-security catalogue and all histories are local/simulated.
+See SECURITY_SEARCH.md for exact behavior and validation commands.
+
+Validation: **100 unit tests** and **43 full running-widget UI groups** passed.
+The full run includes search request counts, actual logo-row taps, stale/failing
+responses, keyboard geometry and a residual-scroll regression after navigation
+and resizing. Packaged logos, dependency compatibility and Android packaging
+configuration were checked. Live Twelve Data and physical-device execution are
+not claimed.
+
+
 ## 0.4.0 — phone-only application
 
 Email/Gmail UI and the application authorization/sending paths are removed.

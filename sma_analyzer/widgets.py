@@ -4,6 +4,8 @@ from kivy.graphics import Color, Line, Mesh, RoundedRectangle, Triangle, Ellipse
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.button import Button
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner, SpinnerOption
@@ -212,3 +214,41 @@ class RuleSwitch(Button):
             RoundedRectangle(pos=(self.center_x-dp(24),self.center_y-dp(12)),size=(dp(48),dp(24)),radius=[dp(12)])
             Color(0.93,0.96,0.98,1)
             Ellipse(pos=(self.center_x + dp(3 if self.active else -21),self.center_y-dp(9)),size=(dp(18),dp(18)))
+
+
+class SecurityMatchButton(ButtonBehavior, BoxLayout):
+    """One explicit selection target: packaged logo (or initials), ticker and name."""
+    def __init__(self, security, **kwargs):
+        super().__init__(orientation="horizontal", size_hint_y=None, height=dp(76),
+                         padding=dp(10), spacing=dp(10), **kwargs)
+        self.security = security
+        logo_box = BoxLayout(size_hint=(None,None), size=(dp(44),dp(44)), pos_hint={"center_y": .5})
+        with logo_box.canvas.before:
+            Color(.94,.96,.98,1)
+            tile = RoundedRectangle(pos=logo_box.pos, size=logo_box.size, radius=[dp(8)])
+        logo_box.bind(pos=lambda widget,value:setattr(tile,"pos",value), size=lambda widget,value:setattr(tile,"size",value))
+        self.logo_is_fallback = not bool(security.logo_path)
+        self.logo_widget = (Label(text=security.initials, bold=True, color=(.08,.17,.24,1), font_size=sp(16))
+                            if self.logo_is_fallback else Image(source=security.logo_path, fit_mode="contain"))
+        logo_box.padding = dp(7)
+        logo_box.add_widget(self.logo_widget)
+        self.add_widget(logo_box)
+        words = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3), pos_hint={"center_y": .5})
+        words.bind(minimum_height=words.setter("height"))
+        self.ticker_label = Label(text=f"{security.ticker} · {security.exchange}", bold=True,
+                                  font_size=sp(13), color=(.94,.97,1,1), halign="left", size_hint_y=None)
+        self.name_label = Label(text=security.name, font_size=sp(12), color=MUTED, halign="left", size_hint_y=None)
+        for label in (self.ticker_label,self.name_label):
+            label.bind(width=lambda widget,width:setattr(widget,"text_size",(width,None)),
+                       texture_size=lambda widget,size:setattr(widget,"height",size[1]+dp(2)))
+            words.add_widget(label)
+        words.bind(height=lambda _,height:setattr(self,"height",max(dp(76),height+dp(20))))
+        self.add_widget(words)
+        with self.canvas.before:
+            self._match_color = Color(.10,.15,.21,1)
+            self._match_rect = RoundedRectangle(pos=self.pos,size=self.size,radius=[dp(10)])
+        self.bind(pos=self._paint_match,size=self._paint_match,state=self._paint_match,disabled=self._paint_match)
+
+    def _paint_match(self,*_):
+        self._match_rect.pos,self._match_rect.size=self.pos,self.size
+        self._match_color.rgba=(.16,.27,.31,1) if self.state=="down" else (.10,.15,.21,.5 if self.disabled else 1)

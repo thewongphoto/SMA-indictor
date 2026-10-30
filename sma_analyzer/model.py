@@ -2,7 +2,8 @@
 from dataclasses import dataclass
 
 from .engine import OptimizationResult, Price, crossover_events, optimize_sma, simple_moving_average
-from .mock_data import generate_mock_data
+from .market_data import PreviewMarketDataProvider
+from .securities import security_by_key
 from .policy import observable_comparisons
 from .storage import LineStore, SavedLine
 
@@ -17,9 +18,10 @@ class PlotLine:
 
 
 class AnalyzerModel:
-    def __init__(self, store: LineStore):
+    def __init__(self, store: LineStore, data_provider=None):
         self.store = store
-        self.dataset = generate_mock_data("DEMO-SGX", "Oscillating")
+        self.data_provider = data_provider or PreviewMarketDataProvider()
+        self.dataset = self.data_provider.historical_data(security_by_key("DEMO-SGX"), "Oscillating")
         self.target_frequency = 12
         self.result: OptimizationResult | None = None
         self.active_visible = True
@@ -27,7 +29,11 @@ class AnalyzerModel:
 
     def select_dataset(self, counter: str, scenario: str) -> None:
         # Generate before replacing state so invalid choices leave the current data intact.
-        self.dataset = generate_mock_data(counter, scenario)
+        dataset = self.data_provider.historical_data(security_by_key(counter), scenario)
+        self.apply_dataset(dataset)
+
+    def apply_dataset(self, dataset):
+        self.dataset = dataset
         self.result = None
         self.active_visible = True
         self.viewing_saved = False
@@ -66,7 +72,7 @@ class AnalyzerModel:
         Validate before replacing the existing analysis so errors are recoverable.
         """
         line = self.store.get_line(line_id)
-        data = generate_mock_data(line.counter, line.scenario)
+        data = self.data_provider.historical_data(security_by_key(line.counter), line.scenario)
         average = tuple(simple_moving_average(data.prices, line.period))
         comparisons = observable_comparisons(data.prices, average)
         if not comparisons:

@@ -4,8 +4,9 @@ package.name = smaanalyzer
 package.domain = org.thewongphoto
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
+source.include_patterns = sma_analyzer/assets/logos/CREDITS.txt
 source.exclude_dirs = tests,scripts,experiments,docs,artifacts,.venv,.venv-android,.local,.git,.github,android,bin
-version = 0.4.0
+version = 0.5.0
 requirements = python3,kivy==2.3.1,pyjnius,openssl,sqlite3,certifi
 orientation = portrait
 fullscreen = 0

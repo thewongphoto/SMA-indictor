@@ -38,13 +38,14 @@ from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
 from .policy import maximum_sma_period
 from .model import AnalyzerModel
-from .settings import ALLOW_CUSTOM_TARGET, COUNTERS, SCENARIOS, TARGET_FREQUENCIES
+from .settings import ALLOW_CUSTOM_TARGET, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
 from .viewport import available_timelines
-from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol, IconButton, IconSymbol, RuleSwitch
+from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol, IconButton, IconSymbol, RuleSwitch, SecurityMatchButton
 from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
+from .securities import security_by_key, normalize_query
 
 BG = (0.035, 0.055, 0.085, 1)
 PANEL = (0.065, 0.095, 0.14, 1)
@@ -143,6 +144,16 @@ class AnalyzerScreen(FloatLayout):
         self.bind(pos=self._paint_background, size=self._paint_background)
         self.model = model
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sma")
+        self.market_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="security")
+        self.search_busy = False
+        self.history_loading = False
+        self._search_token = 0
+        self._history_token = 0
+        self._submitted_query = ""
+        self._pending_security_key = None
+        self._syncing_search = False
+        self.search_results = ()
+        self.security_match_buttons = []
         self.busy = False
         self.closed = False
         self._job = 0
@@ -177,6 +188,29 @@ class AnalyzerScreen(FloatLayout):
         self.introduction = WrappedLabel(text="Find the simple moving average (SMA) that matches a target upward crossing frequency.", color=MUTED)
         header.add_widget(self.introduction)
 
+        self.search_panel = Panel()
+        self.parameter_content.add_widget(self.search_panel)
+        self.search_panel.add_widget(WrappedLabel(text="SEARCH SECURITY", color=MUTED, font_size=sp(10)))
+        search_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+        self.security_search = EditingField(multiline=False, hint_text="Ticker or company name",
+            font_size=sp(14), padding=(dp(10),dp(12)), keyboard_suggestions=False,
+            background_normal="", background_active="", background_color=(.12,.17,.23,1),
+            foreground_color=TEXT, cursor_color=PRICE_COLOR)
+        self.search_submit = LabButton(text="Submit", size_hint_x=None, width=dp(82))
+        self.search_submit.bind(on_release=self.submit_security_search)
+        search_row.add_widget(self.security_search)
+        search_row.add_widget(self.search_submit)
+        self.search_panel.add_widget(search_row)
+        self.search_status = WrappedLabel(text="Search the preview catalogue by ticker or company name. All prices are simulated.",
+                                          color=MUTED, font_size=sp(11))
+        self.search_panel.add_widget(self.search_status)
+        self.search_matches = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
+        self.search_matches.bind(minimum_height=self.search_matches.setter("height"))
+        self.search_results_scroll = ScrollView(size_hint_y=None, height=0, do_scroll_x=False)
+        self.search_results_scroll.add_widget(self.search_matches)
+        self.search_matches.bind(height=lambda _,height:setattr(self.search_results_scroll,"height",min(dp(288),height)))
+        self.search_panel.add_widget(self.search_results_scroll)
+
         controls = Panel()
         self.controls = controls
         self.parameter_content.add_widget(controls)
@@ -196,8 +230,9 @@ class AnalyzerScreen(FloatLayout):
             self.control_grid.add_widget(cell)
             return cell
 
-        self.counter = choice(model.dataset.counter, COUNTERS)
-        field("COUNTER (FICTIONAL)", self.counter)
+        self.counter = LabButton(text=model.dataset.counter)
+        self.counter.bind(on_release=lambda _: self.focus_security_search())
+        field("SELECTED SECURITY", self.counter)
         self.scenario = choice(model.dataset.scenario, SCENARIOS)
         field("SCENARIO (FICTIONAL)", self.scenario)
         target_row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
@@ -317,6 +352,7 @@ class AnalyzerScreen(FloatLayout):
                  "All prices are simulated; 252 sessions represent one trading year.",
             color=MUTED, font_size=sp(11)))
 
+        self.security_search.bind(text=self.on_security_query_edited, on_text_validate=self.submit_security_search)
         self.counter.bind(text=self.on_dataset_change)
         self.scenario.bind(text=self.on_dataset_change)
         self.target.bind(text=self.on_target_change)
@@ -382,7 +418,16 @@ class AnalyzerScreen(FloatLayout):
     def show_parameters(self, *_):
         self._navigate("parameters")
         self._refresh_saved()
+        # Stop residual momentum from a previous visit before restoring the top.
+        # A resized/expanded saved library can otherwise move the search offscreen.
+        effect = self.parameter_scroll.effect_y
+        if effect is not None:
+            effect.velocity = 0
+            effect.is_manual = False
+            effect.trigger_velocity_update.cancel()
         self.parameter_scroll.scroll_y = 1
+        if effect is not None:
+            effect.value = effect.max
 
     def show_results(self, *_):
         self._navigate("results")
@@ -412,7 +457,7 @@ class AnalyzerScreen(FloatLayout):
 
     @property
     def editors(self):
-        return (self.custom_target, self.alert_session) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ())
+        return (self.security_search, self.custom_target, self.alert_session) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ())
 
     def finish_editing(self):
         for editor in self.editors:
@@ -448,7 +493,7 @@ class AnalyzerScreen(FloatLayout):
     def _scroll_editor(self, *_):
         for editor in self.editors:
             if editor.focus:
-                scroll = (self.parameter_scroll if editor is self.custom_target else
+                scroll = (self.parameter_scroll if editor in (self.custom_target, self.security_search) else
                           self.scroll if editor is getattr(self, "backtest_years", None) else self.settings_scroll)
                 scroll.scroll_to(editor, padding=dp(20), animate=False)
                 break
@@ -516,12 +561,131 @@ class AnalyzerScreen(FloatLayout):
         elif not quiet and self.status.parent is None:
             self.controls.add_widget(self.status)
 
+    def focus_security_search(self):
+        self.show_parameters()
+        self.security_search.focus = True
+        self.security_search.select_all()
+        self.parameter_scroll.scroll_to(self.search_panel, animate=False)
+
+    def _clear_security_matches(self):
+        self.search_results = ()
+        self.security_match_buttons = []
+        self.search_matches.clear_widgets()
+
+    def on_security_query_edited(self, *_):
+        if self._syncing_search:
+            return
+        # Editing invalidates old responses but never starts a provider request.
+        self._search_token += 1
+        self._history_token += 1
+        self.search_busy = self.history_loading = False
+        self.search_submit.disabled = False
+        self._clear_security_matches()
+        self.search_status.text = "Press Enter or Submit to search. Preview prices are simulated."
+        self._set_busy(self.busy)
+
+    def submit_security_search(self, *_):
+        try:
+            query = normalize_query(self.security_search.text)
+        except ValueError as error:
+            self.search_status.text = str(error)
+            return
+        if not query:
+            self.search_status.text = "Enter a ticker or company name, then press Enter or Submit."
+            return
+        if self.search_busy and query == self._submitted_query:
+            return
+        self.security_search.focus = False
+        self._search_token += 1
+        token = self._search_token
+        self._submitted_query = query
+        self.search_busy = True
+        self.search_submit.disabled = True
+        self._clear_security_matches()
+        self.search_status.text = "Searching preview securities…"
+        future = self.market_executor.submit(self.model.data_provider.search, query)
+        future.add_done_callback(lambda done: Clock.schedule_once(lambda _: self._security_search_complete(done, token), 0))
+
+    def _security_search_complete(self, future, token):
+        if self.closed or token != self._search_token:
+            return
+        self.search_busy = False
+        self.search_submit.disabled = False
+        try:
+            matches = tuple(future.result())
+            self.search_results = matches
+            for security in matches:
+                button = SecurityMatchButton(security)
+                button.disabled = self.busy
+                button.bind(on_release=lambda _, item=security: self.select_security_match(item))
+                self.security_match_buttons.append(button)
+                self.search_matches.add_widget(button)
+            self.search_status.text = (f"{len(matches)} preview matches. Select one to load simulated history."
+                                       if matches else "No preview matches. Try a partial ticker or company name, such as Apple or DBS.")
+        except Exception:
+            self._clear_security_matches()
+            self.search_status.text = "Search could not be completed. Press Submit to try again."
+
+    def select_security_match(self, security):
+        if self.busy or security not in self.search_results:
+            return
+        if self.history_loading and self._pending_security_key == security.key:
+            return
+        self.security_search.focus = False
+        self._history_token += 1
+        token = self._history_token
+        self._pending_security_key = security.key
+        self.history_loading = True
+        scenario = self.scenario.text
+        self._set_busy(False)
+        self.search_status.text = f"Loading simulated history for {security.ticker}…"
+        future = self.market_executor.submit(self.model.data_provider.historical_data, security, scenario)
+        future.add_done_callback(lambda done: Clock.schedule_once(
+            lambda _: self._security_history_complete(done, token, security, scenario), 0))
+
+    def _security_history_complete(self, future, token, security, scenario):
+        if self.closed or token != self._history_token:
+            return
+        self.history_loading = False
+        self._set_busy(False)
+        try:
+            dataset = future.result()
+            if dataset.counter != security.key or dataset.scenario != scenario or len(dataset.prices) < 4:
+                raise ValueError("History does not match the selected security.")
+            self.model.apply_dataset(dataset)
+            self._job += 1
+            self._syncing_controls = True
+            try:
+                self.counter.text = security.key
+            finally:
+                self._syncing_controls = False
+            self._show_selected_security(security)
+            self.refresh()
+            self.message("Simulated history loaded. Press Optimize SMA to calculate a result.", quiet=True)
+        except Exception:
+            self.search_status.text = "Could not load history. Your previous security is unchanged; select a match to retry."
+
+    def _show_selected_security(self, security):
+        self._search_token += 1
+        self.search_busy = False
+        self.search_submit.disabled = False
+        self._syncing_search = True
+        try:
+            self.security_search.text = security.ticker
+        finally:
+            self._syncing_search = False
+        self._clear_security_matches()
+        self.search_status.text = f"Selected {security.ticker} · {security.name}. Simulated history ready."
+
     def on_dataset_change(self, *_):
         if self._syncing_controls:
             return
         self._job += 1
+        self._history_token += 1
+        self.history_loading = False
         try:
             self.model.select_dataset(self.counter.text, self.scenario.text)
+            self._show_selected_security(security_by_key(self.counter.text))
             self.message("Simulation changed. Press Optimize SMA to calculate a new result.")
             self.refresh()
         except (ValueError, sqlite3.Error, OSError) as error:
@@ -558,12 +722,14 @@ class AnalyzerScreen(FloatLayout):
         self.busy = busy
         self.optimize_button.text = "Calculating…" if busy else "Optimize SMA"
         for widget in [self.optimize_button, self.counter, self.scenario, self.target, self.custom_target]:
-            widget.disabled = busy
+            widget.disabled = busy or self.history_loading
+        for button in self.security_match_buttons:
+            button.disabled = busy
         self.save_button.disabled = busy or self.model.result is None
         self.hide_button.disabled = busy or self.model.result is None
 
     def on_optimize(self, *_):
-        if self.busy:
+        if self.busy or self.history_loading:
             return
         self.show_parameters()
         try:
@@ -647,6 +813,9 @@ class AnalyzerScreen(FloatLayout):
                                     if selected.target_frequency in TARGET_FREQUENCIES else "Custom")
             finally:
                 self._syncing_controls = False
+            self._history_token += 1
+            self.history_loading = False
+            self._show_selected_security(security_by_key(selected.counter))
             self.refresh()
             self.chart.set_timeline("1Y")
             self.show_results()
@@ -1192,6 +1361,9 @@ class AnalyzerScreen(FloatLayout):
         self.closed = True
         self._editor_scroll_trigger.cancel()
         self.finish_editing()
+        self._search_token += 1
+        self._history_token += 1
+        self.market_executor.shutdown(wait=False, cancel_futures=True)
         self.executor.shutdown(wait=False, cancel_futures=True)
 
 

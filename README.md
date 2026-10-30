@@ -52,6 +52,15 @@ of `python`. Installation downloads dependencies; stock prices remain mock data 
 Desktop analysis needs no Android SDK. For a phone test APK, use the
 [beginner Android APK guide](docs/ANDROID_APK_GUIDE.md).
 
+## Security search
+
+Type part of a ticker or company name, then press **Enter** or **Submit**. Search
+results show packaged logos/initials, tickers, company names and exchanges. Only
+selecting a result loads its history; keystrokes make no requests. This 0.5.0
+release uses a **12-security local preview catalogue and simulated history**,
+with no Twelve Data calls. See [Security search](docs/SECURITY_SEARCH.md) for the
+catalogue, request boundaries and focused UI checks.
+
 ## Screen navigation
 
 The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens
@@ -92,8 +101,10 @@ does not rerun calculations or change the active chart range.
 
 ## Try the prototype
 
-1. Choose a fictional counter and **Trending**, **Oscillating**, or **Sideways**.
-   Each combination has 1,260 reproducible synthetic closes and a fixed seed.
+1. Keep the default fictional counter or search a partial ticker/company name,
+   press Enter/Submit, and select a match. Choose **Trending**, **Oscillating**,
+   or **Sideways**. All combinations use reproducible simulated closes, including
+   the company examples; no live-data API is connected.
 2. Choose **12**, **6**, or **1** upward crossings per trading year. Choose
    **Custom** to type another positive integer, then press **Optimize SMA**.
 3. The teal price line is overlaid with the gold optimal SMA. Black-outlined plus signs mark
@@ -328,8 +339,8 @@ SDL2, and Mesa llvmpipe software OpenGL:
 
 | Check | Actual result |
 | --- | --- |
-| Standard-library test suite | **85 passed** in the full suite, plus **4** additional focused tests; 0 failed, 0 skipped |
-| Real Kivy UI smoke checks | **33 groups passed**, 0 failed; five focused Android/library regressions included |
+| Standard-library test suite | **100 passed** in the full suite; 0 failed, 0 skipped |
+| Real Kivy UI smoke checks | **43 groups passed**, 0 failed; Android/library, preview and security-search regressions included |
 | Portrait rendering | 320×640, 440×920, 560×1000, 760×1100, 960×1440 exercised |
 | Screenshot exports | Parameters, results, full crossovers, saved sheet and settings generated and inspected |
 | Dependency compatibility | `python -m pip check` passed |

@@ -26,6 +26,7 @@ unexecuted device check as passed.
 | AND-11 | Build with the durable signing secret present and the disposable cache absent. Compare artifact SHA-1 against the previous successful APK/Google OAuth registration. | SHA-1 is identical. Missing or mismatched signing material must stop the build instead of creating another identity. |
 | AND-12 | Press Test Android phone notification; allow permission if requested; check the notification shade and tap the notification. Repeat after denying/disabling the channel. | Native local alert appears with the icon and opens the app. Denial/disabled channel yields a helpful message. No duplicate EOD alert for the same already-delivered event. |
 | AND-13 | Update from a prior build with email enabled on saved lines. Preview and send an EOD alert. | Only phone alerts appear/send. Legacy email flags never cause a Google prompt or email dispatch; saved lines remain intact. |
+| AND-14 | Type a partial ticker/company name, then press keyboard Enter or Submit. Select a logo/ticker/name match; try another query while a response is pending. | Typing alone never searches or changes security. Enter/Submit shows local preview matches. Selection loads simulated history; late responses cannot overwrite a newer selection. Keyboard keeps the search field visible. |
 
 Run AND-03/04/08 on the actual affected phone first. When devices are available,
 also test Android 8–10, Android 13+ notification permissions and Android 15+

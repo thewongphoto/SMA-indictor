@@ -36,6 +36,11 @@ $env:SMA_ANALYZER_DATA_DIR = "$PWD\.local\preview-data"
 
 ## What to check
 
+- Search a partial ticker/company name, then press Enter or Submit. Confirm
+  typing alone does nothing, matches display logo/ticker/name, and selecting one
+  loads simulated history. The default fictional selection remains usable.
+  See [Security search](SECURITY_SEARCH.md) for the 12-security preview catalogue.
+
 - Optimize a counter/scenario. Plus markers sit on the intersection of the
   price/SMA line segments; the event table shows crossing prices. A one-finger
   drag still inspects EOD points; two-finger gestures still control zoom.

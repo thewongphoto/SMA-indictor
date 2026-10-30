@@ -305,3 +305,30 @@ development build with portrait orientation and device lifecycle tests.
   Settings/saved-menu screenshots were inspected: only phone controls remain.
   Workflow YAML and tag trigger were parsed and checked; no manual signing
   migration is requested for the release tag.
+
+
+## 0.5.0 — explicit security search, desktop and APK
+
+- Replaced the counter dropdown with a submit-only ticker/company search and a
+  selected-security button. Enter and Submit share one request path. Blank input,
+  typing, focus changes and results rendering make no search requests.
+- Added local logo/ticker/name/exchange result rows, with initials fallback and
+  no logo network requests. Included verified Simple Icons PNG assets/credits.
+- Selecting a match asynchronously requests history through the preview provider.
+  Search alone never loads a security. Duplicate in-flight submits are ignored;
+  query edits and newer selections invalidate stale search/history responses.
+  Failed loads retain the existing dataset; states are visibly retryable.
+- User confirmed this is pre-integration preview mode: no Twelve Data requests
+  or API key, a local 12-security catalogue and deterministic simulated history.
+  Preserved the original demo fixtures and saved-line/notification behavior.
+- Added pure search/provider/model checks and five running-widget search groups,
+  including actual clicks, out-of-order responses and mobile keyboard geometry.
+  Version 0.5.0 uses the existing APK release-tag trigger and signing identity.
+
+- Validation: 100 unit tests and 43 full Kivy UI groups pass. The full sequence
+  exposed lingering Parameters-page scroll momentum after navigation/resizing;
+  returning to Parameters now stops it before restoring the top. The search test
+  deliberately injects high residual velocity and verifies real Submit taps.
+- Inspected search layouts at 320, 440 and 960 pixels; packaged PNG integrity,
+  dependencies and Android logo/version configuration checked. No live Twelve
+  Data response or physical-device result is claimed.

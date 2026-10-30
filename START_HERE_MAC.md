@@ -58,8 +58,14 @@ manually launched desktop app untouched.
 
 ## 5. Try the desktop preview
 
-1. Select **DEMO-SGX**, **Oscillating**, and **12** crossings per year.
-2. Click **Optimize SMA**. The app moves from Parameters to Results.
+1. The initial selected security is **DEMO-SGX**. To change it, enter a partial
+   ticker/company name in **Search security** (for example `Apple` or `DBS`),
+   then press Enter or **Submit**. Click a logo/ticker/name match to load its
+   simulated history. Typing alone never searches or changes the security.
+2. Choose **Oscillating** and **12** crossings per year, then click **Optimize
+   SMA**. The app moves from Parameters to Results. All price histories remain
+   simulated, including results with real company names. See
+   [Security search](docs/SECURITY_SEARCH.md) for the preview catalogue.
 3. Plus markers show estimated price/SMA intersections. Drag the mouse across
    the chart to inspect the nearest EOD date, price, and SMA value; this does
    not zoom. Use **1Y**, **3Y**, **5Y**, or **Max** for quick views. Two-finger
@@ -96,7 +102,7 @@ Phone Buy or Impending buy, return to Results, expand the security in Saved SMAs
 and turn on that line's phone notification control. In Settings, enter a session
 number and press **Preview EOD alerts** to see simulated phone text. Preview
 sends nothing. Real phone delivery requires the Android build. Email/Gmail
-controls and sending are removed in version 0.4.0.
+controls and sending remain removed in version 0.5.0.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;
@@ -110,7 +116,7 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current suite has **93 tests**. Successful output ends with `OK`.
+The current suite has **100 tests**. Successful output ends with `OK`.
 For the focused running-widget desktop checks, use:
 
 ```sh

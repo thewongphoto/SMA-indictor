@@ -275,9 +275,9 @@ class PriceChart(Widget):
                 color = self.line_color(line, index)
                 draw_series(line.sma, color, dp(1.6) if line.active else dp(1))
                 for event in self.marker_events[line.key]:
-                    if not start <= event.index <= end:
+                    if not start <= event.plot_index <= end:
                         continue
-                    x, y = point(event.index, event.price)
+                    x, y = point(event.plot_index, event.price)
                     draw_plus(x, y, dp(5), color)
 
             if self.inspection is not None:

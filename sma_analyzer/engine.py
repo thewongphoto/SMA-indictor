@@ -69,15 +69,25 @@ class Crossover:
     index: int  # zero based; the UI displays index + 1 as the session number
     price: float
     sma: float
+    position: float | None = None  # Fractional session at the line-segment intersection.
+
+    @property
+    def plot_index(self):
+        return self.index if self.position is None else self.position
 
 
 def crossover_events(prices: Sequence[Price], sma: Sequence[Price]) -> tuple[Crossover, ...]:
-    """Find upward crossings using strict numeric comparisons and the rules above."""
+    """Find upward events and estimate their piecewise-linear intersections.
+
+    index retains the confirming EOD session for count/notification compatibility;
+    price/sma and plot_index describe the estimated intersection of the two lines.
+    """
     if len(prices) != len(sma):
         raise ValueError("Price and SMA series must have the same length.")
     events = []
     previous_side = None
-    for index, (price, average) in enumerate(zip(_prices(prices), _prices(sma))):
+    values, averages = _prices(prices), _prices(sma)
+    for index, (price, average) in enumerate(zip(values, averages)):
         if price is None or average is None:
             previous_side = None
             continue
@@ -85,7 +95,13 @@ def crossover_events(prices: Sequence[Price], sma: Sequence[Price]) -> tuple[Cro
         if side == 0:
             continue
         if previous_side == -1 and side == 1:
-            events.append(Crossover(index, price, average))
+            # The displayed daily series are joined by straight segments. Their
+            # intersection estimates a crossing; it is not an observed intraday fill.
+            before = values[index - 1] - averages[index - 1]
+            after = price - average
+            fraction = -before / (after - before)
+            crossing_price = values[index - 1] + fraction * (price - values[index - 1])
+            events.append(Crossover(index, crossing_price, crossing_price, index - 1 + fraction))
         previous_side = side
     return tuple(events)
 

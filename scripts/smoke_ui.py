@@ -8,6 +8,7 @@ import json
 import io
 import os
 from pathlib import Path
+from dataclasses import replace
 import sys
 import tempfile
 import time
@@ -104,6 +105,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         print(f"PASS: {name}", flush=True)
 
     def exercise(self):
+        if "--preview-rules-only" in sys.argv:
+            for _ in range(8): yield
+            yield from self.preview_regressions()
+            return
         if "--android-regressions-only" in sys.argv:
             # Keep a 440×920 dp viewport when exercising phone pixel densities.
             Window.size=(int(dp(440)),int(dp(920)))
@@ -175,7 +180,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.hide_button.dispatch("on_release")
         ui.backtest_years.text = "invalid"
         ui.backtest_years.dispatch("on_text_validate")
-        assert ui.backtest_report is None and "positive number of years" in ui.crossing_count_label.text
+        assert ui.backtest_report is None and "positive number of years" in ui.backtest_details.text
         assert all(v.text == "—" for v in ui.backtest_values.values())
         ui.backtest_years.text = "2"
         ui.backtest_period._dropdown.select("1Y")
@@ -233,7 +238,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.card_values["period"].text == "254 sessions"
         assert ui.card_values["actual"].text == "31.31 / yr"
         ui.backtest_period._dropdown.select("Max")
-        assert "125 upward crossings" in ui.crossing_count_label.text
+        assert "125 upward crossings" in ui.backtest_captions["crossings"].text
         assert "1006 usable comparisons" in ui.explanation.text
         assert "SMA search: 2–756" in ui.explanation.text
         assert "Warm-up is included" not in ui.explanation.text
@@ -514,6 +519,8 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.saved_menu_button.height >= dp(44)
             assert ui.settings_button.right <= ui.width
             assert ui.save_button.width == dp(44) and ui.save_button.height >= dp(44)
+            ui.expanded_saved_securities.update(line.counter for line in ui.model.store.list_all_lines())
+            ui._refresh_saved()
             ui.saved_sheet.open()
             for _ in range(8): yield
             for line in ui.model.saved_lines():
@@ -537,6 +544,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.alert_session.text = str(ui.model.result.events[-1].index+1)
         ui.preview_alert_button.dispatch("on_release")
         for _ in range(4): yield
+        ui.expanded_saved_securities.update(line.counter for line in ui.model.store.list_all_lines())
+        ui._refresh_saved()
+        for _ in range(5): yield
         ui.saved_panel.export_to_png("artifacts/saved-lines-phone.png")
         ui.settings_panel.export_to_png("artifacts/notification-settings.png")
         self.check("five portrait sizes: compact aligned controls, responsive Optimal card, touch targets and screenshots")
@@ -728,6 +738,9 @@ class SmokeApp(SMAStockAnalyzerApp):
             saved = next(s for s in ui.model.saved_lines() if s.period == plotted.period)
             assert ui.saved_rows[saved.id]["swatch"].ink == ui.chart.line_color(plotted,0)
         for _ in range(8): yield
+        ui.expanded_saved_securities.update(line.counter for line in ui.model.store.list_all_lines())
+        ui._refresh_saved()
+        for _ in range(5): yield
         ui.saved_panel.export_to_png("artifacts/saved-lines-phone.png")
         ui.settings_panel.export_to_png("artifacts/notification-settings.png")
         ui.saved_sheet.dismiss(animate=False)
@@ -753,6 +766,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.export_to_png("artifacts/prototype-wide.png")
         self.check("SMA 11 and 18 real results: distinct chart-matched swatches, hearts, channels and final screenshots")
         yield from self.android_regressions()
+        yield from self.preview_regressions()
 
     def android_regressions(self):
         ui = self.screen
@@ -843,7 +857,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert {plotted.period for plotted in ui.chart.series} == expected_periods
             for other in all_lines:
                 if (other.counter,other.scenario) != (line.counter,line.scenario):
-                    assert ui.saved_rows[other.id]["hide"].text == "View"
+                    assert ui.saved_rows[other.id]["view"].text == "View"
         self.check("interleaved SGX/US and scenario saves remain accessible from every saved result; overlays stay on matching data")
 
         # A fresh screen reads all committed rows without needing optimization,
@@ -862,10 +876,12 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         assert ui.manager.current=="parameters"
         assert set(ui.landing_saved_rows)==expected_ids
-        assert all(row["hide"].text=="View" for row in ui.landing_saved_rows.values())
-        ui.parameter_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["hide"],animate=False)
+        assert all(row["view"].text=="View" for row in ui.landing_saved_rows.values())
+        ui.landing_security_buttons[us_line.counter].dispatch("on_release")
+        for _ in range(6): yield
+        ui.parameter_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["view"],animate=False)
         for _ in range(8): yield
-        button=ui.landing_saved_rows[us_line.id]["hide"]
+        button=ui.landing_saved_rows[us_line.id]["view"]
         pointer=Pointer(*button.to_window(*button.center))
         pointer.down(); pointer.up()
         for _ in range(8): yield
@@ -883,6 +899,128 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("Android regression: fresh launch lists all saved SMAs; real View tap opens exact counter/scenario/period/custom target")
 
 
+    def preview_regressions(self):
+        ui = self.screen
+        ui.model.store.save("DEMO-SGX", "Trending", 11, 12)
+        ui.model.store.save("DEMO-SGX", "Trending", 18, 1)
+        ui.model.store.save("DEMO-US", "Trending", 11, 12)
+        sgx = next(line for line in ui.model.store.list_lines("DEMO-SGX", "Trending") if line.period == 11)
+        us = next(line for line in ui.model.store.list_lines("DEMO-US", "Trending") if line.period == 11)
+        ui.on_view_saved(sgx)
+        ui.backtest_period._dropdown.select("Max")
+        ui.saved_sheet.dismiss(animate=False)
+        for _ in range(8): yield
+        count = len(ui.backtest_report.crossings.indices)
+        assert list(ui.backtest_values) == ["crossings", "dca", "random"]
+        assert ui.backtest_captions["crossings"].text == f"a. at {count} upward crossings."
+        assert ui.backtest_captions["dca"].text == f"b. at {count} equal periods."
+        assert ui.backtest_captions["random"].text == f"c. At {count} random points (most common scenario)."
+        assert ui.backtest_heading.text == "If you invested $100 for the past:"
+        assert ui.backtest_heading.parent is ui.backtest_period.parent
+        assert ui.backtest_heading.right <= ui.backtest_period.x
+        assert ui.backtest_details.text.count("\n") == 1
+        assert "sessions" not in ui.backtest_details.text and "Warm-up" not in ui.backtest_details.text
+        assert not hasattr(ui, "crossing_count_label")
+        assert len(ui.backtest_report.random_average_prices) == 500
+        y = ui.backtest_report.outperformance_percent
+        assert ui.backtest_note.text == f"Scenario a's moving average strategy outperforms {y:.1f}% of all 500 random buy scenarios."
+        ui.table_panel.export_to_png("artifacts/preview-backtesting.png")
+        self.check("desktop preview: scenario order/counts, inline period, 500-seed values and requested outperformance copy")
+
+        for key, phrase in (("dca", "dollar cost averaging"), ("random", "rounded to the nearest dollar")):
+            button = ui.backtest_info_buttons[key]
+            ui.scroll.scroll_to(button, animate=False)
+            for _ in range(6): yield
+            touch = Pointer(*button.to_window(*button.center))
+            touch.down(); touch.up()
+            for _ in range(6): yield
+            assert ui.backtest_help_popup._is_open
+            label = ui.backtest_help_popup.content.children[1].children[0]
+            assert phrase in label.text
+            ui.export_to_png(f"artifacts/preview-help-{key}.png")
+            assert ui.handle_back()
+            for _ in range(4): yield
+            assert not ui.backtest_help_popup._is_open
+        self.check("desktop preview: both circled information buttons open correct scrollable help and Back dismisses")
+
+        result = ui.model.result
+        ui.model.result = replace(result, events=())
+        ui.refresh()
+        assert all(value.text == "$0.00" for value in ui.backtest_values.values())
+        assert all(value.text == "(N/A vs a)" for value in ui.backtest_differences.values())
+        assert "N/A" in ui.backtest_note.text
+        assert ui.backtest_captions["dca"].text == "b. at 0 equal periods."
+        ui.model.result = result
+        ui.refresh()
+        self.check("desktop preview: zero-crossing periods show zero ending values and undefined comparisons")
+
+        ui.chart.set_timeline("Max")
+        ui.scroll.scroll_to(ui.chart, animate=False)
+        for _ in range(8): yield
+        chart = ui.chart
+        left, bottom, width, height = chart.plot_rect
+        low, high = chart.viewport.y_limits(chart.prices, [line.sma for line in chart.series])
+        start, end = chart.viewport.bounds
+        expected = sorted((left + (event.plot_index-start)/(end-start)*width,
+                           bottom + (event.price-low)/(high-low)*height)
+                          for events in chart.marker_events.values() for event in events
+                          if start <= event.plot_index <= end)
+        outlines = [item for item in chart.canvas.children
+                    if isinstance(item, Line) and item.close and len(item.points) == 24]
+        actual = sorted(((min(item.points[::2])+max(item.points[::2]))/2,
+                         (min(item.points[1::2])+max(item.points[1::2]))/2) for item in outlines)
+        assert len(actual) == len(expected) > 0
+        for actual_point, expected_point in zip(actual, expected):
+            assert all(abs(a-b) < dp(.1) for a,b in zip(actual_point, expected_point))
+        assert any(event.plot_index != event.index for event in ui.model.result.events)
+        chart.parent.export_to_png("artifacts/preview-crossing-markers.png")
+        self.check("desktop preview: actual canvas plus markers lie at fractional price/SMA intersections")
+
+        ui.expanded_saved_securities.clear()
+        ui._refresh_saved()
+        ui.show_parameters()
+        for _ in range(6): yield
+        assert all(button.kind == "down" for button in ui.landing_security_buttons.values())
+        assert all(group["body"].parent is None for group in ui.landing_security_groups.values())
+        ui.landing_saved_panel.export_to_png("artifacts/preview-saved-collapsed.png")
+        arrow = ui.landing_security_buttons["DEMO-SGX"]
+        ui.parameter_scroll.scroll_to(arrow, animate=False)
+        for _ in range(6): yield
+        touch = Pointer(*arrow.to_window(*arrow.center)); touch.down(); touch.up()
+        for _ in range(6): yield
+        assert ui.landing_security_buttons["DEMO-SGX"].kind == "up"
+        assert ui.saved_security_buttons["DEMO-SGX"].kind == "up"
+        assert ui.landing_security_groups["DEMO-SGX"]["body"].parent is not None
+        assert ui.landing_security_groups["DEMO-US"]["body"].parent is None
+        ui.landing_saved_panel.export_to_png("artifacts/preview-saved-expanded.png")
+        ui.landing_security_buttons["DEMO-US"].dispatch("on_release")
+        active_visibility = ui.model.active_visible
+        previous = ui.model.store.get_line(us.id).visible
+        ui.landing_saved_rows[us.id]["hide"].dispatch("on_release")
+        assert ui.model.store.get_line(us.id).visible != previous
+        assert ui.model.active_visible == active_visibility
+        assert "DEMO-SGX" in ui.expanded_saved_securities and "DEMO-US" in ui.expanded_saved_securities
+        previous_push = ui.model.store.get_line(sgx.id).push_enabled
+        ui.landing_saved_rows[sgx.id]["push"].dispatch("on_release")
+        assert ui.model.store.get_line(sgx.id).push_enabled != previous_push
+        ui.landing_saved_rows[us.id]["view"].dispatch("on_release")
+        assert ui.model.dataset.counter == "DEMO-US"
+        ui.saved_sheet.open()
+        for _ in range(8): yield
+        arrow = ui.saved_security_buttons["DEMO-SGX"]
+        ui.saved_sheet.scroll.scroll_to(arrow, animate=False)
+        for _ in range(6): yield
+        touch = Pointer(*arrow.to_window(*arrow.center)); touch.down(); touch.up()
+        for _ in range(6): yield
+        assert ui.saved_security_groups["DEMO-SGX"]["body"].parent is None
+        assert ui.landing_security_groups["DEMO-SGX"]["body"].parent is None
+        assert ui.saved_security_buttons["DEMO-SGX"].kind == "down"
+        ui.saved_sheet.dismiss(animate=False)
+        ui.on_view_saved(sgx)
+        ui.content.export_to_png("artifacts/preview-results-full.png")
+        self.check("desktop preview: security accordions synchronize on both screens; row controls and cross-security visibility remain independent")
+
+
 if __name__ == "__main__":
     app = SmokeApp()
     started = time.time()
@@ -893,7 +1031,8 @@ if __name__ == "__main__":
         report = {"started_unix": started, "passed": app.passed,
                   "passed_count": len(app.passed), "failure": app.failure,
                   "exit_code": app.exit_code}
-        report_name = "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke"
+        report_name = ("ui-preview-rules" if "--preview-rules-only" in sys.argv else
+                       "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke")
         Path(f"artifacts/{report_name}.json").write_text(json.dumps(report, indent=2) + "\n")
         temporary.cleanup()
     raise SystemExit(app.exit_code)

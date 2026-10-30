@@ -14,6 +14,20 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(count_crossings(prices, sma), 2)
         self.assertEqual([e.index for e in crossover_events(prices, sma)], [3, 5])
 
+    def test_crossing_marker_is_on_both_interpolated_segments(self):
+        prices, averages = [9, 13], [10, 11]
+        event, = crossover_events(prices, averages)
+        self.assertEqual(event.index, 1)
+        self.assertAlmostEqual(event.plot_index, 1/3)
+        self.assertAlmostEqual(event.price, 9 + 4/3)
+        self.assertAlmostEqual(event.price, 10 + 1/3)
+        self.assertEqual(event.price, event.sma)
+        self.assertNotEqual(event.price, prices[event.index])
+
+    def test_equal_plateau_places_crossing_at_last_equal_point(self):
+        event, = crossover_events([9, 10, 10, 12], [10, 10, 10, 10])
+        self.assertEqual((event.index, event.plot_index, event.price), (3, 2, 10))
+
     def test_c_steadily_rising(self):
         prices = list(range(1, 253))
         for period in [2, 3, 20, 200, 251]:

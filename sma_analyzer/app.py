@@ -150,6 +150,7 @@ class AnalyzerScreen(FloatLayout):
         self._job = 0
         self._syncing_controls = False
         self._page_stack = ["parameters"]
+        self.expanded_saved_securities = set()
         self.gmail_sender = GmailSender(GMAIL_SENDER_ADDRESS)
         self.gmail_authorizer = AndroidGmailAuthorizer()
         self.delivery_busy = False
@@ -423,7 +424,7 @@ class AnalyzerScreen(FloatLayout):
 
     def handle_back(self):
         """Consume overlays/editing first, then pages; only Parameters may exit."""
-        for name in ("history_popup", "validation_popup"):
+        for name in ("history_popup", "validation_popup", "backtest_help_popup"):
             popup = getattr(self, name, None)
             if popup is not None and popup._is_open:
                 popup.dismiss()
@@ -617,11 +618,13 @@ class AnalyzerScreen(FloatLayout):
     def on_saved_visibility(self, line, *_):
         try:
             current = line.visible
-            if self.model.result and line.period == self.model.result.period:
+            active = (self.model.result is not None and line.period == self.model.result.period
+                      and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
+            if active:
                 current = self.model.active_visible
             visible = not current
             self.model.store.set_visible(line.id, visible)
-            if self.model.result and line.period == self.model.result.period:
+            if active:
                 self.model.active_visible = visible
             self.refresh()
         except (sqlite3.Error, OSError) as error:
@@ -711,7 +714,7 @@ class AnalyzerScreen(FloatLayout):
         self.timeline_selector.values = available_timelines(len(data.prices))
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
-        self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units"
+        self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units\nCrossing markers estimate daily-line intersections."
         if data.prices:
             start, end = self.chart.view_range
             self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
@@ -736,65 +739,83 @@ class AnalyzerScreen(FloatLayout):
         rows = {}
         if not saved:
             panel.add_widget(WrappedLabel(text="No saved SMAs yet. Optimize, then tap the heart.", color=MUTED))
-        for line in saved:
-            same_dataset = (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario)
-            label = f"SMA {line.period} · target {line.target_frequency}/yr"
-            label = f"{line.counter} · {line.scenario}\n" + label
-            if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
-                label += " · saved previously; outside current search limit"
-            title = BoxLayout(size_hint_y=None, height=dp(28), spacing=dp(5))
-            active = (self.model.result is not None and self.model.result.period == line.period
-                      and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
-            swatch = LegendSymbol(self.chart.period_color(line.period, active))
-            title.add_widget(swatch)
-            title_label = Button(text=label, color=TEXT, font_size=sp(13), halign="left",
-                                 background_normal="", background_down="", background_color=(0,0,0,0))
-            title.height = dp(48)
-            title_label.bind(width=lambda widget, width: setattr(widget, "text_size", (width, None)))
-            title_label.bind(texture_size=lambda _, size, box=title: setattr(box, "height", max(dp(48), size[1]+dp(8))))
-            title_label.bind(on_release=lambda _, saved_line=line: self.on_view_saved(saved_line))
-            title.add_widget(title_label)
-
-            panel.add_widget(title)
-            # At phone widths two left controls share a row; hide/heart stay at right below.
-            row = GridLayout(cols=4 if self.scroll.width >= dp(620) else 2,
-                             size_hint_y=None, spacing=dp(6))
-            row.bind(minimum_height=row.setter("height"))
-            push = LabButton(text="Push notifications " + ("On" if line.push_enabled else "Off"))
-            email = LabButton(text="Email notifications " + ("On" if line.email_enabled else "Off"))
-            for button, enabled in ((push,line.push_enabled),(email,line.email_enabled)):
-                button.font_size = sp(11)
-                button.text_size = (None, None)
-                if enabled:
-                    button.fill = (0.12,0.35,0.32,1)
-                    button._draw()
-            push.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"phone"))
-            email.bind(on_release=lambda _, saved_line=line: self.on_line_alert(saved_line,"email"))
-            visible = self.model.active_visible if active else line.visible
-            toggle = LabButton(text="View" if landing or not same_dataset else "Hide" if visible else "Show", size_hint_x=None, width=dp(64))
-            action = self.on_view_saved if landing or not same_dataset else self.on_saved_visibility
-            toggle.bind(on_release=lambda _, saved_line=line, callback=action: callback(saved_line))
-            heart = IconButton(kind="heart", selected=True)
-            heart.bind(on_release=lambda _, saved_line=line: self.on_delete(saved_line))
-            if row.cols == 4:
-                row.add_widget(push)
-                row.add_widget(email)
-                row.add_widget(toggle)
-                row.add_widget(heart)
-            else:
-                # Full-width notification row, then a right-aligned compact action row.
-                row.add_widget(push)
-                row.add_widget(email)
-                actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(6))
-                actions.add_widget(Label())
-                actions.add_widget(toggle)
-                actions.add_widget(heart)
-                panel.add_widget(row)
-                panel.add_widget(actions)
-            if row.cols == 4:
-                panel.add_widget(row)
-            rows[line.id] = dict(push=push,email=email,hide=toggle,heart=heart,swatch=swatch,title=title_label)
+        buttons, groups = {}, {}
+        for security in sorted({line.counter for line in saved}):
+            entries = [line for line in saved if line.counter == security]
+            group = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(8))
+            group.bind(minimum_height=group.setter("height"))
+            heading = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(4))
+            name = LabButton(text=f"{security} ({len(entries)})", halign="left", valign="middle")
+            name.bind(size=lambda widget, size: setattr(widget, "text_size", (size[0]-dp(16), size[1])))
+            arrow = IconButton(kind="up" if security in self.expanded_saved_securities else "down")
+            for button in (name, arrow):
+                button.bind(on_release=lambda _, counter=security: self.toggle_saved_security(counter))
+                heading.add_widget(button)
+            group.add_widget(heading)
+            body = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10))
+            body.bind(minimum_height=body.setter("height"))
+            for line in entries:
+                rows[line.id] = self._add_saved_row(body, line)
+            if security in self.expanded_saved_securities:
+                group.add_widget(body)
+            panel.add_widget(group)
+            buttons[security] = arrow
+            groups[security] = dict(group=group, body=body, name=name)
+        if landing:
+            self.landing_security_buttons, self.landing_security_groups = buttons, groups
+        else:
+            self.saved_security_buttons, self.saved_security_groups = buttons, groups
         return rows
+
+    def toggle_saved_security(self, security):
+        if security in self.expanded_saved_securities:
+            self.expanded_saved_securities.remove(security)
+        else:
+            self.expanded_saved_securities.add(security)
+        self._refresh_saved()
+
+    def _add_saved_row(self, panel, line):
+        label = f"{line.scenario} · SMA {line.period} · target {line.target_frequency}/yr"
+        if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
+            label += " · saved previously; outside current search limit"
+        title = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
+        active = (self.model.result is not None and self.model.result.period == line.period
+                  and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
+        swatch = LegendSymbol(self.chart.period_color(line.period, active))
+        title.add_widget(swatch)
+        title_label = Button(text=label, color=TEXT, font_size=sp(13), halign="left",
+                             background_normal="", background_down="", background_color=(0,0,0,0))
+        title_label.bind(width=lambda widget, width: setattr(widget, "text_size", (width, None)))
+        title_label.bind(texture_size=lambda _, size: setattr(title, "height", max(dp(44), size[1]+dp(8))))
+        title_label.bind(on_release=lambda _: self.on_view_saved(line))
+        title.add_widget(title_label)
+        panel.add_widget(title)
+        channels = GridLayout(cols=2, size_hint_y=None, spacing=dp(6))
+        channels.bind(minimum_height=channels.setter("height"))
+        push = LabButton(text="Push notifications " + ("On" if line.push_enabled else "Off"))
+        email = LabButton(text="Email notifications " + ("On" if line.email_enabled else "Off"))
+        for button, enabled in ((push, line.push_enabled), (email, line.email_enabled)):
+            button.font_size = sp(11)
+            if enabled:
+                button.fill = (0.12,0.35,0.32,1)
+                button._draw()
+            channels.add_widget(button)
+        push.bind(on_release=lambda _: self.on_line_alert(line, "phone"))
+        email.bind(on_release=lambda _: self.on_line_alert(line, "email"))
+        panel.add_widget(channels)
+        actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(6))
+        actions.add_widget(Label())
+        view = LabButton(text="View", size_hint_x=None, width=dp(64))
+        view.bind(on_release=lambda _: self.on_view_saved(line))
+        visible = self.model.active_visible if active else line.visible
+        toggle = LabButton(text="Hide" if visible else "Show", size_hint_x=None, width=dp(64))
+        toggle.bind(on_release=lambda _: self.on_saved_visibility(line))
+        heart = IconButton(kind="heart", selected=True)
+        heart.bind(on_release=lambda _: self.on_delete(line))
+        for button in (view, toggle, heart):
+            actions.add_widget(button)
+        panel.add_widget(actions)
+        return dict(push=push, email=email, view=view, hide=toggle, heart=heart, swatch=swatch, title=title_label)
 
     def on_line_alert(self, line, channel):
         enabled = line.push_enabled if channel == "phone" else line.email_enabled
@@ -1107,7 +1128,7 @@ class AnalyzerScreen(FloatLayout):
         table = GridLayout(cols=3, size_hint_y=None, row_default_height=dp(30),
                            row_force_default=True,spacing=dp(3))
         table.bind(minimum_height=table.setter("height"))
-        for title in ("Session","Sim. close","SMA"):
+        for title in ("Session","Crossing price","SMA at cross"):
             table.add_widget(Label(text=title,color=MUTED,font_size=sp(12)))
         for row in rows:
             for value in row:
@@ -1117,10 +1138,17 @@ class AnalyzerScreen(FloatLayout):
     def _refresh_table(self):
         # Keep the controls alive: refreshing after a save/hide must retain the period.
         if not hasattr(self, "backtest_period"):
-            self.table_panel.add_widget(WrappedLabel(text="If you invested $100 at:", bold=True, font_size=sp(16)))
             self.table_panel.add_widget(WrappedLabel(text="03  /  BACKTESTING · SELECTED SMA", font_size=sp(11), color=MUTED))
+            self.backtest_header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(6))
+            self.backtest_heading = WrappedLabel(text="If you invested $100 for the past:", bold=True, font_size=sp(14))
+            self.backtest_heading.pos_hint = {"center_y": .5}
+            self.backtest_header.add_widget(self.backtest_heading)
             self.backtest_period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
-            self.table_panel.add_widget(self.backtest_period)
+            self.backtest_period.width = dp(90)
+            self.backtest_period.pos_hint = {"center_y": .5}
+            self.backtest_header.add_widget(self.backtest_period)
+            self.backtest_heading.bind(height=lambda _, height: setattr(self.backtest_header, "height", max(dp(48), height)))
+            self.table_panel.add_widget(self.backtest_header)
             self.backtest_custom_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
             self.backtest_custom_row.add_widget(WrappedLabel(text="Custom years"))
             self.backtest_years = EditingField(text="2", multiline=False, input_type="number", size_hint_y=None, height=dp(44))
@@ -1128,17 +1156,28 @@ class AnalyzerScreen(FloatLayout):
             self.backtest_custom_row.add_widget(LabButton(text="Apply", on_release=self._refresh_backtest))
             self.backtest_custom_holder = BoxLayout(orientation="vertical", size_hint_y=None, height=0)
             self.table_panel.add_widget(self.backtest_custom_holder)
-            self.crossing_count_label = WrappedLabel(color=ACTIVE_COLOR, bold=True)
-            self.table_panel.add_widget(self.crossing_count_label)
             self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(11))
             self.table_panel.add_widget(self.backtest_details)
             self.backtest_values = {}
             self.backtest_differences = {}
-            for key, caption in (("crossings", "a. At upward crossings"), ("random", "b. At random points"),
-                                 ("highest", "c. At the highest price increases")):
+            self.backtest_captions = {}
+            self.backtest_info_buttons = {}
+            for key in ("crossings", "dca", "random"):
                 row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(2))
                 row.bind(minimum_height=row.setter("height"))
-                row.add_widget(WrappedLabel(text=caption, bold=True))
+                caption_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(2))
+                caption = WrappedLabel(text="", bold=True)
+                caption.pos_hint = {"center_y": .5}
+                caption.bind(height=lambda _, height, box=caption_row: setattr(box, "height", max(dp(44), height)))
+                caption_row.add_widget(caption)
+                self.backtest_captions[key] = caption
+                if key != "crossings":
+                    info = IconButton(kind="info")
+                    info.pos_hint = {"center_y": .5}
+                    info.bind(on_release=lambda _, scenario=key: self.show_backtest_help(scenario))
+                    caption_row.add_widget(info)
+                    self.backtest_info_buttons[key] = info
+                row.add_widget(caption_row)
                 row.add_widget(WrappedLabel(text="Value of total investment", halign="right", font_size=sp(11), color=MUTED))
                 value_row = BoxLayout(size_hint_y=None, height=dp(30), spacing=dp(4))
                 value_row.add_widget(Label())
@@ -1153,7 +1192,7 @@ class AnalyzerScreen(FloatLayout):
                 row.add_widget(value_row)
                 self.backtest_values[key] = value
                 self.table_panel.add_widget(row)
-            self.backtest_note = WrappedLabel(text="Illustration using simulated prices. $100 buys fractional units at each selected EOD close, held to the final close; no sells, fees, tax or dividends. Random days use a fixed seed, without replacement. Highest daily % changes are ranked using hindsight. The selected SMA was also chosen from this history: this is not an out-of-sample test or a forecast.", color=MUTED, font_size=sp(11))
+            self.backtest_note = WrappedLabel(text="", color=MUTED, font_size=sp(12))
             self.table_panel.add_widget(self.backtest_note)
             self.crossing_details_button = LabButton(text="View all upward crossings")
             self.crossing_details_button.bind(on_release=self.show_more_crossings)
@@ -1177,8 +1216,9 @@ class AnalyzerScreen(FloatLayout):
         for difference in self.backtest_differences.values():
             difference.text = ""
         if self.model.result is None:
-            self.crossing_count_label.text = "Optimize or view a saved SMA to compare investments."
-            self.backtest_details.text = ""
+            self.backtest_details.text = "Optimize or view a saved SMA to compare investments."
+            self.backtest_note.text = ""
+            self._set_backtest_captions("—")
             return
         try:
             data, result = self.model.dataset, self.model.result
@@ -1186,13 +1226,13 @@ class AnalyzerScreen(FloatLayout):
             report = compare_investments(data.prices, result.sma, result.events, sessions)
             self.backtest_report = report
             count = len(report.crossings.indices)
-            self.crossing_count_label.text = f"{count} upward crossings / theoretical buys per scenario"
-            self.backtest_details.text = (f"Simulated dates: {data.dates[report.start]} – {data.dates[report.end]}\n"
-                f"{report.end-report.start+1} sessions · {report.eligible_sessions} observable opportunities. "
-                "1Y = 252 sessions; periods clamp to available history. Warm-up/gaps excluded equally. "
+            self._set_backtest_captions(count)
+            self.backtest_details.text = (f"Simulated dates: {data.dates[report.start]} - {data.dates[report.end]}\n"
                 "Percentages compare ending values with scenario a.")
-            if report.positive_ranked_days < count:
-                self.backtest_details.text += " Too few positive-return days; ranking includes the smallest declines to keep budgets equal."
+            self.backtest_note.text = (
+                f"Scenario a's moving average strategy outperforms {report.outperformance_percent:.1f}% of all 500 random buy scenarios."
+                if report.outperformance_percent is not None else
+                "Scenario a's moving average strategy outperformance is N/A: no upward crossings in this period.")
             for key, value in self.backtest_values.items():
                 scenario = getattr(report, key)
                 value.text = f"${scenario.ending_value:,.2f}"
@@ -1201,8 +1241,43 @@ class AnalyzerScreen(FloatLayout):
                     self.backtest_differences[key].text = ("(N/A vs a)" if percent is None
                         else f"({percent:+.2f}% vs a)")
         except ValueError as error:
-            self.crossing_count_label.text = str(error)
-            self.backtest_details.text = ""
+            self.backtest_details.text = str(error)
+            self.backtest_note.text = ""
+            self._set_backtest_captions("—")
+
+    def _set_backtest_captions(self, count):
+        self.backtest_captions["crossings"].text = f"a. at {count} upward crossings."
+        self.backtest_captions["dca"].text = f"b. at {count} equal periods."
+        self.backtest_captions["random"].text = f"c. At {count} random points (most common scenario)."
+
+    def show_backtest_help(self, scenario):
+        if scenario == "dca":
+            text = ("This scenario simulates the popular dollar cost averaging strategy. "
+                    "It invests $100 at the EOD price at the start of each of N equal periods, "
+                    "including the start of the chosen period when N is 1.")
+        else:
+            text = ("This scenario assumes the most common average price of 500 different scenarios "
+                    "of investing N times in the chosen period. Each scenario uses a different random seed "
+                    "and N distinct EOD purchase dates. Average purchase prices are rounded to the nearest dollar; "
+                    "the most frequent dollar value defines the most common group. The displayed ending value "
+                    "uses an actual sample closest to that dollar value, with $100 invested at each purchase. "
+                    "The outperformance percentage counts random samples whose arithmetic average purchase price "
+                    "is strictly higher than scenario a's average crossing price; ties are excluded.")
+            report = self.backtest_report
+            if report is not None and report.random_mode is not None:
+                mode = report.random_mode
+                text += f" Current mode: ${mode.rounded_price:,.0f} ({mode.frequency} of 500 samples)."
+        content = BoxLayout(orientation="vertical", spacing=dp(12), padding=dp(12))
+        scroll = ScrollView()
+        label = WrappedLabel(text=text, font_size=sp(14))
+        scroll.add_widget(label)
+        content.add_widget(scroll)
+        close = LabButton(text="Close")
+        content.add_widget(close)
+        self.backtest_help_popup = Popup(title="Dollar cost averaging" if scenario == "dca" else "Most common random scenario",
+                                         content=content, size_hint=(.92, .6))
+        close.bind(on_release=self.backtest_help_popup.dismiss)
+        self.backtest_help_popup.open()
 
     def show_more_crossings(self, *_):
         if self.model.result is None:

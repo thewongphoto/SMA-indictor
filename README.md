@@ -1,5 +1,7 @@
 # SMA Stock Analyzer
 
+The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Desktop preview](docs/DESKTOP_PREVIEW.md) for its calculation rules.
+
 **New to Python and using a Mac? Start with [the step-by-step Mac guide](START_HERE_MAC.md).**
 
 A personal, **offline Python/Kivy prototype** for finding a simple moving average
@@ -57,32 +59,30 @@ The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens
 Hide/Show SMA and **Change parameters**, which returns to Screen 1 with the
 selected parameters retained.
 
-**Section 03: Backtesting** compares three equal-budget historical illustrations:
-$100 at each upward crossing, at reproducibly sampled random days, or at the
-highest daily percentage changes. Choose 1Y, 3Y, 5Y, Max or Custom years, independently
-of the chart range. Each scenario has the same number of purchases and shows its
-combined ending value; observable opportunities are shown. Only ending dollar values are displayed;
-scenarios b and c show the percentage difference from a beside their values.
-A zero ending value in a makes that percentage undefined (N/A).
-Fractional units are bought at the selected close and held to the final close,
-without fees, tax, dividends or sells. One year is 252 sessions; periods clamp to
-available data. All comparisons exclude SMA warm-up/gap days equally. Random
-sampling uses a fixed seed without replacement; highest ranks close/previous close
-minus one, with earlier days breaking ties. If there are too few positive returns,
-the remaining ranked days are the smallest declines so budgets remain equal.
+**Section 03: Backtesting** places the period dropdown beside **If you invested
+$100 for the past:**. It shows a: N upward crossings, b: N equal-period DCA buys,
+and c: the most common of 500 random N-buy scenarios. All invest $100 per buy,
+hold fractional units to the final close and show ending values only, with b/c
+percentage differences relative to a. DCA starts at each equal interval's first
+EOD close, including when N=1. Random sample arithmetic mean prices are rounded
+to whole dollars; the most frequent dollar group supplies a representative
+actual sample. Circled i buttons explain both comparisons.
 
-The highest-return-day comparison uses hindsight. The selected SMA was itself
-chosen from the same history: these illustrations are not an out-of-sample
-strategy test or a forecast. **View all upward crossings** still opens the complete
-event list with its own Back control.
+The footer reports the percentage of the 500 random scenarios with an arithmetic
+mean purchase price higher than a's mean crossing price. See the desktop guide
+for exact mode/tie and percentile rules. This price rank is not necessarily an
+ending-value rank. **View all upward crossings** retains the full event list.
+Prices/dates are synthetic; crossing fills use interpolated daily-line
+intersections, not observed intraday trades.
 
 **Screen 2b** is a partial saved-lines bottom sheet. Saving a new configuration
 opens it automatically; the fixed bottom-left menu also opens/closes it. Swipe
 the top handle downward or tap the dimmed area to dismiss it. Its list scrolls
 independently, and the bottom navigation stays reachable. Both saved libraries
-show every counter/scenario. Tap any saved title to view its exact parameters;
-rows from other datasets offer View, while matching rows retain Hide/Show.
-Only matching counter/scenario lines are overlaid on a chart.
+group saved lines by security. Click the down arrow beside a security to expand
+its SMA rows, and the up arrow to collapse them. Each row has View, Hide/Show,
+heart and notification controls. Both menus share expansion state during the
+session. Only matching counter/scenario lines are overlaid on a chart.
 
 The fixed bottom-right **gear** opens **Screen 3: Settings**. Its fixed top-left
 Back arrow returns to Results. Each page has its own scroll position; navigation

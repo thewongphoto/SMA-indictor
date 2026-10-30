@@ -260,3 +260,28 @@ development build with portrait orientation and device lifecycle tests.
   generic message alone; a new APK and real Google account check remain required.
 - User reports the preceding Android fixes pass on their device. New 0.3.0
   interactions are cloud-validated; they are not yet confirmed on a phone.
+
+
+## Kivy desktop preview after 0.3.0
+
+- Published as source on GitHub main for laptop review; no Android packaging or
+  workflow dispatch for this preview.
+- Geometric daily-line intersections now determine crossing markers and a's
+  purchase prices; counts and EOD notification attribution remain unchanged.
+- Scenario b is DCA at equal trading-period starts, including N=1. Scenario c
+  selects a representative from the whole-dollar modal mean-price group among
+  seeds 0–499. The footer uses the explicitly requested strict arithmetic-price
+  percentile, not ending returns. See docs/DESKTOP_PREVIEW.md for exact rules.
+- Reworded section 03, inline period selector, per-scenario N, circled help popups,
+  removed old count/coverage/bulk explanation, retained b/c ending-value differences.
+- Both saved libraries now group rows under collapsible security headings, with
+  View, Hide/Show, heart and notification controls on every row. Expansion state
+  survives refresh/navigation; cross-security Hide no longer changes an unrelated
+  active line with the same SMA period.
+- Validation: 93 unit tests; 33 full UI groups plus 5 focused preview groups pass.
+- A Mac desktop launcher and portable source ZIP support laptop review. No native
+  laptop or new Android-device verification has been performed here.
+
+- START_HERE_MAC.md now follows the current desktop UI and the tested launcher,
+  with GitHub Code/Download ZIP steps and instructions for preserving per-folder
+  preview saves between downloads. The desktop guide also uses GitHub downloads.

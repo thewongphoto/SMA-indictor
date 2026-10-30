@@ -1,116 +1,107 @@
 # Open the app on your Mac
 
+The latest Kivy desktop preview is available on GitHub's **main** branch.
+These instructions download and run that version. No Android APK build is needed.
+For the exact simulation rules, see [Desktop preview](docs/DESKTOP_PREVIEW.md).
+
 These instructions assume you have never used Python or Kivy. Python runs the
 program; Kivy draws the app's screen. You do not need to edit any code.
 
 ## 1. Check Python
 
-You have already confirmed that `python3.12 --version` prints `Python 3.12.10`.
-That is the version to use for these instructions.
+Open Terminal and run:
+
+```sh
+python3.12 --version
+```
+
+Use Python **3.12**. Your previously confirmed Python 3.12.10 is suitable.
 
 ## 2. Get the project from GitHub
 
 1. Open <https://github.com/thewongphoto/SMA-indictor> in your Mac's browser.
 2. Sign in to your own GitHub account if the repository is private.
-3. Select the `main` branch if it is not already selected.
+3. Select the **main** branch if it is not already selected.
 4. Click the green **Code** button, then **Download ZIP**.
 5. In Finder, open **Downloads** and double-click the downloaded ZIP.
 6. Open the extracted folder, normally called **SMA-indictor-main**. You should
-   see `main.py`, `requirements.txt`, and this document inside it.
+   see `main.py`, `requirements.txt`, `run-desktop.command`, and this document.
+
+If you already have an older download, extract the new one into a separate
+folder and choose **Keep Both** if Finder asks. GitHub changes do not update
+an existing ZIP download or the folder you extracted from it.
 
 ## 3. Open Terminal in the project folder
 
 1. Press **Command + Space**, type **Terminal**, and press **Return**.
 2. Type `cd` followed by one space. Do not press Return yet.
-3. Drag the extracted **SMA-indictor-main** folder from Finder into Terminal.
+3. Drag the newly extracted **SMA-indictor-main** folder from Finder into Terminal.
    This inserts the folder's path for you.
-4. Now press **Return**. Terminal is ready to run commands in that folder.
+4. Press **Return**. Terminal is ready to run commands in that folder.
 
-## 4. Prepare the app
+## 4. Prepare and open the app
 
 Copy this line into Terminal and press Return:
 
 ```sh
-python3.12 -m venv .venv
+bash run-desktop.command
 ```
 
-This creates a private place for the app's Python packages. It usually finishes
-without printing anything. Then copy this line and press Return:
+The launcher creates `.venv` if needed, installs Kivy and the other desktop
+requirements, then opens a window titled **SMA Stock Analyzer**. The first launch
+needs internet access to download dependencies. It does not download stock prices
+or ask for financial accounts. Leave Terminal open while you use the app.
 
-```sh
-.venv/bin/python -m pip install -r requirements.txt
-```
+The launcher puts this preview's saved SMA data in `.local/preview-data` inside
+the downloaded project folder. It leaves data from your phone or an earlier
+manually launched desktop app untouched.
 
-Wait until the installation finishes and Terminal is ready for another command.
-This downloads Kivy and its supporting packages from the Python package index.
-It does not download stock prices or ask for any financial accounts.
+## 5. Try the desktop preview
 
-## 5. Open the app
+1. Select **DEMO-SGX**, **Oscillating**, and **12** crossings per year.
+2. Click **Optimize SMA**. The app moves from Parameters to Results.
+3. Plus markers show estimated price/SMA intersections. Drag the mouse across
+   the chart to inspect the nearest EOD date, price, and SMA value; this does
+   not zoom. Use **1Y**, **3Y**, **5Y**, or **Max** for quick views. Two-finger
+   zoom requires an input device/provider that supplies two touches to Kivy;
+   a normal laptop mouse supplies one pointer. **Zoom out** restores a preset.
+4. Scroll to section **03 / Backtesting**. Its independent period dropdown sits
+   beside **If you invested $100 for the past:**. Each scenario buys N times:
+   a at upward crossings, b at equal-period starts (DCA), and c using the most
+   common whole-dollar average-price group among 500 random samples. Each
+   purchase invests $100. Only ending dollar values are displayed, with b/c
+   percentage differences relative to a. Click either circled **i** for help.
+5. Click the outline heart in the Optimal SMA card to save a line. Try another
+   target or security, optimize, and save again.
+6. Open **Saved SMAs** with the bottom-left menu. Click the down arrow beside
+   a security to expand its saved SMA rows; click the up arrow to collapse them.
+   Each row has View, Hide/Show, heart, and notification controls. The saved
+   library on Parameters uses the same groups and shares their expanded state.
+7. Click **View** to open a saved line's exact parameters. **Change parameters**
+   returns to the form. The backtesting panel's **View all upward crossings**
+   button opens the full event list; its Back arrow returns to Results.
 
-Copy this line and press Return:
+The app has 1,260 mock sessions. Every price and date is simulated. Crossing prices
+are interpolated from daily line segments, not observed intraday trades. The SMA
+optimizer matches a chosen crossing frequency rather than maximizing returns.
+See the desktop guide for the DCA schedule, random mode and price-rank definition.
 
-```sh
-.venv/bin/python main.py
-```
-
-A window titled **SMA Stock Analyzer** should open. Leave Terminal open while
-you use the app.
-
-1. Select **DEMO-SGX** and **Oscillating**.
-2. Choose **12** crossings per year.
-3. Click **Optimize SMA**. The app moves from Parameters to the Results screen.
-4. Scroll down to see the statistics and the first five crossover rows. Use the
-   down arrow for up to ten more rows at a time. After 35 rows, **Show all** opens
-   the full table; its top-left Back arrow returns to Results.
-5. Click the **outline heart** in Optimal SMA to save a line; it turns red. Try a different target and optimize again to compare
-   lines. These controls are in the Optimal SMA card above the chart. The
-   crossing count is in section 03, below the two frequency cards. A new save
-   opens the saved-lines bottom sheet. Use its top handle to swipe it down, or
-   use the bottom-left menu to open/close it.
-6. To zoom, click and hold inside the chart, drag left or right, then release.
-   The selected range is shaded, with a green line on the left and a red line
-   on the right. Click **Zoom out** beside the chart title to return to the selected timeline
-   again. Choose Max in the dropdown to see the full history. The zoom-out button appears only while zoomed.
-
-The chart now starts at 1Y out of five years of simulated data. Use the rounded
-dropdown below the counter title for 3Y, 5Y or Max. The whole button, including
-its arrow, opens the menu. Options disappear if there is insufficient history.
-Changing the view does not change the full-history analysis.
-
-The actual frequency now excludes the SMA's warm-up and missing observations.
-For example, DEMO-SGX Sideways at target 12 should show SMA 254 and 31.31/year,
-with 125 crossings over 1,006 usable comparisons. That is the closest eligible
-result, even though it does not match 12. The app has 1,260 mock sessions.
-
-Every price is simulated. These are fictional counters, not real market data.
-Matching crossing frequency does not demonstrate a profitable strategy.
-
-Close the app window when finished. To open it another day, repeat the Terminal
-folder step and run `.venv/bin/python main.py`; installation is needed only once
-for this downloaded copy.
+Close the window when finished. On later visits, repeat step 3 and run
+`bash run-desktop.command` again. That reuses this copy's environment and saves.
 
 ## Try notification previews
 
-Use the bottom-right **gear** on Results to open **Notification Settings**. Save an email
-address and enable the Phone/Email Buy or Impending buy switches you want.
-Use the top-left Back arrow to return to Results, then open **Saved SMAs** with
-the bottom-left menu and turn on the corresponding channel for a saved line.
-Close the saved-lines sheet, note a session from the crossover table, then return
-to Settings with the gear. Enter that session and press **Preview EOD alerts**
-to see the simulated phone text and email
-subject/body. Preview sends nothing. The new Gmail test/send buttons send real
-mail only after Google authorization on Android. See the
-[Android APK + Gmail guide](docs/ANDROID_APK_GUIDE.md). **Change parameters** in the Optimal SMA card
-returns to the initial form when you want another analysis.
+Use the bottom-right gear on Results to open **Notification Settings**. Save a
+recipient email address and enable the Phone/Email Buy or Impending buy switches
+you want. Return to Results, expand the security in Saved SMAs, and enable the
+corresponding channel for a saved line. In Settings, enter a session number and
+press **Preview EOD alerts** to see the simulated phone text and email subject/body.
+Preview sends nothing. Real phone delivery and Gmail authorization require the
+Android build; this desktop preview does not test those services on your phone.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
-you restore the last ten unsaved lines. Older ones are discarded. The compact
-Hide button only hides the chart line; notification preferences are separate.
-
-On your Mac, the Android test button explains that phone delivery needs an
-Android development build. Desktop tests verify the dispatch logic with a fake
-sender. See [the full testing guide](docs/NOTIFICATIONS.md) for step-by-step
-preview testing and the later physical-phone check.
+you restore the last ten unsaved lines. Hide/Show only controls the chart line;
+notification preferences are separate.
 
 ## Optional: run the tests
 
@@ -120,27 +111,38 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current test suite contains 67 tests, including checks that the active app
-uses the agreed warm-up-adjusted frequency and automatic SMA cap. Successful
-output ends with `OK`.
+The current suite has **93 tests**. Successful output ends with `OK`.
+For the focused running-widget desktop checks, use:
+
+```sh
+bash run-desktop.command --smoke-test --preview-rules-only
+```
+
+That uses a temporary test database and exits when the checks finish.
 
 ## Getting a newer version from GitHub
 
-If you downloaded the project as a ZIP, edits on GitHub do not automatically
-update your Mac's copy. Download the ZIP again using step 2 and extract it to
-a new folder, keeping the old copy until the new one opens successfully. Then
-repeat steps 3–5 for the new folder. Choose **Keep Both** if Finder asks about
-an existing folder. Saved SMA lines live in your Mac's application data folder,
-so they remain available when the updated app opens under the same Mac account.
+Download the ZIP again using step 2 and extract it to a new folder. Keep the old
+folder until the new version opens successfully, then repeat steps 3–4.
+
+The launcher keeps preview saves **inside each downloaded folder**, so a new
+folder starts with a fresh preview database. To carry saves forward, close both
+copies and copy the old `.local/preview-data` directory to the same location in
+the new folder before its first launch. Keep the old directory as a backup.
+In Finder, **Command + Shift + .** shows hidden folders such as `.local`.
+If you already launched the new copy and saved lines there, keep both databases
+and ask for help combining them rather than overwriting either one.
+
+Older desktop copies launched directly with `python main.py` used Kivy's per-user
+application data directory; those files are not deleted or automatically moved
+by this launcher.
 
 ## If something goes wrong
 
 - **Certificate/SSL error during installation:** in Finder, open
   **Applications > Python 3.12**, double-click **Install Certificates.command**,
-  let it finish, then retry the package installation command.
-- **Cannot find requirements.txt or main.py:** repeat step 3 using the folder
-  that contains both files.
-- **Other error:** copy the last few lines from Terminal into the chat. Include
+  let it finish, then retry the launcher command.
+- **Cannot find run-desktop.command, requirements.txt or main.py:** repeat step 3
+  using the newly downloaded folder that contains those files.
+- **Other error:** copy the last few lines from Terminal into the chat, including
   the command you ran. There is no need to reinstall everything first.
-
-This stage runs on your Mac. Packaging an installable Android app is a later step.

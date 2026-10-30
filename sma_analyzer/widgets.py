@@ -118,6 +118,10 @@ def draw_icon(kind, x, y, radius, selected=False):
                 vertices.extend((px, py, 0, 0))
             Mesh(vertices=vertices, indices=list(range(len(vertices)//4)), mode="triangle_fan")
         Line(points=points, close=True, width=dp(1.2))
+    elif kind == "info":
+        Line(circle=(x, y, radius*.72), width=dp(1))
+        Ellipse(pos=(x-dp(1), y+radius*.25), size=(dp(2), dp(2)))
+        Line(points=[x, y+radius*.02, x, y-radius*.35], width=dp(1.1))
     elif kind == "history":
         # Option A: an open circular return arrow, with a clear upper-left
         # arrowhead and simple clock hands. Keep a generous gap at the left.
@@ -142,8 +146,9 @@ def draw_icon(kind, x, y, radius, selected=False):
         for offset in (-.55, 0, .55):
             Line(points=[x-radius*.8,y+radius*offset,x+radius*.8,y+radius*offset],
                  width=dp(1.2),cap="round")
-    elif kind == "down":
-        Line(points=[x-radius*.65,y+radius*.3,x,y-radius*.35,x+radius*.65,y+radius*.3],
+    elif kind in ("down", "up"):
+        direction = 1 if kind == "down" else -1
+        Line(points=[x-radius*.65,y+direction*radius*.3,x,y-direction*radius*.35,x+radius*.65,y+direction*radius*.3],
              width=dp(1.3),cap="round",joint="round")
     elif kind == "back":
         Line(points=[x+radius*.1,y+radius*.65,x-radius*.6,y,x+radius*.1,y-radius*.65],

@@ -68,6 +68,10 @@ security and its SMAs share a subtle rounded teal enclosure. Recently unsaved
 lines show a smaller logo and company name. Packaged logos use an initials
 fallback when no brand image is available. See [security identity UI](docs/SECURITY_IDENTITY_UI.md).
 
+Explore the [three proposed landing-screen flows](docs/design/README.md), with
+visual maps and an offline clickable prototype. These are future UI concepts;
+version 0.6.0 still launches on Parameters.
+
 ## Screen navigation
 
 The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens

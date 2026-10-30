@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="1120" viewBox="0 0 1720 1120" role="img">
+<title>Learn with an example: first launch and returning-user flow</title>
+<desc>Five connected mobile wireframes, a direct saved-line return path, and contextual learning notes.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#82958B"/></marker></defs>
+<rect x="0" y="0" width="1720" height="1120" rx="0" fill="#F1F3F0" stroke="none"/>
+<text x="56" y="50" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA  /  LANDING EXPERIENCE EXPLORATION</text>
+<text x="56" y="100" fill="#203B32" font-family="DejaVu Sans,Arial,sans-serif" font-size="34" font-weight="700">02  Learn with an example</text>
+<text x="56" y="133" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="17" font-weight="400">An optional three-step sample teaches the idea before the first personal analysis.</text>
+<text x="56" y="193" fill="#53665D" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">01  A friendly invitation</text>
+<rect x="59" y="223" width="264" height="550" rx="25" fill="#DEE4DD" stroke="none"/>
+<rect x="56" y="216" width="264" height="550" rx="25" fill="#FAF8FE" stroke="#C5D0C5"/>
+<rect x="160" y="228" width="56" height="5" rx="3" fill="#776B8C" stroke="none"/>
+<text x="76" y="260" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA</text>
+<text x="202" y="260" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="8" font-weight="400">SIMULATED DEMO</text>
+<text x="76" y="296" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="21" font-weight="700">See one crossover.</text>
+<text x="76" y="326" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="21" font-weight="700">Then try your own.</text>
+<text x="76" y="381.0" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">A moving average smooths prices.</text>
+<text x="76" y="397.5" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">See how it works, one step at a time.</text>
+<rect x="76" y="436" width="224" height="110" rx="10" fill="#EEE9F8" stroke="none"/>
+<path d="M86 463.5H290" stroke="#776B8C" opacity=".12"/>
+<path d="M86 491.0H290" stroke="#776B8C" opacity=".12"/>
+<path d="M86 518.5H290" stroke="#776B8C" opacity=".12"/>
+<polyline points="88.0,512.5 103.38461538461539,510.78 118.76923076923077,508.2 134.15384615384616,505.62 149.53846153846155,503.04 164.9230769230769,501.32 180.30769230769232,498.74 195.69230769230768,496.16 211.0769230769231,493.58 226.46153846153845,490.14 241.84615384615384,486.7 257.2307692307692,483.26 272.61538461538464,479.82 288.0,476.38" fill="none" stroke="#C69A43" stroke-width="2.5"/>
+<polyline points="88.0,508.2 103.38461538461539,513.36 118.76923076923077,501.32 134.15384615384616,503.9 149.53846153846155,491.86 164.9230769230769,499.6 180.30769230769232,503.04 195.69230769230768,487.56 211.0769230769231,493.58 226.46153846153845,475.52 241.84615384615384,479.82 257.2307692307692,469.5 272.61538461538464,478.96 288.0,463.48" fill="none" stroke="#7053AB" stroke-width="2.5"/>
+<rect x="76" y="571" width="224" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="90" y="597" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">Try the guided example</text>
+<rect x="76" y="623" width="224" height="42" rx="10" fill="#EEE9F8" stroke="none"/>
+<text x="90" y="649" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">Choose my own security</text>
+<text x="76" y="693" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">Optional. No account or quiz.</text>
+<text x="79" y="739" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="168" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Saved</text>
+<text x="262" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Learn</text>
+<path d="M332 489H379" fill="none" stroke="#82958B" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="334" y="470" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Try it</text>
+<text x="392" y="193" fill="#53665D" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">02  Optional worked example</text>
+<rect x="395" y="223" width="264" height="550" rx="25" fill="#DEE4DD" stroke="none"/>
+<rect x="392" y="216" width="264" height="550" rx="25" fill="#FAF8FE" stroke="#C5D0C5"/>
+<rect x="496" y="228" width="56" height="5" rx="3" fill="#776B8C" stroke="none"/>
+<text x="412" y="260" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA</text>
+<text x="538" y="260" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="8" font-weight="400">SIMULATED DEMO</text>
+<text x="412" y="296" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="18" font-weight="700">A crossover, explained</text>
+<text x="412" y="331" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">EXAMPLE  ·  1 OF 3</text>
+<rect x="412" y="361" width="224" height="158" rx="10" fill="#EEE9F8" stroke="none"/>
+<path d="M422 400.5H626" stroke="#776B8C" opacity=".12"/>
+<path d="M422 440.0H626" stroke="#776B8C" opacity=".12"/>
+<path d="M422 479.5H626" stroke="#776B8C" opacity=".12"/>
+<polyline points="424.0,473.5 439.38461538461536,470.82 454.7692307692308,466.8 470.15384615384613,462.78 485.53846153846155,458.76 500.9230769230769,456.08 516.3076923076923,452.06 531.6923076923077,448.04 547.0769230769231,444.02 562.4615384615385,438.65999999999997 577.8461538461538,433.3 593.2307692307693,427.94 608.6153846153846,422.58 624.0,417.22" fill="none" stroke="#C69A43" stroke-width="2.5"/>
+<polyline points="424.0,466.8 439.38461538461536,474.84000000000003 454.7692307692308,456.08 470.15384615384613,460.1 485.53846153846155,441.34000000000003 500.9230769230769,453.4 516.3076923076923,458.76 531.6923076923077,434.64 547.0769230769231,444.02 562.4615384615385,415.88 577.8461538461538,422.58 593.2307692307693,406.5 608.6153846153846,421.24 624.0,397.12" fill="none" stroke="#7053AB" stroke-width="2.5"/>
+<text x="412" y="553.0" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">When price rises through the average,</text>
+<text x="412" y="569.5" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">that is an upward crossing.</text>
+<text x="412" y="605.0" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">Next: choose how often you want</text>
+<text x="412" y="621.5" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">those crossings to happen.</text>
+<rect x="412" y="666" width="224" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="426" y="692" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">I am ready to try</text>
+<text x="425" y="720" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Skip example  ·  Help anytime</text>
+<text x="415" y="739" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="504" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Saved</text>
+<text x="598" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Learn</text>
+<path d="M668 489H715" fill="none" stroke="#82958B" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="670" y="470" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Ready</text>
+<text x="728" y="193" fill="#53665D" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">03  Make it yours</text>
+<rect x="731" y="223" width="264" height="550" rx="25" fill="#DEE4DD" stroke="none"/>
+<rect x="728" y="216" width="264" height="550" rx="25" fill="#FAF8FE" stroke="#C5D0C5"/>
+<rect x="832" y="228" width="56" height="5" rx="3" fill="#776B8C" stroke="none"/>
+<text x="748" y="260" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA</text>
+<text x="874" y="260" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="8" font-weight="400">SIMULATED DEMO</text>
+<text x="748" y="296" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="19" font-weight="700">Set your preference</text>
+<text x="748" y="331" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">1 security. 1 simple choice.</text>
+<rect x="748" y="357" width="224" height="55" rx="10" fill="#EEE9F8" stroke="none"/>
+<rect x="758" y="370" width="30" height="30" rx="7" fill="#FFFFFF" stroke="none"/>
+<text x="764" y="390.1" fill="#243831" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">AP</text>
+<text x="796" y="389.5" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">Apple Inc.</text>
+<text x="748" y="448" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">Upward crossings / year</text>
+<circle cx="961" cy="444" r="6" fill="none" stroke="#776B8C"/>
+<text x="959.5" y="447" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="9" font-weight="700">i</text>
+<text x="748" y="475.0" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">How often price moves from below</text>
+<text x="748" y="491.5" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">to above its moving average.</text>
+<rect x="748" y="521" width="68" height="42" rx="10" fill="#EEE9F8" stroke="none"/>
+<text x="773" y="547" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700">1</text>
+<rect x="824" y="521" width="68" height="42" rx="10" fill="#EEE9F8" stroke="none"/>
+<text x="849" y="547" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700">6</text>
+<rect x="900" y="521" width="68" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="925" y="547" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700">12</text>
+<text x="748" y="602" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">Advanced options                         +</text>
+<rect x="748" y="651" width="224" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="762" y="677" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">Find my SMA</text>
+<text x="748" y="720" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Optimizes frequency, not returns.</text>
+<text x="751" y="739" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="840" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Saved</text>
+<text x="934" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Learn</text>
+<path d="M1004 489H1051" fill="none" stroke="#82958B" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1006" y="470" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Analyze</text>
+<text x="1064" y="193" fill="#53665D" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">04  Understand &amp; save</text>
+<rect x="1067" y="223" width="264" height="550" rx="25" fill="#DEE4DD" stroke="none"/>
+<rect x="1064" y="216" width="264" height="550" rx="25" fill="#FAF8FE" stroke="#C5D0C5"/>
+<rect x="1168" y="228" width="56" height="5" rx="3" fill="#776B8C" stroke="none"/>
+<text x="1084" y="260" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA</text>
+<text x="1210" y="260" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="8" font-weight="400">SIMULATED DEMO</text>
+<text x="1084" y="296" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="19" font-weight="700">Your moving average</text>
+<text x="1084" y="331" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">EXAMPLE RESULT</text>
+<text x="1084" y="378" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="38" font-weight="700">51</text>
+<text x="1148" y="377" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400">sessions</text>
+<rect x="1084" y="403" width="224" height="137" rx="10" fill="#EEE9F8" stroke="none"/>
+<path d="M1094 437.25H1298" stroke="#776B8C" opacity=".12"/>
+<path d="M1094 471.5H1298" stroke="#776B8C" opacity=".12"/>
+<path d="M1094 505.75H1298" stroke="#776B8C" opacity=".12"/>
+<polyline points="1096.0,499.75 1111.3846153846155,497.49 1126.7692307692307,494.1 1142.1538461538462,490.71000000000004 1157.5384615384614,487.32 1172.923076923077,485.06 1188.3076923076924,481.67 1203.6923076923076,478.28000000000003 1219.076923076923,474.89 1234.4615384615386,470.37 1249.8461538461538,465.85 1265.2307692307693,461.33 1280.6153846153845,456.81 1296.0,452.29" fill="none" stroke="#C69A43" stroke-width="2.5"/>
+<polyline points="1096.0,494.1 1111.3846153846155,500.88 1126.7692307692307,485.06 1142.1538461538462,488.45 1157.5384615384614,472.63 1172.923076923077,482.8 1188.3076923076924,487.32 1203.6923076923076,466.98 1219.076923076923,474.89 1234.4615384615386,451.16 1249.8461538461538,456.81 1265.2307692307693,443.25 1280.6153846153845,455.68 1296.0,435.34" fill="none" stroke="#7053AB" stroke-width="2.5"/>
+<text x="1084" y="561" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Drag: inspect  ·  Pinch: zoom</text>
+<rect x="1084" y="590" width="224" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="1098" y="616" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">♡  Save SMA</text>
+<rect x="1084" y="642" width="224" height="42" rx="10" fill="#EEE9F8" stroke="none"/>
+<text x="1098" y="668" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">Compare strategies     +</text>
+<text x="1084" y="713" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">Tip: inspect a point to learn more</text>
+<text x="1087" y="739" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="1176" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Saved</text>
+<text x="1270" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Learn</text>
+<path d="M1340 489H1387" fill="none" stroke="#82958B" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1342" y="470" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="1400" y="193" fill="#53665D" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">05  Skip the lesson on return</text>
+<rect x="1403" y="223" width="264" height="550" rx="25" fill="#DEE4DD" stroke="none"/>
+<rect x="1400" y="216" width="264" height="550" rx="25" fill="#FAF8FE" stroke="#C5D0C5"/>
+<rect x="1504" y="228" width="56" height="5" rx="3" fill="#776B8C" stroke="none"/>
+<text x="1420" y="260" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA</text>
+<text x="1546" y="260" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="8" font-weight="400">SIMULATED DEMO</text>
+<text x="1420" y="296" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="23" font-weight="700">Welcome back</text>
+<text x="1420" y="331" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="400">Your saved lines are one tap away.</text>
+<rect x="1420" y="358" width="224" height="42" rx="10" fill="#7053AB" stroke="none"/>
+<text x="1434" y="384" fill="#FAF8FE" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700">+  New analysis</text>
+<text x="1420" y="433" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">SAVED SMAs</text>
+<rect x="1420" y="451" width="224" height="143" rx="12" fill="#E8DFF9" stroke="none"/>
+<rect x="1430" y="464" width="24" height="24" rx="7" fill="#FFFFFF" stroke="none"/>
+<text x="1436" y="480.08" fill="#243831" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">AP</text>
+<text x="1462" y="479.6" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="700">Apple Inc.</text>
+<text x="1611" y="479.6" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">AAPL</text>
+<text x="1434" y="521" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">SMA 51</text>
+<text x="1592" y="521" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">View</text>
+<text x="1434" y="565" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">SMA 100</text>
+<text x="1592" y="565" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700">View</text>
+<rect x="1420" y="606" width="224" height="55" rx="12" fill="#EEE9F8" stroke="none"/>
+<rect x="1430" y="621" width="24" height="24" rx="7" fill="#FFFFFF" stroke="none"/>
+<text x="1436" y="637.08" fill="#243831" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">MS</text>
+<text x="1462" y="636.6" fill="#342653" font-family="DejaVu Sans,Arial,sans-serif" font-size="11" font-weight="700">Microsoft Corp.</text>
+<text x="1611" y="636.6" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">MSFT</text>
+<text x="1420" y="711" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">View opens the exact saved line.</text>
+<text x="1423" y="739" fill="#7053AB" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="700">Home</text>
+<text x="1512" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Saved</text>
+<text x="1606" y="739" fill="#776B8C" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="400">Learn</text>
+<path d="M1532 782V850H1196V782" fill="none" stroke="#82958B" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+<rect x="1042" y="860" width="622" height="38" rx="10" fill="#E5EDE4" stroke="none"/>
+<text x="1060" y="885" fill="#345C49" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700">RETURNING USER  ·  Saved View goes directly to Results</text>
+<rect x="56" y="943" width="512" height="104" rx="14" fill="#FFFFFF" stroke="#DEE5DC"/>
+<text x="74" y="972" fill="#203B32" font-family="DejaVu Sans,Arial,sans-serif" font-size="15" font-weight="700">01 / Let people start</text>
+<text x="74" y="999" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">A single primary action, an optional sample,</text>
+<text x="74" y="1020" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">and no mandatory tour or account setup.</text>
+<rect x="604" y="943" width="512" height="104" rx="14" fill="#FFFFFF" stroke="#DEE5DC"/>
+<text x="622" y="972" fill="#203B32" font-family="DejaVu Sans,Arial,sans-serif" font-size="15" font-weight="700">02 / Teach at the decision</text>
+<text x="622" y="999" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">Explain SMA before analysis and crossing frequency</text>
+<text x="622" y="1020" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">beside its control. Keep advanced detail folded.</text>
+<rect x="1152" y="943" width="512" height="104" rx="14" fill="#FFFFFF" stroke="#DEE5DC"/>
+<text x="1170" y="972" fill="#203B32" font-family="DejaVu Sans,Arial,sans-serif" font-size="15" font-weight="700">03 / Make the second visit easier</text>
+<text x="1170" y="999" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">Show saved company groups on Home. View restores</text>
+<text x="1170" y="1020" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">the exact line; Learn remains available anytime.</text>
+<text x="56" y="1088" fill="#61746A" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400">DESIGN CONCEPT ONLY  ·  Not included in APK 0.6.0  ·  Example values and simulated data</text>
+</svg>

@@ -1,5 +1,18 @@
 # Prototype handoff
 
+## Landing-flow exploration — separate from APK 0.6.0
+
+- Added three Figma-style vector/PNG flow boards: calm home (recommended),
+  optional guided example and library first, each with a distinct palette.
+- Added a self-contained offline HTML prototype for first-visit/returning states,
+  explicit search, parameters, contextual help, sample Results, saving and direct
+  saved-line View. No app data or network calls are involved.
+- Learning notes cover progressive explanations, optional/replayable guide,
+  reduced Home detail and notification permission at the point of use.
+- Local Chromium checks pass all three click-through paths, exact example
+  restoration and mobile overflow checks. Vector/mobile/desktop views inspected.
+- These are design files only; no additional application or APK change.
+
 ## 0.6.0 — company identities and saved SMA grouping
 
 - Selected security renders company logo/name while retaining the stable key

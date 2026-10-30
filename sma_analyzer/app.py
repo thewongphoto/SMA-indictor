@@ -41,7 +41,9 @@ from .model import AnalyzerModel
 from .settings import ALLOW_CUSTOM_TARGET, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
 from .viewport import available_timelines
-from .widgets import TimelineSelector, RoundedSelector, LegendItem, LegendSymbol, IconButton, IconSymbol, RuleSwitch, SecurityMatchButton
+from .widgets import (TimelineSelector, RoundedSelector, LegendItem, LegendSymbol,
+                      IconButton, IconSymbol, RuleSwitch, SecurityMatchButton,
+                      SecurityIdentity, SecurityIdentityButton, SavedSecurityGroup)
 from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
@@ -230,7 +232,8 @@ class AnalyzerScreen(FloatLayout):
             self.control_grid.add_widget(cell)
             return cell
 
-        self.counter = LabButton(text=model.dataset.counter)
+        self.counter = SecurityIdentityButton(text=model.dataset.counter, filled=True,
+                                              logo_size=dp(24), padding=(dp(8),0))
         self.counter.bind(on_release=lambda _: self.focus_security_search())
         field("SELECTED SECURITY", self.counter)
         self.scenario = choice(model.dataset.scenario, SCENARIOS)
@@ -508,9 +511,9 @@ class AnalyzerScreen(FloatLayout):
         self._background.pos, self._background.size = self.pos, self.size
 
     def _layout_for_width(self, *_):
-        """Four compact controls on wide portraits; a readable 2×2 phone grid."""
+        """Stack narrow-phone controls so a logo leaves room for a whole name word."""
         wide = self.scroll.width >= dp(760)
-        self.control_grid.cols = 4 if wide else 2
+        self.control_grid.cols = 4 if wide else 1 if self.scroll.width < dp(380) else 2
         for content in (self.content,self.parameter_content,self.settings_content,self.full_crossovers_content):
             content.padding = (dp(26), dp(28)) if wide else (dp(16), dp(16))
         self.header.padding = (dp(20 if wide else 12), 0)
@@ -907,17 +910,16 @@ class AnalyzerScreen(FloatLayout):
         buttons, groups = {}, {}
         for security in sorted({line.counter for line in saved}):
             entries = [line for line in saved if line.counter == security]
-            group = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(8))
-            group.bind(minimum_height=group.setter("height"))
+            group = SavedSecurityGroup(expanded=security in self.expanded_saved_securities)
             heading = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(4))
-            name = LabButton(text=f"{security} ({len(entries)})", halign="left", valign="middle")
-            name.bind(size=lambda widget, size: setattr(widget, "text_size", (size[0]-dp(16), size[1])))
+            name = SecurityIdentityButton(text=security, show_ticker=True)
             arrow = IconButton(kind="up" if security in self.expanded_saved_securities else "down")
             for button in (name, arrow):
                 button.bind(on_release=lambda _, counter=security: self.toggle_saved_security(counter))
                 heading.add_widget(button)
             group.add_widget(heading)
-            body = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10))
+            body = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10),
+                             padding=(dp(4),dp(4),dp(4),dp(6)))
             body.bind(minimum_height=body.setter("height"))
             for line in entries:
                 rows[line.id] = self._add_saved_row(body, line)
@@ -1006,13 +1008,20 @@ class AnalyzerScreen(FloatLayout):
         entries = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(10))
         entries.bind(minimum_height=entries.setter("height"))
         self.history_restore_buttons = {}
+        self.history_identities = {}
         for line in self.model.store.recent_unsaved():
-            label = WrappedLabel(text=f"{line.counter} · {line.scenario} · SMA {line.period} · target {line.target_frequency}/yr")
-            entries.add_widget(label)
+            entry = SavedSecurityGroup()
+            identity = SecurityIdentity(security_by_key(line.counter), logo_size=dp(20),
+                                         height=dp(32), font_size=sp(12))
+            entry.add_widget(identity)
+            entry.add_widget(WrappedLabel(text=f"{line.scenario} · SMA {line.period} · target {line.target_frequency}/yr",
+                                           color=MUTED, font_size=sp(12)))
             restore = LabButton(text="Restore saved line")
             restore.bind(on_release=lambda _, entry=line: self.restore_unsaved(entry))
-            entries.add_widget(restore)
+            entry.add_widget(restore)
+            entries.add_widget(entry)
             self.history_restore_buttons[line.id] = restore
+            self.history_identities[line.id] = identity
         if not self.history_restore_buttons:
             entries.add_widget(WrappedLabel(text="No unsaved lines yet. Only lines you saved and then unsaved appear here."))
         scroll.add_widget(entries)

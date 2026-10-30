@@ -1,5 +1,22 @@
 # Prototype handoff
 
+## 0.6.0 — company identities and saved SMA grouping
+
+- Selected security renders company logo/name while retaining the stable key
+  internally. Whole-word ellipses remove an overflowing word and all later words.
+- Both saved libraries use logo/name/ticker headings, preserving ticker space.
+  Each expanded heading/body has its own subtle rounded teal enclosure/divider.
+- Recently unsaved lines use smaller 20dp logos/company names, with the same
+  exact-configuration restore behavior. Main library logos are 28dp; existing
+  local monogram fallbacks remain for missing brand assets.
+- Parameters stack below 380dp to leave readable space for company names.
+- All 100 unit tests and 46 full Kivy UI groups pass, including three new
+  identity/group/archive groups. Current UI screenshots inspected and saved in
+  docs. No physical-device or completed APK result is claimed. Release tag
+  apk-v0.6.0 uses the existing build trigger and signing identity.
+- Landing-screen flow proposals are a separate design deliverable; the app
+  still launches on Parameters in this release.
+
 ## Fresh GitHub runner startup fix
 
 - Run 40888955510 passed all 75 unit tests, then failed before UI startup:

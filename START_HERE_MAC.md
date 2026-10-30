@@ -81,6 +81,9 @@ manually launched desktop app untouched.
    target or security, optimize, and save again.
 6. Open **Saved SMAs** with the bottom-left menu. Click the down arrow beside
    a security to expand its saved SMA rows; click the up arrow to collapse them.
+   Headers show the logo, company name and ticker. A soft rounded background
+   groups each expanded company with its SMAs. Long names shorten at a whole
+   word while the ticker stays visible.
    Each row has View, Hide/Show, heart, and notification controls. The saved
    library on Parameters uses the same groups and shares their expanded state.
 7. Click **View** to open a saved line's exact parameters. **Change parameters**
@@ -102,7 +105,7 @@ Phone Buy or Impending buy, return to Results, expand the security in Saved SMAs
 and turn on that line's phone notification control. In Settings, enter a session
 number and press **Preview EOD alerts** to see simulated phone text. Preview
 sends nothing. Real phone delivery requires the Android build. Email/Gmail
-controls and sending remain removed in version 0.5.0.
+controls and sending remain removed in version 0.6.0.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;

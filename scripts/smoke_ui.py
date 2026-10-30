@@ -105,6 +105,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         print(f"PASS: {name}", flush=True)
 
     def exercise(self):
+        if "--security-identity-only" in sys.argv:
+            for _ in range(8): yield
+            yield from self.security_identity_regressions()
+            return
         if "--security-search-only" in sys.argv:
             if "--after-preview" in sys.argv:
                 Window.size = (960,1440)
@@ -478,7 +482,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             ui.show_parameters()
             for _ in range(4): yield
             wide = size[0] >= 760
-            assert ui.control_grid.cols == (4 if wide else 2)
+            assert ui.control_grid.cols == (4 if wide else 1 if ui.scroll.width < dp(380) else 2)
             if wide:
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert abs(ui.counter.y - ui.target.y) < dp(1)
@@ -489,6 +493,9 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert ui.controls.height < dp(130), "Completed controls must remain compact"
                 assert ui.optimal_panel.orientation == "horizontal"
                 assert ui.card_values["period"].right <= ui.save_button.x
+            elif ui.control_grid.cols == 1:
+                assert ui.counter.y > ui.scenario.y > ui.target.y > ui.optimize_button.y
+                assert ui.controls.height < dp(340)
             else:
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert ui.counter.y > ui.target.y
@@ -513,7 +520,8 @@ class SmokeApp(SMAStockAnalyzerApp):
                 for key in ("push",):
                     assert row[key].width >= row[key].texture_size[0], "Saved notification label must fit"
                 assert row["hide"].right <= row["heart"].x
-                assert abs(row["heart"].right - (ui.saved_panel.right-dp(14))) < dp(1)
+                assert abs(row["heart"].right - row["push"].right) < dp(1)
+                assert row["heart"].right < ui.saved_security_groups[line.counter]["group"].right
                 active = ui.model.result is not None and line.period == ui.model.result.period
                 assert row["swatch"].ink == ui.chart.period_color(line.period,active)
             ui.saved_sheet.dismiss(animate=False)
@@ -754,6 +762,101 @@ class SmokeApp(SMAStockAnalyzerApp):
         yield from self.android_regressions()
         yield from self.preview_regressions()
         yield from self.security_search_regressions()
+        yield from self.security_identity_regressions()
+
+    def security_identity_regressions(self):
+        ui = self.screen
+        ui.saved_sheet.dismiss(animate=False)
+        ui.counter.text = "NASDAQ:AAPL"
+        ui.show_parameters()
+        for _ in range(8): yield
+        assert ui.counter.security.name == "Apple Inc."
+        assert ui.counter.name_label.text == "Apple Inc."
+        assert ui.counter.ticker_label is None
+        assert not ui.counter.logo.is_fallback and ui.counter.logo.image.texture is not None
+        # The stable key is still used by the model, never drawn in this cell.
+        assert ui.counter.text == ui.model.dataset.counter == "NASDAQ:AAPL"
+        for key, period in (("NASDAQ:AAPL",11), ("NASDAQ:AAPL",40),
+                            ("NASDAQ:MSFT",17), ("SGX:O39",19)):
+            ui.model.store.save(key,"Trending",period,12)
+        ui.expanded_saved_securities = {"NASDAQ:AAPL", "NASDAQ:MSFT"}
+        ui._refresh_saved()
+        ui.counter.text = "SGX:O39"
+        for width,height in ((320,640), (440,920), (960,1440)):
+            Window.size = (int(dp(width)),int(dp(height)))
+            ui.show_parameters()
+            for _ in range(10): yield
+            label = ui.counter.name_label
+            assert label.text and (label.text == label.full_text or label.text.endswith("…"))
+            if label.text.endswith("…"):
+                assert label.text[:-1] in [" ".join(label.full_text.split()[:n])
+                                          for n in range(len(label.full_text.split()))]
+            assert ui.counter.logo.right <= label.x and label.right <= ui.counter.right
+            ui.parameter_scroll.scroll_to(ui.controls,animate=False)
+            for _ in range(6): yield
+            ui.export_to_png(f"artifacts/security-identity-parameters-{width}.png")
+            for groups in (ui.landing_security_groups,ui.saved_security_groups):
+                for group in groups.values():
+                    identity = group["name"]
+                    name, ticker = identity.name_label,identity.ticker_label
+                    assert ticker.text == identity.security.ticker
+                    assert ticker.width >= ticker.texture_size[0]
+                    assert name.right <= ticker.x and ticker.right <= identity.right+dp(.1)
+                    assert identity.logo.right <= name.x
+                    assert name.text == name.full_text or name.text.endswith("…")
+                    if name.text.endswith("…"):
+                        assert name.text[:-1] in [" ".join(name.full_text.split()[:n])
+                                                for n in range(len(name.full_text.split()))]
+            ui.parameter_scroll.scroll_to(ui.landing_saved_panel,animate=False)
+            for _ in range(8): yield
+            ui.export_to_png(f"artifacts/security-identity-library-{width}.png")
+        self.check("security identity: selected logo/name and saved logo/name/ticker fit 320/440/960dp with whole-word ellipses")
+
+        Window.size = (int(dp(440)),int(dp(920)))
+        for _ in range(8): yield
+        for groups in (ui.landing_security_groups,ui.saved_security_groups):
+            apple, microsoft,ocbc = (groups[key] for key in ("NASDAQ:AAPL","NASDAQ:MSFT","SGX:O39"))
+            assert apple["group"].expanded and microsoft["group"].expanded
+            assert apple["body"].parent is apple["group"]
+            assert ocbc["body"].parent is None and not ocbc["group"].expanded
+            assert apple["group"].canvas.before.children
+            assert apple["group"].top <= microsoft["group"].y or microsoft["group"].top <= apple["group"].y
+            for line in ui.model.store.list_lines("NASDAQ:AAPL","Trending"):
+                rows = ui.landing_saved_rows if groups is ui.landing_security_groups else ui.saved_rows
+                assert rows[line.id]["view"].parent.parent is apple["body"]
+        # The whole identity remains clickable; both libraries update together.
+        ui.landing_security_groups["SGX:O39"]["name"].dispatch("on_release")
+        assert ui.saved_security_groups["SGX:O39"]["group"].expanded
+        ui.saved_security_buttons["SGX:O39"].dispatch("on_release")
+        assert ui.landing_security_groups["SGX:O39"]["body"].parent is None
+        apple_line = ui.model.store.list_lines("NASDAQ:AAPL","Trending")[0]
+        ui.on_view_saved(apple_line)
+        ui.saved_sheet.open()
+        for _ in range(10): yield
+        ui.saved_sheet.scroll.scroll_to(ui.saved_security_groups["NASDAQ:AAPL"]["group"],animate=False)
+        for _ in range(8): yield
+        ui.export_to_png("artifacts/security-identity-saved-sheet.png")
+        self.check("security identity: separate tinted enclosures contain each company's SMAs on both menus; accordion and View work")
+
+        ui.saved_sheet.dismiss(animate=False)
+        for key in ("NASDAQ:AAPL", "SGX:O39"):
+            ui.model.store.save(key,"Trending",91,12)
+            line = next(line for line in ui.model.store.list_lines(key,"Trending") if line.period==91)
+            ui.model.store.delete(line.id)
+        ui.open_unsaved_history()
+        for _ in range(12): yield
+        assert ui.history_identities
+        for line in ui.model.store.recent_unsaved():
+            identity = ui.history_identities[line.id]
+            assert identity.security.key == line.counter
+            assert identity.name_label.full_text == identity.security.name
+            assert identity.ticker_label is None
+            assert identity.logo.width == dp(20) < ui.saved_security_groups["NASDAQ:AAPL"]["name"].logo.width
+        ui.history_popup.export_to_png("artifacts/security-identity-archive.png")
+        archived = next(line for line in ui.model.store.recent_unsaved() if line.counter=="NASDAQ:AAPL")
+        ui.history_restore_buttons[archived.id].dispatch("on_release")
+        assert any(line.period==91 for line in ui.model.store.list_lines("NASDAQ:AAPL","Trending"))
+        self.check("security identity: unsaved archive uses smaller logos and company names; restoring preserves the exact SMA")
 
     def android_regressions(self):
         ui = self.screen
@@ -1171,7 +1274,8 @@ if __name__ == "__main__":
         report = {"started_unix": started, "passed": app.passed,
                   "passed_count": len(app.passed), "failure": app.failure,
                   "exit_code": app.exit_code}
-        report_name = ("ui-security-search" if "--security-search-only" in sys.argv else
+        report_name = ("ui-security-identity" if "--security-identity-only" in sys.argv else
+                       "ui-security-search" if "--security-search-only" in sys.argv else
                        "ui-preview-rules" if "--preview-rules-only" in sys.argv else
                        "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke")
         Path(f"artifacts/{report_name}.json").write_text(json.dumps(report, indent=2) + "\n")

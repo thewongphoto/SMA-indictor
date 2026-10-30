@@ -3,6 +3,12 @@
 The app now follows the user's labelled screen structure. These are screenshots
 from the tested Kivy application, with calculated results and simulated prices.
 
+For the current **0.6.0** company identity styling, see the new
+[selected-security screenshot](security-identity-selected.png),
+[saved SMA sheet](security-identity-sheet.png), and
+[unsaved archive](security-identity-archive.png). Screenshots below record earlier
+layouts; email controls shown in older captures have since been removed.
+
 | Screen | Contents | Navigation |
 | --- | --- | --- |
 | 1 | App heading, parameter controls and all-counter saved SMA library | Opens at launch; Optimize SMA or a saved row's View opens 2 |

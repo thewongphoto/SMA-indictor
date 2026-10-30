@@ -1,8 +1,9 @@
 """Small native controls shared by the timeline and the symbol legend."""
 import math
 from kivy.graphics import Color, Line, Mesh, RoundedRectangle, Triangle, Ellipse
+from kivy.core.text import Label as CoreLabel
 from kivy.metrics import dp, sp
-from kivy.properties import BooleanProperty, StringProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty
 from kivy.uix.button import Button
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
@@ -12,6 +13,128 @@ from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.widget import Widget
 
 from .chart import MUTED, draw_plus
+from .securities import security_by_key
+
+
+class WordEllipsisLabel(Label):
+    """One line: omit the overflowing word and everything after it."""
+    full_text = StringProperty("")
+
+    def __init__(self, **kwargs):
+        super().__init__(halign="left", valign="middle", **kwargs)
+        self.bind(width=self._fit_words, height=self._fit_words, full_text=self._fit_words,
+                  font_size=self._fit_words, font_name=self._fit_words,
+                  bold=self._fit_words, italic=self._fit_words)
+        self._fit_words()
+
+    def _fit_words(self, *_):
+        self.text_size = (max(0, self.width), self.height)
+        measure = CoreLabel(font_name=self.font_name, font_size=self.font_size,
+                            bold=self.bold, italic=self.italic).get_extents
+        if measure(self.full_text)[0] <= self.width:
+            self.text = self.full_text
+            return
+        words = self.full_text.split()
+        while words and measure(" ".join(words) + "…")[0] > self.width:
+            words.pop()
+        self.text = " ".join(words) + "…" if measure("…")[0] <= self.width else ""
+
+
+class CompanyLogo(BoxLayout):
+    """Packaged brand image, with an offline monogram when none is available."""
+    def __init__(self, security, edge=dp(28), **kwargs):
+        super().__init__(size_hint=(None, None), size=(edge, edge),
+                         pos_hint={"center_y": .5}, padding=edge*.16, **kwargs)
+        with self.canvas.before:
+            Color(.94, .96, .98, 1)
+            self._tile = RoundedRectangle(pos=self.pos, size=self.size, radius=[edge*.22])
+        self.bind(pos=self._paint_logo, size=self._paint_logo)
+        self.set_security(security)
+
+    def _paint_logo(self, *_):
+        self._tile.pos, self._tile.size = self.pos, self.size
+
+    def set_security(self, security):
+        self.clear_widgets()
+        self.is_fallback = not bool(security.logo_path)
+        self.image = (Label(text=security.initials, bold=True, color=(.08,.17,.24,1),
+                            font_size=self.width*.38) if self.is_fallback else
+                      Image(source=security.logo_path, fit_mode="contain"))
+        self.add_widget(self.image)
+
+
+class SecurityIdentity(BoxLayout):
+    """Company logo, whole-word name, and an optionally reserved ticker column."""
+    font_size = NumericProperty(sp(13))
+
+    def __init__(self, security, show_ticker=False, logo_size=dp(28), **kwargs):
+        defaults = dict(size_hint_y=None, height=dp(44), spacing=dp(8))
+        defaults.update(kwargs)
+        super().__init__(**defaults)
+        self.security = security
+        self.logo = CompanyLogo(security, edge=logo_size)
+        self.add_widget(self.logo)
+        self.name_label = WordEllipsisLabel(full_text=security.name, font_size=self.font_size,
+                                            color=(.92,.95,.98,1), bold=True)
+        self.add_widget(self.name_label)
+        self.ticker_label = None
+        if show_ticker:
+            self.ticker_label = Label(text=security.ticker, size_hint_x=None, font_size=sp(11),
+                                      color=MUTED, halign="right", valign="middle")
+            self.ticker_label.bind(texture_size=lambda widget, size:setattr(widget, "width", size[0]+dp(2)))
+            self.ticker_label.texture_update()
+            self.add_widget(self.ticker_label)
+        self.bind(font_size=lambda _, value:setattr(self.name_label, "font_size", value))
+
+    def set_security(self, security):
+        self.security = security
+        self.logo.set_security(security)
+        self.name_label.full_text = security.name
+        if self.ticker_label is not None:
+            self.ticker_label.text = security.ticker
+
+
+class SecurityIdentityButton(ButtonBehavior, SecurityIdentity):
+    # Keep the selection's stable key separate from its rendered company name.
+    text = StringProperty("")
+
+    def __init__(self, text, filled=False, **kwargs):
+        super().__init__(security=security_by_key(text), **kwargs)
+        self.text = text
+        self.filled = filled
+        with self.canvas.before:
+            self._identity_color = Color(0,0,0,0)
+            self._identity_rect = RoundedRectangle(pos=self.pos,size=self.size,radius=[dp(10)])
+        self.bind(text=lambda _, key:self.set_security(security_by_key(key)),
+                  pos=self._paint_identity, size=self._paint_identity,
+                  state=self._paint_identity, disabled=self._paint_identity)
+        self._paint_identity()
+
+    def _paint_identity(self, *_):
+        self._identity_rect.pos,self._identity_rect.size=self.pos,self.size
+        self._identity_color.rgba = ((.16,.25,.30,1) if self.state=="down" else
+                                      (.12,.17,.23,1) if self.filled else (0,0,0,0))
+        self.opacity = .55 if self.disabled else 1
+
+
+class SavedSecurityGroup(BoxLayout):
+    """One continuous, lightly tinted enclosure for a company and its SMAs."""
+    def __init__(self, expanded=False, **kwargs):
+        super().__init__(orientation="vertical", size_hint_y=None, spacing=dp(8),
+                         padding=(dp(10),dp(6)), **kwargs)
+        self.expanded = expanded
+        self.bind(minimum_height=self.setter("height"), pos=self._paint_group, size=self._paint_group)
+        self._paint_group()
+
+    def _paint_group(self, *_):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(.18,.32,.35,.48 if self.expanded else .20)
+            RoundedRectangle(pos=self.pos,size=self.size,radius=[dp(12)])
+            Color(.44,.68,.70,.30 if self.expanded else .12)
+            Line(rounded_rectangle=(*self.pos,*self.size,dp(12)),width=dp(.7))
+            if self.expanded:
+                Line(points=[self.x+dp(10),self.top-dp(54),self.right-dp(10),self.top-dp(54)],width=dp(.6))
 
 
 class TimelineOption(SpinnerOption):

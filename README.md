@@ -61,6 +61,13 @@ release uses a **12-security local preview catalogue and simulated history**,
 with no Twelve Data calls. See [Security search](docs/SECURITY_SEARCH.md) for the
 catalogue, request boundaries and focused UI checks.
 
+Version **0.6.0** uses a company logo and name in **Selected security**. Both saved
+SMA menus show logo, company name and ticker; names shorten at whole-word
+boundaries with an ellipsis while the ticker stays visible. Each expanded
+security and its SMAs share a subtle rounded teal enclosure. Recently unsaved
+lines show a smaller logo and company name. Packaged logos use an initials
+fallback when no brand image is available. See [security identity UI](docs/SECURITY_IDENTITY_UI.md).
+
 ## Screen navigation
 
 The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens

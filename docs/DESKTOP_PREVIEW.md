@@ -52,6 +52,9 @@ $env:SMA_ANALYZER_DATA_DIR = "$PWD\.local\preview-data"
 - Save multiple SMAs across both securities. On Parameters and in the Results
   saved sheet, each security starts collapsed. Its arrow expands/collapses its
   SMA list. Expanded state is shared between those menus during the session.
+  Headers show company logo/name/ticker and reserve ticker space when shortening
+  long names. Expanded groups share a soft teal enclosure. Selected security
+  shows only logo/name; the unsaved archive uses smaller logos and names.
   Each row has View, Hide/Show, heart and notification controls.
 
 ## Calculation rules

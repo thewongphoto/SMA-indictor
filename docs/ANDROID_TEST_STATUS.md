@@ -1,5 +1,24 @@
 # Android validation status
 
+## 0.6.0 — company identity and saved SMA enclosures
+
+Parameters shows company logo/name in Selected security. Both saved libraries
+show logo/name/ticker, reserve the ticker, and shorten names only at whole-word
+boundaries. Expanded companies and their SMAs share separate rounded teal
+enclosures. The recently unsaved archive uses smaller logos and company names.
+Narrow phones stack parameter controls so names remain readable.
+
+Validation: **100 unit tests** and **46 full running-widget UI groups** passed.
+The three new groups cover 320/440/960dp identity layouts, word truncation,
+reserved tickers, both group enclosures, synchronized accordions, View, archive
+logo sizes and exact restoration. Current screenshots were inspected; syntax
+and diff-whitespace checks pass. Shared Android widgets are exercised on cloud
+desktop, not a physical phone. The `apk-v0.6.0` tag triggers the existing APK
+workflow with the original signing identity. Actions API access is forbidden
+in this session, so build completion is not established by these checks.
+
+See [identity UI details](SECURITY_IDENTITY_UI.md).
+
 ## 0.5.0 — submit-only security-search preview
 
 Search supports partial ticker/company names with packaged logos or initials,

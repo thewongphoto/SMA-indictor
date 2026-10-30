@@ -1,5 +1,12 @@
 # Build and test the Android app — beginner guide
 
+**Version 0.4.0:** notifications are phone-only. Email switches, recipient fields,
+Gmail connection and email sending are removed from the application. No Google
+account or OAuth setup is needed. Parts 4–5 below document older builds only.
+The workflow can now also start from an intentional `apk-v*` release-tag push;
+manual Run workflow on main remains available. Install over the previous APK
+with the same signing identity to preserve saved SMAs.
+
 You can build the APK through GitHub in your browser. You do not need to install
 Python, Java or the Android SDK on your Mac for that route. Download the result
 from **GitHub**, not from this chat.
@@ -89,7 +96,7 @@ If installation says the app is incompatible, check that the phone supports
 64-bit ARM and Android 8+. If it says signatures do not match an existing app,
 read the signing note below before uninstalling anything.
 
-## Part 3 — test phone notifications before setting up Gmail
+## Part 3 — test phone notifications
 
 1. On Screen 1 choose **DEMO-SGX**, **Sideways**, and target **12 / year**.
 2. Press **Optimize SMA**. The current fixed mock data should select **SMA 254**.
@@ -118,7 +125,7 @@ Notifications**, including the **SMA research alerts** channel. Denying permissi
 or disabling the channel should produce a helpful app message. Sound/vibration
 also depend on the phone's channel settings and Do Not Disturb mode.
 
-## Part 4 — enable Google authorization for Gmail
+## Part 4 — historical Gmail setup (removed in 0.4.0)
 
 The configured sender is **kelwong98@gmail.com**. Add/sign in to that Google
 account on the test phone before connecting. The app does not ask for its password.
@@ -194,7 +201,7 @@ the existing app to retain its private SQLite data. If an APK reports a signing
 mismatch, recover the original key rather than routinely uninstalling: uninstall
 deletes saved lines/settings. Never commit signing material to the repository.
 
-## Part 5 — connect Gmail and send one test email
+## Part 5 — historical Gmail testing (removed in 0.4.0)
 
 1. Open the app's Settings screen and find **Gmail sender: kelwong98@gmail.com**.
 2. In **Recipient email address**, enter your own address for the first test and

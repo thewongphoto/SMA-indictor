@@ -285,3 +285,23 @@ development build with portrait orientation and device lifecycle tests.
 - START_HERE_MAC.md now follows the current desktop UI and the tested launcher,
   with GitHub Code/Download ZIP steps and instructions for preserving per-folder
   preview saves between downloads. The desktop guide also uses GitHub downloads.
+
+
+## 0.4.0 — phone-only notifications and APK release
+
+- Removed email toggles from every saved-SMA row, Settings email rules/recipient,
+  Gmail connect/disconnect/test actions, and the app's Gmail authorization/send
+  paths. Existing database columns and old values are retained for upgrades;
+  preview and delivery accept phone alerts only.
+- Phone Buy/Monitor controls, permission prompts and successful-delivery dedup
+  remain. Permission denial clears busy controls without dispatching.
+- Updated UI checks cover absence of email controls and suppression of legacy
+  enabled email flags and alert objects. Updated the current guides accordingly.
+- Version is 0.4.0. Added an intentional `apk-v*` tag trigger to the existing APK
+  workflow because direct Actions API access is forbidden in this environment.
+  Signing cache/secret preservation and manual dispatch remain available.
+
+- Release validation: 93 unit tests and 38 full Kivy UI groups passed. Exported
+  Settings/saved-menu screenshots were inspected: only phone controls remain.
+  Workflow YAML and tag trigger were parsed and checked; no manual signing
+  migration is requested for the release tag.

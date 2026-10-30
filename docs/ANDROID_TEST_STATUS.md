@@ -1,4 +1,21 @@
-# Android/Gmail validation status
+# Android validation status
+
+## 0.4.0 — phone-only application
+
+Email/Gmail UI and the application authorization/sending paths are removed.
+Stored legacy email flags are ignored during preview and delivery. Phone settings,
+permission handling and deduplication remain. The full UI runner now verifies
+that email controls are absent on both saved libraries and Settings, including
+a store migrated from email-enabled preferences, and that email-only alerts
+passed directly to the application delivery boundary are ignored.
+
+The APK workflow accepts `apk-v*` tag pushes as well as manual dispatch. The
+signing identity is preserved. Older Gmail sections below are historical.
+
+Current checks passed: **93 unit tests** and **38 running Kivy UI groups**,
+including phone-only controls, legacy-email suppression, notification permission
+denial/recovery, saved security accordions and the revised backtests. No new
+physical-device result or completed APK build is claimed by these checks.
 
 ## 0.3.0 — current cloud validation
 

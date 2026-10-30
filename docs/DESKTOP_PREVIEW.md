@@ -1,8 +1,9 @@
 # Review the Kivy desktop preview
 
-This desktop preview follows the Android 0.3.0 source update. Its source and Mac
-launcher are available on GitHub's **main** branch for laptop review. No new APK
-build has been started for these changes.
+The desktop preview and Mac launcher are available on GitHub's **main** branch.
+Version 0.4.0 also prepares these changes for an APK release and removes email
+notification/Gmail controls and sending from the application. Phone notifications
+and existing saved data are retained.
 
 ## Run on your Mac
 

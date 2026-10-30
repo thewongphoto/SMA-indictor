@@ -7,8 +7,8 @@ The current **Kivy desktop preview** is available from this repository’s main 
 A personal, **offline Python/Kivy prototype** for finding a simple moving average
 whose upward-crossing frequency is closest to a chosen target. Every price is
 synthetic. `DEMO-SGX` and `DEMO-US` are **fictional counters**, not exchange feeds.
-Stock analysis stays local and needs no account or backend. Optional Gmail
-API sending uses Google authorization and the internet; prices remain simulated.
+Stock analysis stays local and needs no account or backend. Notification controls
+are phone-only in version 0.4.0; prices remain simulated.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
@@ -25,7 +25,7 @@ these rules were chosen; the production code is in `engine.py` and `policy.py`.
 ## Install and launch
 
 Use Python **3.12** (tested with 3.12.14) and a desktop with graphics support.
-Desktop dependencies are Kivy and certifi (verified TLS for Gmail); charts use
+Desktop requirements install Kivy and the retained legacy TLS dependency certifi; charts use
 Kivy's native canvas. Android adds Pyjnius and a Google Identity Gradle dependency.
 SQLite and the test runner are part of Python's standard library.
 
@@ -50,7 +50,7 @@ python main.py
 If PowerShell activation is restricted, run `.\.venv\Scripts\python.exe` in place
 of `python`. Installation downloads dependencies; stock prices remain mock data only.
 Desktop analysis needs no Android SDK. For a phone test APK, use the
-[beginner Android APK + Gmail guide](docs/ANDROID_APK_GUIDE.md).
+[beginner Android APK guide](docs/ANDROID_APK_GUIDE.md).
 
 ## Screen navigation
 
@@ -175,7 +175,7 @@ and its actual count instead of claiming an exact match.
 ## Hearts, history and notification previews
 
 Saved rows now show chart-matched colour dashes, separate **Push notifications
-On/Off** and **Email notifications On/Off** controls, compact Hide/Show and a red
+On/Off** controls, View, compact Hide/Show and a red
 heart at the far right. The outline/red heart in Optimal SMA also saves/unsaves.
 The clock/history icon in section 02 restores the ten most recently unsaved
 configurations across all scenarios/counters; older entries are discarded.
@@ -191,35 +191,28 @@ page. It exits only from Parameters. Native system-bar/cutout/keyboard geometry
 keeps the app inside its usable surface and scrolls focused fields into view.
 Phone keyboard behavior still needs retesting on the updated APK.
 
-**Screen 3 / Notification Settings**, opened with the bottom-right gear, contains phone/email sections,
-Buy/Monitor switches and a locally saved email address. Email cannot be enabled
-for a saved line until a valid address is saved. Both the per-line channel and
-its type switch must be On. Settings and channel choices survive restarts.
+**Screen 3 / Notification Settings**, opened with the bottom-right gear, contains
+phone Buy/Monitor switches and the EOD test session field. Each saved line also
+has a phone On/Off control. Both the per-line control and its type switch must
+be On. There are no recipient, email, Connect Gmail, disconnect or email-test
+controls. Legacy email preferences remain in SQLite for upgrade compatibility,
+but this application ignores them for preview and delivery.
 
-Press **Preview EOD alerts** for a chosen simulated session. Buy uses the tested
-upward-crossing rules; Monitor means a strictly below-SMA close once per session.
-The preview shows exact phone text and email subject/body, labelled simulated.
-Preview sends nothing. **Connect Gmail** authorizes the configured sender,
-`kelwong98@gmail.com`, with Google's native send-only flow on Android. **Send a
-test email via Gmail** and **Send enabled alerts** are explicit real-send actions.
-Change `GMAIL_SENDER_ADDRESS` in `settings.py` for a later dedicated Gmail account.
-A recipient address alone does not connect or authorize the sender.
+Press **Preview EOD alerts** for a simulated session to see phone text without
+posting anything. **Send enabled alerts** requests Android notification permission
+and posts the selected phone alerts. Successful events are deduplicated. The
+generic **Test Android phone notification** remains repeatable. Denying permission
+returns a helpful message and re-enables the controls.
 
-Android permission callbacks, notification channels, a monochrome icon and
-tap-to-open are implemented. These are local OS alerts; this prototype has no
-remote push server, daily scheduler or live EOD-price source. Desktop tests fake
-the Android/Google transports. The Gmail Java bridge now passes a targeted
-compile against real Android API 35 and Google libraries, as does the native
-window/insets helper. The user confirmed the preceding APK's generic phone test
-notification works. Version 0.2.1 fixes and Gmail consent/sending still require
-the new GitHub build and device checks.
+These are local OS alerts; the prototype has no remote push server, daily
+scheduler or live EOD-price source. The APK guide's old Gmail sections are
+historical and do not apply to version 0.4.0.
 
-Start with [the APK/Gmail guide](docs/ANDROID_APK_GUIDE.md) to run the new manual
-GitHub Actions build, install its artifact, register its signing fingerprint in
-Google Cloud and authorize Gmail. [Validation status](docs/ANDROID_TEST_STATUS.md)
-records the first GitHub build failure and its Google-library fix: start a new
-workflow run on **main**. No complete APK has been produced here. No
-passwords, OAuth tokens or client secrets belong in source control.
+The existing [APK workflow](.github/workflows/android-debug.yml) supports manual
+runs on main and intentional `apk-v*` release-tag pushes. It runs the unit/UI
+checks before packaging and uploads `sma-android-test` with the APK and logs.
+The original signing identity is retained so Android updates can keep local data.
+
 Follow [signing preservation](docs/ANDROID_SIGNING.md) once to keep the original
 SHA-1 in a durable Actions secret. The build now refuses to silently replace
 a missing signing key. Use the [Android release checklist](docs/ANDROID_RELEASE_CHECKLIST.md)
@@ -431,5 +424,6 @@ Android touch, keyboard, safe areas, pause/resume and persistence using the
 authorized debug-build guide. Buildozer configuration is now included; Google
 account setup is described in that guide. Release-store packaging remains later work.
 No live market-data API, background EOD scheduler or Play Store release is included.
-Gmail sending and a debug-APK build configuration are implemented; native
-compilation/device validation and Google account authorization remain required.
+Phone notifications and the debug-APK build configuration are implemented.
+Version 0.4.0 removes email/Gmail functionality from the application UI and delivery flow;
+new APK/device validation remains required.

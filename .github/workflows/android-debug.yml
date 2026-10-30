@@ -1,5 +1,8 @@
 name: Build Android test APK
 on:
+  push:
+    tags:
+      - "apk-v*"
   workflow_dispatch:
     inputs:
       persist_signing_key:
@@ -49,7 +52,7 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: sma-android-debug-key-v1
-      - name: Prepare debug identity for Google OAuth
+      - name: Prepare debug signing identity
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
           ANDROID_EXPECTED_SHA1: ${{ vars.ANDROID_SIGNING_SHA1 }}

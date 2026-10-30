@@ -5,7 +5,6 @@ On headless Mesa/SDL Linux: SDL_VIDEODRIVER=offscreen LIBGL_ALWAYS_SOFTWARE=1 ..
 Screenshots and a machine-readable current-run report go into artifacts/.
 """
 import json
-import io
 import os
 from pathlib import Path
 from dataclasses import replace
@@ -32,7 +31,7 @@ from sma_analyzer.storage import LineStore
 from sma_analyzer.engine import crossover_events, simple_moving_average
 from sma_analyzer.mock_data import Dataset
 from unittest.mock import Mock, patch
-from sma_analyzer.notifications import evaluate_eod
+from sma_analyzer.notifications import evaluate_eod, NotificationSettings, Alert
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.base import EventLoop
@@ -344,20 +343,18 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("save, multiple overlays, hide/show, persistent saved-line toggles")
 
         saved = ui.model.current_saved_line()
-        row = ui.saved_rows[saved.id]
-        row["email"].dispatch("on_release")
-        for _ in range(4): yield
-        assert ui.validation_popup._is_open
-        assert "email address" in ui.notification_status.text
-        assert not ui.model.current_saved_line().email_enabled
-        ui.validation_popup.dismiss()
+        # Simulate an upgrade from the email-enabled version. Retain its stored
+        # settings/flags, while the current application offers phone controls only.
+        ui.model.store.save_notification_settings(NotificationSettings(email="reader@example.com", email_buy=True, email_monitor=True))
+        ui.model.store.set_notifications(saved.id, "email", True)
+        ui.refresh()
+        assert set(ui.notification_switches) == {"phone_buy", "phone_monitor"}
+        assert all("email" not in row for row in ui.saved_rows.values())
+        assert all("email" not in row for row in ui.landing_saved_rows.values())
+        texts = [getattr(widget, "text", "").lower() for widget in ui.settings_panel.walk()]
+        assert not any("email" in text or "gmail" in text or "recipient" in text for text in texts)
+        assert not any(hasattr(ui, name) for name in ("gmail_sender", "gmail_authorizer", "email_input", "gmail_connect_button"))
         ui.show_settings()
-        ui.email_input.text = "bad-address"
-        ui.email_save_button.dispatch("on_release")
-        assert "valid email" in ui.notification_status.text
-        ui.email_input.text = "reader@example.com"
-        ui.email_save_button.dispatch("on_release")
-        assert ui.model.store.notification_settings().email == "reader@example.com"
         for switch in ui.notification_switches.values():
             switch.active = True
         switch = ui.notification_switches["phone_buy"]
@@ -365,23 +362,19 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(6): yield
         for expected in (False,True):
             pointer = Pointer(*switch.to_window(*switch.center))
-            pointer.down()
-            pointer.up()
+            pointer.down(); pointer.up()
             for _ in range(14): yield
             assert switch.active == expected
             assert ui.model.store.notification_settings().phone_buy == expected
-        ui.saved_rows[saved.id]["email"].dispatch("on_release")
         ui.saved_rows[saved.id]["push"].dispatch("on_release")
-        assert ui.model.current_saved_line().email_enabled
         assert ui.model.current_saved_line().push_enabled
-        assert ui.saved_rows[saved.id]["email"].text.endswith("On")
         assert ui.saved_rows[saved.id]["push"].text.endswith("On")
-        self.check("email validation popup, saved address, four persistent type switches, independent saved-line channels")
+        self.check("phone-only settings and saved controls; legacy email flags remain stored but inaccessible")
 
         session = ui.model.result.events[-1].index + 1
         ui.alert_session.text = str(session)
         ui.preview_alert_button.dispatch("on_release")
-        assert len(ui.last_alerts) == 2
+        assert len(ui.last_alerts) == 1 and all(alert.channel == "phone" for alert in ui.last_alerts)
         assert "Buy Signal for DEMO-US" in ui.alert_preview.text
         assert "SIMULATED DATA" in ui.alert_preview.text
         assert all(not ui.model.store.was_delivered(a.key) for a in ui.last_alerts)
@@ -394,7 +387,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert time.monotonic()<deadline
                 yield
             assert phone.send.call_count == 1
-            assert "Email not sent" in ui.notification_status.text
+            assert "email" not in ui.notification_status.text.lower()
             ui.eod_deliver_button.dispatch("on_release")
             while ui.eod_deliver_button.disabled:
                 assert time.monotonic()<deadline
@@ -404,7 +397,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                      if sma is not None and price < sma)
         ui.alert_session.text = str(below)
         ui.preview_alert_button.dispatch("on_release")
-        assert all(a.kind == "monitor" for a in ui.last_alerts) and len(ui.last_alerts)==2
+        assert all(a.kind == "monitor" for a in ui.last_alerts) and len(ui.last_alerts)==1
         assert "Impending buy signal for DEMO-US" in ui.alert_preview.text
         ui.phone_test_button.dispatch("on_release")
         assert "Android development build" in ui.notification_status.text
@@ -413,40 +406,23 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert "between 1 and" in ui.alert_preview.text
         self.check("real EOD preview buttons, buy/monitor contents, mocked Android delivery, duplicate suppression, desktop limitation")
 
-        # Exercise actual Gmail UI controls with fake Google consent and HTTP;
-        # no real Google token, account access or email is used by this runner.
-        original_authorizer = ui.gmail_authorizer
-        original_transport = ui.gmail_sender._transport
-        authorizer = Mock()
-        authorizer.authorize.side_effect = lambda sender, ok, failed: ok("test-token")
-        authorizer.revoke.side_effect = lambda sender, done, failed: done()
-        ui.gmail_authorizer = authorizer
-        transport = Mock(side_effect=lambda *a,**k: io.BytesIO(b'{"id":"ui-test-email"}'))
-        ui.gmail_sender._transport = transport
-        ui.gmail_connect_button.dispatch("on_release")
-        deadline = time.monotonic()+5
-        while ui.delivery_busy:
-            assert time.monotonic()<deadline
-            yield
-        assert ui.gmail_sender.connected and "Connected" in ui.gmail_status.text
-        ui.gmail_test_button.dispatch("on_release")
-        while ui.delivery_busy:
-            assert time.monotonic()<deadline
-            yield
-        assert "Test email accepted" in ui.notification_status.text
-        assert transport.call_count==1
-        ui.preview_alert_button.dispatch("on_release")
-        assert transport.call_count==1, "Preview must never send Gmail messages"
-        ui.gmail_disconnect_button.dispatch("on_release")
-        while ui.delivery_busy:
-            assert time.monotonic()<deadline
-            yield
-        assert not ui.gmail_sender.connected and "Disconnected" in ui.gmail_status.text
-        ui.gmail_authorizer = original_authorizer
-        ui.gmail_sender._transport = original_transport
-        ui.gmail_connect_button.dispatch("on_release")
-        assert not ui.delivery_busy and "Android build" in ui.gmail_status.text
-        self.check("Gmail connect, explicit test send, preview isolation and disconnect with fake OAuth/HTTP")
+        # Permission denial must unblock the UI without sending anything.
+        ui.alert_session.text = str(session)
+        with patch("sma_analyzer.app.AndroidNotifier.request_permission", side_effect=lambda callback: callback(False)):
+            ui.eod_deliver_button.dispatch("on_release")
+            for _ in range(6): yield
+            assert not ui.delivery_busy and "permission denied" in ui.notification_status.text.lower()
+        # Even a legacy email Alert passed directly to the dispatch boundary is ignored.
+        legacy = Alert("email", "test", "DEMO-US", "Oscillating", 2, 12, 1, "Legacy", "Not sent")
+        with patch("sma_analyzer.app.deliver_alerts", return_value=[]) as dispatch:
+            ui._delivery_controls(True)
+            ui._run_delivery((legacy,))
+            deadline = time.monotonic()+5
+            while ui.delivery_busy:
+                assert time.monotonic()<deadline
+                yield
+            dispatch.assert_called_once_with(ui.model.store, ())
+        self.check("phone permission denial recovers controls; legacy email alerts cannot reach delivery")
 
         ui.show_results()
         ui.scroll.scroll_to(ui.optimal_panel,animate=False)
@@ -525,7 +501,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             for _ in range(8): yield
             for line in ui.model.saved_lines():
                 row = ui.saved_rows[line.id]
-                for key in ("push","email"):
+                for key in ("push",):
                     assert row[key].width >= row[key].texture_size[0], "Saved notification label must fit"
                 assert row["hide"].right <= row["heart"].x
                 assert abs(row["heart"].right - (ui.saved_panel.right-dp(14))) < dp(1)
@@ -732,7 +708,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.refresh()
         ui.alert_session.text = str(ui.model.result.events[-1].index+1)
         ui.preview_alert_button.dispatch("on_release")
-        assert len(ui.last_alerts)==2
+        assert len(ui.last_alerts)==1 and all(alert.channel == "phone" for alert in ui.last_alerts)
         assert {p.period for p in ui.chart.series} == {11,18}
         for plotted in ui.chart.series:
             saved = next(s for s in ui.model.saved_lines() if s.period == plotted.period)
@@ -811,7 +787,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         # Real fields/layout, injected native geometry. Desktop has no Android IME.
         ui.show_settings()
         frame=self.device_frame
-        for editor,value in ((ui.email_input,"reader@example.com"),(ui.alert_session,"273")):
+        for editor,value in ((ui.alert_session,"273"),):
             ui.settings_scroll.scroll_to(editor, padding=dp(20), animate=False)
             for _ in range(6): yield
             pointer=Pointer(*editor.to_window(*editor.center))
@@ -836,10 +812,8 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.manager.current=="settings"
             frame.apply_metrics(WindowMetrics(width=int(Window.width),height=int(Window.height)))
             for _ in range(6): yield
-        ui.email_save_button.dispatch("on_release")
-        assert ui.model.store.notification_settings().email=="reader@example.com"
         frame.metrics=None; frame._arrange()
-        self.check("Android regression: email/EOD fields retain focus and accept text through keyboard/safe-area reflow; Back ends editing")
+        self.check("Android regression: EOD field retains focus and accepts text through keyboard/safe-area reflow; Back ends editing")
 
         # Reproduce interleaved SGX/US saves across scenarios. Every saved row
         # must remain discoverable in the results sheet, whichever line is viewed.

@@ -91,13 +91,12 @@ Close the window when finished. On later visits, repeat step 3 and run
 
 ## Try notification previews
 
-Use the bottom-right gear on Results to open **Notification Settings**. Save a
-recipient email address and enable the Phone/Email Buy or Impending buy switches
-you want. Return to Results, expand the security in Saved SMAs, and enable the
-corresponding channel for a saved line. In Settings, enter a session number and
-press **Preview EOD alerts** to see the simulated phone text and email subject/body.
-Preview sends nothing. Real phone delivery and Gmail authorization require the
-Android build; this desktop preview does not test those services on your phone.
+Use the bottom-right gear on Results to open **Notification Settings**. Enable
+Phone Buy or Impending buy, return to Results, expand the security in Saved SMAs,
+and turn on that line's phone notification control. In Settings, enter a session
+number and press **Preview EOD alerts** to see simulated phone text. Preview
+sends nothing. Real phone delivery requires the Android build. Email/Gmail
+controls and sending are removed in version 0.4.0.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;

@@ -4,11 +4,13 @@
 The 3 November revision applies the requested wording, saved-library startup,
 Custom controls, removed bottom tabs and multi-year recovery-signal lesson.
 It includes navigation for the entire app, not just the introductory flow.
+The user approved this direction for application release **0.7.0**; see the
+[release notes](../RELEASE_0_7_0.md). Captures retain their pre-release labels.
 The earlier three options below remain as historical alternatives.
 
 These proposals were created after publishing APK source **0.6.0**, on
 **30 October 2026 (Singapore)**. They are design explorations; the released
-application still starts on Parameters. All displayed prices/results are
+application at that time started on Parameters. All displayed prices/results are
 illustrative, and the clickable prototype does not use live data or app storage.
 
 Open **[landing-flow-options.html](landing-flow-options.html)** in a browser.

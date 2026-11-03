@@ -1,5 +1,11 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
+**Current release: 0.7.0.** The approved library-first UI, three-year guide,
+Parameters/Custom and logo/name chart heading are documented in the
+[release notes](docs/RELEASE_0_7_0.md). The current app is phone-notification-only;
+the Gmail/authorization sections below describe older development work and do
+not require account setup for this release. Prices remain simulated.
+
 This document records the app's purpose, inner workings, limitations, and the
 active frequency policy for a future printed summary. The tested policy is now
 connected to the running app; the status table records the remaining scope.
@@ -14,10 +20,10 @@ connected to the running app; the status table records the remaining scope.
 | Warm-up-adjusted frequency and automatic history-dependent SMA cap below | Active in `sma_analyzer/engine.py` and `policy.py`; checked against the research reference |
 | Default chart view and available presets | 1Y on startup/new data; 3Y and 5Y only when available; Max shows all history |
 | Live market data / background EOD scheduler | Not implemented |
-| Debug Android APK configuration/workflow | First GitHub Java failure diagnosed; Google library pin corrected; full rebuild/device result pending |
+| Debug Android APK configuration/workflow | 0.7.0 tag-triggered workflow runs unit, full UI and library-flow checks before packaging; inspect the GitHub run for build completion |
 | Saved hearts, ten-entry unsave history, channel/type settings and EOD previews | Implemented and tested |
-| Android local notifications and native Google authorization | Generic phone notification passed per user report; 0.2.1 fixes and Gmail device tests pending |
-| Gmail sending | MIME/HTTPS + native OAuth implemented; user Google setup/consent required |
+| Android local notifications | Generic phone notification passed per user report; 0.7.0 physical UI validation remains pending |
+| Gmail sending | Removed from the active application in 0.4.0; older standalone modules retained as legacy code |
 
 Download the updated repository to use the new calculations. Files already
 downloaded to a Mac do not update automatically when GitHub changes.

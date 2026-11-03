@@ -1,10 +1,11 @@
 # Library first — revised full-app review
 
-**3 November 2026 (Singapore).** This is the selected direction with the requested
-changes, covering the entire application. The images come from the running,
-unreleased Kivy desktop implementation. **Only design/review files are uploaded
-in this change.** The published application source remains version 0.6.0; no
-version bump, release tag or APK build is requested by this upload.
+**3 November 2026 (Singapore).** The user approved this direction for release
+**0.7.0**, including source publication and an APK build. See the
+[release notes](../../RELEASE_0_7_0.md). The images below were captured during
+the pre-release review and retain their original labels. The original proposal
+commit uploaded design files only; the approved application and tests are now
+included in the 0.7.0 release.
 
 ## Open the maps directly on GitHub
 
@@ -108,7 +109,7 @@ not observations of any real company or a forecast.
 
 ## Validation and release boundary
 
-The local unreleased implementation passed **102 unit tests**, **46 existing
+The implementation passed **102 unit tests**, **46 existing
 running-widget regression groups**, and **6 dedicated library-flow groups**.
 The latter cover empty/populated startup, a reopened store, isolated guide
 calculations, submitted selection, Custom, chart identity, saved View/Back,
@@ -118,10 +119,10 @@ completion cannot unexpectedly change the page or selected dataset. The three-ye
 sample is checked for both rises and falls following crossing prices.
 
 These are cloud desktop checks of shared widgets; physical Android execution
-is not claimed. Version 0.6.0, package identity and APK signing settings are
-unchanged. The application edits and updated native tests are kept local for a
-later UI release; this GitHub proposal commit contains review assets and their
-generator, not those application changes.
+is not claimed. Version **0.7.0** retains the package identity and APK signing
+settings. The approved application and updated tests are published alongside
+the review assets. The `apk-v0.7.0` tag requests the build; its completion must
+be checked in GitHub Actions.
 
 The boards and self-contained review HTML can be regenerated from the stored
 captures using `python -m scripts.render_library_review`. PNG rendering uses

@@ -105,6 +105,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         print(f"PASS: {name}", flush=True)
 
     def exercise(self):
+        if "--library-flow-only" in sys.argv:
+            for _ in range(8): yield
+            yield from self.library_flow_regressions()
+            return
         if "--security-identity-only" in sys.argv:
             for _ in range(8): yield
             yield from self.security_identity_regressions()
@@ -145,7 +149,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.optimal_panel.top > ui.chart.parent.top
         assert ui.save_button.disabled
         assert not ui.save_button.selected and ui.save_button.text == ""
-        assert ui.manager.current == "parameters"
+        assert ui.manager.current == "library" and ui.library_state == "empty"
+        ui.show_parameters()
         assert ui.controls.parent is ui.parameter_content
         assert ui.optimal_panel.parent is ui.content
         assert not ui.saved_sheet.is_open
@@ -281,7 +286,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.scenario.text = "Oscillating"
         ui.counter.text = "DEMO-US"
         assert ui.chart.prices == ui.model.dataset.prices
-        assert "DEMO-US" in ui.plot_title.text
+        assert ui.plot_title.security.key == "DEMO-US" and ui.plot_title.ticker_label is None
         self.check("all scenario selectors and both fictional counters refresh prices")
 
         ui.target.text = "Custom"
@@ -305,7 +310,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.saved_menu_button.kind == "down"
         for _ in range(8): yield
         assert ui.saved_sheet.body.top < ui.height
-        assert ui.saved_sheet.body.y >= ui.results_footer.top-dp(1)
+        assert ui.saved_sheet.body.y >= ui.y-dp(1)
+        assert ui.saved_sheet.top <= ui.results_toolbar.y+dp(1)
         original_bounds = ui.chart.viewport.bounds
         # The persistent bottom-left menu toggles the sheet down, then up.
         pointer = Pointer(*ui.saved_menu_button.to_window(*ui.saved_menu_button.center))
@@ -482,25 +488,23 @@ class SmokeApp(SMAStockAnalyzerApp):
             ui.show_parameters()
             for _ in range(4): yield
             wide = size[0] >= 760
-            assert ui.control_grid.cols == (4 if wide else 1 if ui.scroll.width < dp(380) else 2)
+            assert ui.control_grid.cols == (3 if wide else 1)
             if wide:
-                assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert abs(ui.counter.y - ui.target.y) < dp(1)
                 assert abs(ui.counter.y - ui.optimize_button.y) < dp(1)
-                assert ui.counter.right < ui.scenario.x
-                assert ui.scenario.right < ui.target.x
+                assert ui.counter.right < ui.target.x
                 assert ui.target.right < ui.optimize_button.x
-                assert ui.controls.height < dp(130), "Completed controls must remain compact"
+                assert ui.controls.height < dp(200), "Collapsed Custom keeps wide controls compact"
                 assert ui.optimal_panel.orientation == "horizontal"
                 assert ui.card_values["period"].right <= ui.save_button.x
             elif ui.control_grid.cols == 1:
-                assert ui.counter.y > ui.scenario.y > ui.target.y > ui.optimize_button.y
-                assert ui.controls.height < dp(340)
+                assert ui.counter.y > ui.target.y > ui.optimize_button.y
+                assert ui.controls.height < dp(360)
             else:
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert ui.counter.y > ui.target.y
                 assert ui.controls.height < dp(185)
-            for widget in [ui.counter, ui.scenario, ui.target, ui.optimize_button]:
+            for widget in [ui.counter, ui.target, ui.optimize_button]:
                 assert widget.width >= dp(110)
                 assert widget.x >= ui.content.x and widget.right <= ui.content.right
                 assert widget.height >= dp(44)
@@ -546,6 +550,8 @@ class SmokeApp(SMAStockAnalyzerApp):
 
         # Hit the arrow in each top selector through normal window routing.
         ui.show_parameters()
+        if ui.custom_panel.parent is None:
+            ui.custom_toggle.dispatch("on_release")
         ui.counter.text = "DEMO-SGX"
         for selector, option in [(ui.scenario,"Trending"), (ui.target,"12 / year")]:
             ui.parameter_scroll.scroll_y = 1
@@ -764,6 +770,154 @@ class SmokeApp(SMAStockAnalyzerApp):
         yield from self.security_search_regressions()
         yield from self.security_identity_regressions()
 
+    def library_flow_regressions(self):
+        ui=self.screen
+        def settle():
+            deadline=time.monotonic()+15
+            while ui.search_busy or ui.history_loading or ui.guide_busy or ui.busy:
+                assert time.monotonic()<deadline,(ui.status.text,ui.guide_status.text)
+                yield
+            for _ in range(10): yield
+        def capture(name):
+            Window.screenshot(name=f"artifacts/library-{name}.png")
+        assert ui.manager.current=="library" and ui.library_state=="empty"
+        assert ui.library_intro.parent is ui.library_content
+        assert not any('Your first line' in getattr(w,'text','') for w in ui.walk())
+        assert ui.library_intro.children[-1].text=='New to moving averages and upward crossing buy signals?'
+        capture('01-empty')
+        self.check('library flow: empty launch shows revised guide card first and no bottom tab bar')
+        original=ui.model.dataset
+        ui.guide_button.dispatch('on_release')
+        yield from settle()
+        assert ui.manager.current=='guide' and ui.model.dataset is original
+        assert ui.guide_chart.timeline=='3Y' and len(ui.guide_chart.prices)==756
+        assert ui.guide_lesson.result.events and 'vs a' in ui.guide_values.text
+        ui.guide_content.export_to_png('artifacts/library-guide-full.png')
+        capture('06-guide')
+        ui.guide_target._dropdown.select('6 / year')
+        yield from settle()
+        assert ui.guide_lesson.result.target_frequency==6
+        assert ui.model.dataset is original and not ui.model.store.list_all_lines()
+        assert ui.handle_back() and ui.manager.current=='library'
+        self.check('library flow: isolated three-year guide, real frequency/backtest calculations and return without changing analysis')
+        ui.new_analysis_button.dispatch('on_release')
+        assert ui.manager.current=='search'
+        ui.security_search.text='app'
+        for _ in range(4): yield
+        assert not ui.search_results
+        ui.security_search.dispatch('on_text_validate')
+        yield from settle()
+        assert ui.security_match_buttons[0].security.ticker=='AAPL'
+        capture('02-search')
+        ui.security_match_buttons[0].dispatch('on_release')
+        yield from settle()
+        assert ui.manager.current=='parameters' and ui.model.dataset.counter=='NASDAQ:AAPL'
+        assert ui.custom_panel.parent is None
+        capture('03-parameters')
+        ui.custom_toggle.dispatch('on_release')
+        assert ui.custom_panel.parent is ui.controls
+        for _ in range(6): yield
+        capture('03-custom')
+        ui.scenario.text='Trending'
+        ui.custom_toggle.dispatch('on_release')
+        assert ui.custom_panel.parent is None and ui.custom_toggle.text=='Custom  +'
+        ui.optimize_button.dispatch('on_release')
+        yield from settle()
+        assert ui.manager.current=='results'
+        assert ui.plot_title.security.name=='Apple Inc.' and ui.plot_title.ticker_label is None
+        assert ui.plot_title.logo.image.texture is not None
+        assert ui.results_toolbar.top==ui.top
+        ui.scroll.scroll_y=1
+        for _ in range(8): yield
+        capture('04-results')
+        ui.scroll.scroll_to(ui.table_panel,animate=False)
+        for _ in range(8): yield
+        capture('07-backtest')
+        ui.show_backtest_help('random')
+        for _ in range(8): yield
+        capture('08-help')
+        ui.handle_back()
+        ui.show_more_crossings()
+        for _ in range(8): yield
+        capture('09-crossovers')
+        ui.go_back()
+        ui.save_button.dispatch('on_release')
+        for _ in range(12): yield
+        assert ui.saved_sheet.is_open
+        assert ui.saved_sheet.top<=ui.results_toolbar.y+dp(1)
+        capture('10-saved-sheet')
+        ui.saved_sheet.dismiss(animate=False)
+        ui.show_library()
+        assert ui.library_state=='populated' and ui.new_analysis_button.parent is ui.library_content
+        for _ in range(10): yield
+        capture('05-populated')
+        self.check('library flow: submitted search → Custom parameters → result/logo → comparisons/details → save/populated library')
+        line=ui.model.store.list_all_lines()[0]
+        ui.landing_saved_rows[line.id]['view'].dispatch('on_release')
+        assert ui.manager.current=='results' and ui.model.result.period==line.period
+        ui.go_back()
+        assert ui.manager.current=='library'
+        ui.show_settings()
+        for _ in range(8): yield
+        capture('11-settings')
+        assert not hasattr(ui,'email_recipient')
+        ui.go_back()
+        assert ui.manager.current=='library'
+        # Recreate the screen from the committed store, as on app restart.
+        fresh=AnalyzerScreen(AnalyzerModel(LineStore(ui.model.store.path)))
+        frame=self.device_frame
+        ui.close();frame.remove_widget(ui);frame.screen=self.screen=fresh;frame.add_widget(fresh);frame._arrange()
+        ui=fresh
+        for _ in range(10): yield
+        assert ui.manager.current=='library' and ui.library_state=='populated'
+        assert line.id in ui.landing_saved_rows
+        ui.landing_saved_rows[line.id]['heart'].dispatch('on_release')
+        assert ui.library_state=='empty'
+        ui.library_archive_button.dispatch('on_release')
+        for _ in range(8): yield
+        capture('12-archive')
+        archived=ui.model.store.recent_unsaved()[0]
+        ui.history_restore_buttons[archived.id].dispatch('on_release')
+        assert ui.library_state=='populated' and ui.model.store.list_all_lines()[0].period==line.period
+        self.check('library flow: direct saved View/Back, populated cold start, final unsave, archive and exact restoration')
+        for size in ((320,640),(440,920),(960,1440)):
+            Window.size=size
+            ui.show_library()
+            for _ in range(8): yield
+            assert ui.new_analysis_button.right<=ui.right
+            ui.landing_saved_rows[ui.model.store.list_all_lines()[0].id]['view'].dispatch('on_release')
+            for _ in range(8): yield
+            assert ui.plot_title.logo.right<=ui.plot_title.name_label.x
+            assert ui.plot_title.name_label.right<=ui.plot_header.right
+            capture(f'responsive-{size[0]}')
+        self.check('library flow: 320/440/960 widths retain library actions, top toolbar and company chart heading')
+        ui.show_search()
+        ui.security_search.text='micro'
+        ui.security_search.dispatch('on_text_validate')
+        yield from settle()
+        from concurrent.futures import Future
+        late=Future()
+        with patch.object(ui.market_executor,'submit',return_value=late):
+            ui.security_match_buttons[0].dispatch('on_release')
+        previous=ui.model.dataset
+        token=ui._history_token
+        ui.show_library()
+        assert not ui.history_loading and ui._history_token>token
+        late.set_result(ui.model.data_provider.historical_data(ui.search_results[0],ui.scenario.text))
+        for _ in range(8):yield
+        assert ui.manager.current=='library' and ui.model.dataset is previous
+        ui.show_parameters()
+        late=Future()
+        with patch.object(ui.executor,'submit',return_value=late):
+            ui.on_optimize()
+        assert ui.busy
+        ui.show_library()
+        assert not ui.busy
+        late.set_result(ui.model.result)
+        for _ in range(8):yield
+        assert ui.manager.current=='library'
+        self.check('library flow: Back/Library cancel pending selection/calculation; late completions cannot change pages or data')
+
     def security_identity_regressions(self):
         ui = self.screen
         ui.saved_sheet.dismiss(animate=False)
@@ -807,7 +961,8 @@ class SmokeApp(SMAStockAnalyzerApp):
                     if name.text.endswith("…"):
                         assert name.text[:-1] in [" ".join(name.full_text.split()[:n])
                                                 for n in range(len(name.full_text.split()))]
-            ui.parameter_scroll.scroll_to(ui.landing_saved_panel,animate=False)
+            ui.show_library()
+            ui.library_scroll.scroll_to(ui.landing_saved_panel,animate=False)
             for _ in range(8): yield
             ui.export_to_png(f"artifacts/security-identity-library-{width}.png")
         self.check("security identity: selected logo/name and saved logo/name/ticker fit 320/440/960dp with whole-word ellipses")
@@ -876,7 +1031,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         pointer.down(); pointer.up()
         for _ in range(10): yield
         assert ui.saved_sheet.is_open and ui.saved_sheet.body.height > 0
-        assert ui.saved_sheet.body.y >= ui.y+ui.results_footer.height-dp(1)
+        assert ui.saved_sheet.body.y >= ui.y-dp(1)
+        assert ui.saved_sheet.top <= ui.results_toolbar.y+dp(1)
         assert self._on_keyboard(Window,27)  # Native Back closes the sheet first.
         for _ in range(8): yield
         assert not ui.saved_sheet.is_open and ui.manager.current=="results"
@@ -895,8 +1051,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.manager.current=="results"
         assert self._on_keyboard(Window,27)
         assert ui.manager.current=="parameters"
-        assert not self._on_keyboard(Window,27)  # Default Kivy handler may now exit.
-        self.check("Android regression: native Back traverses full table/settings/results to Parameters; exit only there")
+        assert self._on_keyboard(Window,27) and ui.manager.current=="search"
+        assert self._on_keyboard(Window,27) and ui.manager.current=="library"
+        assert not self._on_keyboard(Window,27)
+        self.check("Android regression: native Back traverses full table/settings/results/parameters/search to Library; exit only there")
 
         # Real fields/layout, injected native geometry. Desktop has no Android IME.
         ui.show_settings()
@@ -962,12 +1120,12 @@ class SmokeApp(SMAStockAnalyzerApp):
         frame._arrange()
         ui=fresh
         for _ in range(8): yield
-        assert ui.manager.current=="parameters"
+        assert ui.manager.current=="library" and ui.library_state=="populated"
         assert set(ui.landing_saved_rows)==expected_ids
         assert all(row["view"].text=="View" for row in ui.landing_saved_rows.values())
         ui.landing_security_buttons[us_line.counter].dispatch("on_release")
         for _ in range(6): yield
-        ui.parameter_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["view"],animate=False)
+        ui.library_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["view"],animate=False)
         for _ in range(8): yield
         button=ui.landing_saved_rows[us_line.id]["view"]
         pointer=Pointer(*button.to_window(*button.center))
@@ -1066,13 +1224,13 @@ class SmokeApp(SMAStockAnalyzerApp):
 
         ui.expanded_saved_securities.clear()
         ui._refresh_saved()
-        ui.show_parameters()
+        ui.show_library()
         for _ in range(6): yield
         assert all(button.kind == "down" for button in ui.landing_security_buttons.values())
         assert all(group["body"].parent is None for group in ui.landing_security_groups.values())
         ui.landing_saved_panel.export_to_png("artifacts/preview-saved-collapsed.png")
         arrow = ui.landing_security_buttons["DEMO-SGX"]
-        ui.parameter_scroll.scroll_to(arrow, animate=False)
+        ui.library_scroll.scroll_to(arrow, animate=False)
         for _ in range(6): yield
         touch = Pointer(*arrow.to_window(*arrow.center)); touch.down(); touch.up()
         for _ in range(6): yield
@@ -1125,11 +1283,11 @@ class SmokeApp(SMAStockAnalyzerApp):
 
         try:
             Window.size = (440, 920)
-            ui.parameter_scroll.effect_y.velocity = 100000  # Residual scroll after navigation must stop.
-            ui.show_parameters()
-            ui.parameter_scroll.scroll_y = 1
+            ui.search_scroll.effect_y.velocity = 100000
+            ui.show_search()
+            ui.search_scroll.scroll_y = 1
             for _ in range(8): yield
-            ui.parameter_scroll.scroll_to(ui.search_panel, animate=False)
+            ui.search_scroll.scroll_to(ui.search_panel, animate=False)
             for _ in range(8): yield
             for text in ("a", "ap", "Apple"):
                 ui.security_search.text = text
@@ -1274,7 +1432,8 @@ if __name__ == "__main__":
         report = {"started_unix": started, "passed": app.passed,
                   "passed_count": len(app.passed), "failure": app.failure,
                   "exit_code": app.exit_code}
-        report_name = ("ui-security-identity" if "--security-identity-only" in sys.argv else
+        report_name = ("ui-library-flow" if "--library-flow-only" in sys.argv else
+                       "ui-security-identity" if "--security-identity-only" in sys.argv else
                        "ui-security-search" if "--security-search-only" in sys.argv else
                        "ui-preview-rules" if "--preview-rules-only" in sys.argv else
                        "ui-android-regressions" if "--android-regressions-only" in sys.argv else "ui-smoke")

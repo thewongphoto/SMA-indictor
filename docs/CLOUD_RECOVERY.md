@@ -59,9 +59,12 @@ Published source and mockups are recoverable from GitHub. Version releases and
 APK builds use explicit `apk-v*` tags; a backup must not create such a tag or
 bump the application version.
 
-The library-first implementation is currently local and deliberately unreleased.
-An ignored backup patch exists at `artifacts/unreleased-library-first.patch` and
-was verified against the working tree. **A backup on the same workspace does
+The library-first implementation was initially kept local pending UI approval.
+The user has now approved source publication and an APK build as **0.7.0**;
+the approved app and tests are included in the GitHub release commit and
+`apk-v0.7.0` tag. This closes that implementation's local-only backup gap.
+An ignored historical patch at `artifacts/unreleased-library-first.patch` was
+also verified against the original working tree. **A backup on the same workspace does
 not protect against losing that workspace.** A recoverable checkpoint requires
 an external copy, such as a user-downloaded archive or an explicitly authorized
 unreleased GitHub branch. Do not upload local-only app changes contrary to the

@@ -9,7 +9,8 @@ and dates are simulated.
 
 ## Use it
 
-1. On Parameters, type a partial ticker or company name in **Search security**.
+1. From Library choose **New analysis**, then type a partial ticker or company
+   name in **Search security**.
    Matching ignores case, normalizes whitespace/full-width characters and
    supports multiple words. Examples: `app`, `AAPL`, `micro`, `DBS`, `bank`,
    `Singapore air`.
@@ -50,8 +51,8 @@ scaled demo series, not market prices.
 
 The same Kivy widgets/provider are used on both platforms. Follow
 [the Mac guide](../START_HERE_MAC.md), download main, and run
-`bash run-desktop.command`. APK version is **0.5.0**; its intentional
-`apk-v0.5.0` release-tag push triggers the existing GitHub APK workflow.
+`bash run-desktop.command`. APK version is **0.7.0**; its intentional
+`apk-v0.7.0` release-tag push triggers the existing GitHub APK workflow.
 
 Focused UI validation:
 

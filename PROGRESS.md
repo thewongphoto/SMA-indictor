@@ -1,5 +1,25 @@
 # Prototype handoff
 
+## 0.7.0 — approved library-first UI release
+
+- The user approved the implemented UI and authorized GitHub publication plus
+  an APK build on 3 November 2026 (Singapore). The previously local app edits,
+  guide module and updated tests are included in this release.
+- Library launch selects the empty/populated view from actual saved data.
+  The revised guide card, separate Search, Parameters/Custom, top navigation,
+  direct saved View and company logo/name chart heading implement the review.
+- The isolated three-year guide uses real optimizer/backtest calculations on
+  fictional prices, with recovery/false-signal explanations and no guarantee
+  against subsequent price declines.
+- Existing persistence, phone-only notifications, comparison rules and chart
+  interactions remain. Back/Library invalidate pending work.
+- Checks: 102 unit tests, 46 full Kivy groups and 6 focused library-flow groups.
+  Both UI runners are now required in the APK workflow; their logs/reports are
+  uploaded with the APK. Physical Android validation remains pending.
+- Source version 0.7.0 and tag apk-v0.7.0 retain the package and signing policy.
+  GitHub Actions API status is forbidden from this session; do not infer build
+  completion from a push alone.
+
 ## Landing-flow exploration — separate from APK 0.6.0
 
 - Added three Figma-style vector/PNG flow boards: calm home (recommended),

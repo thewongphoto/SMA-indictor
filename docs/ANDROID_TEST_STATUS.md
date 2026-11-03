@@ -1,5 +1,26 @@
 # Android validation status
 
+## 0.7.0 — approved library-first release
+
+Releases Library launch based on saved state, the revised empty-state guide
+card, separate search, Parameters/Custom, fixed top navigation, direct saved
+View and the company logo/name chart heading. The isolated three-year guide
+uses the existing optimizer/comparison engine and includes recoveries, false
+signals and subsequent declines. Back/Library cancels pending selection or
+calculation so stale completions cannot change the current page/data.
+
+Release validation: **102 unit tests**, **46 full Kivy UI groups**, and **6
+focused library-flow groups**. The APK workflow now runs both UI runners before
+packaging and retains both reports in the artifact. Checks cover empty/populated
+startup, reopening storage, guide isolation/frequency changes, search, Custom,
+saved View/Back, final unsave/restore, late completions and 320/440/960px layouts.
+See [release notes](RELEASE_0_7_0.md) and the approved
+[full-app review](design/library-first-review/README.md).
+
+Physical-phone execution of 0.7.0 remains pending. The package and original
+signing workflow are preserved. `apk-v0.7.0` requests the GitHub build; local
+tests or a tag push do not establish successful APK completion.
+
 ## 0.6.0 — company identity and saved SMA enclosures
 
 Parameters shows company logo/name in Selected security. Both saved libraries

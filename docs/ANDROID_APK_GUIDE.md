@@ -1,6 +1,8 @@
 # Build and test the Android app — beginner guide
 
-**Version 0.4.0:** notifications are phone-only. Email switches, recipient fields,
+**Version 0.7.0:** the app launches into Library, uses the approved top-navigation
+flow and includes the three-year guide and company logo/name chart heading.
+Notifications remain phone-only. Email switches, recipient fields,
 Gmail connection and email sending are removed from the application. No Google
 account or OAuth setup is needed. Parts 4–5 below document older builds only.
 The workflow can now also start from an intentional `apk-v*` release-tag push;
@@ -12,31 +14,24 @@ Python, Java or the Android SDK on your Mac for that route. Download the result
 from **GitHub**, not from this chat.
 
 This is a personal **debug/test APK**, not a Play Store release. The configured
-phone target is **Android 8.0 or newer, 64-bit ARM**. Gmail authorization also
-requires **Google Play services** and the sender's Google account on the phone.
+phone target is **Android 8.0 or newer, 64-bit ARM**.
 Prices remain simulated. There is no live-stock feed or automatic daily scheduler.
 
 ## Current status — read this first
 
-- Python alert rules, Gmail MIME/HTTPS sending and UI connections are implemented.
-- Native Android permission/channel/icon/tap behavior and Google Identity
-  authorization bridge are included, along with the build configuration.
-- **No complete APK has been compiled in this workspace.** The original local
-  attempt stopped at a missing `javac` executable. A full SDK/NDK toolchain is
-  still unavailable; the targeted Java check below uses downloaded API classes.
-- The first GitHub build reached Java compilation and failed because the pinned
-  Google library lacked the bridge's Gmail disconnect API. The pin is now
-  **play-services-auth 21.4.0**; the unchanged bridge passes a targeted compile
-  against the real Google libraries and Android API 35. The user subsequently
-  installed an APK and confirmed the native test notification works.
-- Source version **0.2.1** adds Android Back navigation, safe system-bar/keyboard
-  layout, editing fixes and an all-counter saved-SMA library on Parameters.
-  These changes still need a new APK/device test.
-- Before the next build, use [the one-time signing guide](ANDROID_SIGNING.md) to
-  retain the existing key permanently. The workflow now refuses to generate a
-  different SHA-1 if the old key is unavailable.
-- No Google account has been connected or real email sent here. You must do the
-  one-time Google setup and authorize your account on your own phone.
+- Source version **0.7.0** releases the approved library-first UI. See its
+  [release notes](RELEASE_0_7_0.md) and [screen maps](design/library-first-review/README.md).
+- Local checks comprise 102 unit tests, 46 full UI groups and 6 library-flow
+  groups. Both UI runners execute before GitHub packages the APK.
+- The intentional `apk-v0.7.0` tag requests a build. Check the run's result;
+  source publication and passing desktop checks do not prove APK completion.
+- Install over the prior app with the same signing identity. The
+  [signing workflow](ANDROID_SIGNING.md) refuses to generate a replacement key
+  when the original is unavailable.
+- The prior native phone notification test was confirmed by the user. The new
+  UI still requires installation and physical-phone validation.
+- No Google account, OAuth setup or Twelve Data key is required for this release.
+  The legacy Gmail setup in Parts 4–5 is retained only as historical reference.
 
 See [actual validation results](ANDROID_TEST_STATUS.md).
 Use the saved [Android release checklist](ANDROID_RELEASE_CHECKLIST.md) for
@@ -86,7 +81,8 @@ Mac and transfer the `.apk` file through your normal USB/file-sharing method.
 2. Tap it. Android may ask you to allow installation from that browser or Files
    app. Enable **Allow from this source** for the installer you are using.
 3. Tap **Install**, then **Open**. Look for **SMA Stock Analyzer**.
-4. The app should open at Screen 1. Optimize a mock counter to reach Results.
+4. The app opens on Library, populated if saves exist. Choose **New analysis**,
+   search/select a security, then optimize its frequency on Parameters to reach Results.
 5. Turn the phone sideways: the app should stay in portrait orientation.
 
 A first test build may use Kivy's default launcher icon. This does not affect
@@ -98,11 +94,12 @@ read the signing note below before uninstalling anything.
 
 ## Part 3 — test phone notifications
 
-1. On Screen 1 choose **DEMO-SGX**, **Sideways**, and target **12 / year**.
+1. From Library choose New analysis, search/select **DEMO-SGX**, then on
+   Parameters expand **Custom** and choose **Sideways** with target **12 / year**.
 2. Press **Optimize SMA**. The current fixed mock data should select **SMA 254**.
 3. Press the heart to save it. The saved-lines sheet opens.
 4. Turn **Push notifications On** for that line.
-5. Press the bottom-right **gear** to open Settings.
+5. Press the **gear** in the top Results toolbar to open Settings.
 6. Turn on both **Buy signal** and **Impending buy signal** under Phone notifications.
 7. Press **Test Android phone notification**. On Android 13+, allow the permission
    dialog. The same action continues after permission is granted; you should not

@@ -47,6 +47,7 @@ jobs:
           set -o pipefail
           mkdir -p "$KIVY_HOME" "$XDG_CACHE_HOME" artifacts
           xvfb-run -a python -m scripts.smoke_ui 2>&1 | tee artifacts/ui-smoke.log
+          xvfb-run -a python -m scripts.smoke_ui --library-flow-only 2>&1 | tee artifacts/ui-library-flow.log
       - name: Reuse debug signing identity
         uses: actions/cache@v4
         with:
@@ -74,7 +75,7 @@ jobs:
         run: |
           set -o pipefail
           buildozer -v android debug 2>&1 | tee artifacts/android-build.log
-      - name: Upload test APK and OAuth fingerprint
+      - name: Upload test APK, signing fingerprint and validation logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -87,3 +88,5 @@ jobs:
             artifacts/unit-tests.log
             artifacts/ui-smoke.log
             artifacts/ui-smoke.json
+            artifacts/ui-library-flow.log
+            artifacts/ui-library-flow.json

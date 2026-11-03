@@ -82,10 +82,9 @@ class SavedLinesSheet(FloatLayout):
         self._fit_host()
 
     def _fit_host(self, *_):
-        # Leave the persistent result navigation accessible, including the
-        # same bottom-left button that toggles the sheet closed.
+        # Leave the fixed top result toolbar accessible above the overlay.
         footer = self.host.results_footer.height
-        self.pos = (self.host.x, self.host.y + footer)
+        self.pos = (self.host.x, self.host.y)
         self.size = (self.host.width, max(dp(100), self.host.height-footer))
 
     def _layout(self, *_):

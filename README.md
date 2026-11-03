@@ -2,6 +2,9 @@
 
 The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Desktop preview](docs/DESKTOP_PREVIEW.md) for its calculation rules.
 
+**Version 0.7.0** releases the approved library-first UI, three-year guided
+example and company logo/name chart heading. See the [release notes](docs/RELEASE_0_7_0.md).
+
 **New to Python and using a Mac? Start with [the step-by-step Mac guide](START_HERE_MAC.md).**
 
 A personal, **offline Python/Kivy prototype** for finding a simple moving average
@@ -56,8 +59,8 @@ Desktop analysis needs no Android SDK. For a phone test APK, use the
 
 Type part of a ticker or company name, then press **Enter** or **Submit**. Search
 results show packaged logos/initials, tickers, company names and exchanges. Only
-selecting a result loads its history; keystrokes make no requests. This 0.5.0
-release uses a **12-security local preview catalogue and simulated history**,
+selecting a result loads its history; keystrokes make no requests. This release
+uses a **12-security local preview catalogue and simulated history**,
 with no Twelve Data calls. See [Security search](docs/SECURITY_SEARCH.md) for the
 catalogue, request boundaries and focused UI checks.
 
@@ -68,20 +71,22 @@ security and its SMAs share a subtle rounded teal enclosure. Recently unsaved
 lines show a smaller logo and company name. Packaged logos use an initials
 fallback when no brand image is available. See [security identity UI](docs/SECURITY_IDENTITY_UI.md).
 
-Explore the [three proposed landing-screen flows](docs/design/README.md), with
-visual maps and an offline clickable prototype. These are future UI concepts;
-version 0.6.0 still launches on Parameters.
-
-The selected direction is now the [revised library-first full-app review](docs/design/library-first-review/README.md),
-including GitHub-previewable navigation maps and captures of every screen. This
-is an unreleased UI proposal; the published application version is unchanged.
+The approved [library-first full-app review](docs/design/library-first-review/README.md)
+includes GitHub-previewable navigation maps and captures of every screen. The
+[earlier alternatives](docs/design/README.md) remain available as design history.
 
 ## Screen navigation
 
-The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens
-**Screen 2: Results** automatically. Its Optimal SMA card has a heart, compact
-Hide/Show SMA and **Change parameters**, which returns to Screen 1 with the
-selected parameters retained.
+The app opens on **My SMA library**. If any saved SMA exists, its company group
+appears immediately; otherwise the first card introduces moving averages and
+upward crossing buy signals. **See the guided example** opens a three-year
+simulation with frequency choices and investment comparisons. The guide explains
+possible recovery signals, SMA lag, false crossings and the risk of subsequent falls.
+
+**New analysis → Search → Parameters → Optimize SMA → Results** is the main
+analysis path. Parameters has a collapsible **Custom** section. Results keeps
+the heart, Hide/Show and **Change parameters**, which retains the selected
+settings. Saved-line **View** opens exact saved parameters directly from Library.
 
 **Section 03: Backtesting** places the period dropdown beside **If you invested
 $100 for the past:**. It shows a: N upward crossings, b: N equal-period DCA buys,
@@ -100,25 +105,25 @@ Prices/dates are synthetic; crossing fills use interpolated daily-line
 intersections, not observed intraday trades.
 
 **Screen 2b** is a partial saved-lines bottom sheet. Saving a new configuration
-opens it automatically; the fixed bottom-left menu also opens/closes it. Swipe
+opens it automatically; the fixed top Saved SMAs menu also opens/closes it. Swipe
 the top handle downward or tap the dimmed area to dismiss it. Its list scrolls
-independently, and the bottom navigation stays reachable. Both saved libraries
+independently, and the top toolbar stays reachable. Both saved libraries
 group saved lines by security. Click the down arrow beside a security to expand
 its SMA rows, and the up arrow to collapse them. Each row has View, Hide/Show,
 heart and notification controls. Both menus share expansion state during the
 session. Only matching counter/scenario lines are overlaid on a chart.
 
-The fixed bottom-right **gear** opens **Screen 3: Settings**. Its fixed top-left
-Back arrow returns to Results. Each page has its own scroll position; navigation
-does not rerun calculations or change the active chart range.
+The **gear** on Library or the top Results toolbar opens **Settings**. Back
+returns to the prior screen. Back dismisses overlays and the keyboard before
+traversing pages; only Library exits. There is no Home/Saved/Learn bottom bar.
 
 [View screenshots of every screen](docs/UI_PREVIEW.md).
 
 ## Try the prototype
 
-1. Keep the default fictional counter or search a partial ticker/company name,
-   press Enter/Submit, and select a match. Choose **Trending**, **Oscillating**,
-   or **Sideways**. All combinations use reproducible simulated closes, including
+1. Choose New analysis, search a partial ticker/company name,
+   press Enter/Submit, and select a match. Expand **Custom** on Parameters to
+   choose **Trending**, **Oscillating**, or **Sideways**. All combinations use reproducible simulated closes, including
    the company examples; no live-data API is connected.
 2. Choose **12**, **6**, or **1** upward crossings per trading year. Choose
    **Custom** to type another positive integer, then press **Optimize SMA**.
@@ -134,7 +139,7 @@ does not rerun calculations or change the active chart range.
    the selected visibility controls that period, and it is drawn only once.
    The selected toggle lasts for the current result; saved-row toggles persist.
    Tap a red heart to unsave a line; the current analysis remains until changed.
-   Open Saved SMAs with the bottom-left menu. Its history icon restores the
+   Open Saved SMAs with the top menu. Its history icon restores the
    last 10 unsaved configurations.
 
 Changing a scenario, counter, or target clears the selected statistics. Press

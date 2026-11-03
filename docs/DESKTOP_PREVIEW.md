@@ -1,9 +1,10 @@
 # Review the Kivy desktop preview
 
 The desktop preview and Mac launcher are available on GitHub's **main** branch.
-Version 0.4.0 also prepares these changes for an APK release and removes email
-notification/Gmail controls and sending from the application. Phone notifications
-and existing saved data are retained.
+Version **0.7.0** releases the approved library-first flow and company chart
+heading. Library opens in the saved or empty state according to its stored SMAs.
+The three-year guide is optional, and Custom settings are folded on Parameters.
+Phone notifications and existing saved data are retained; email stays removed.
 
 ## Run on your Mac
 
@@ -36,7 +37,15 @@ $env:SMA_ANALYZER_DATA_DIR = "$PWD\.local\preview-data"
 
 ## What to check
 
-- Search a partial ticker/company name, then press Enter or Submit. Confirm
+- Start with no saves: the first Library card offers the revised introductory
+  guide. Open it, change its frequency, inspect several years of crossings and
+  compare ending investment values. It explains possible recovery and false
+  signals without changing your actual selection or saves.
+- Save a line and restart: launch into populated Library. View should open the
+  exact saved SMA directly. Unsave the last line and check the empty state;
+  restore it from Recently unsaved to recover the populated state.
+
+- Choose New analysis, search a partial ticker/company name, then press Enter or Submit. Confirm
   typing alone does nothing, matches display logo/ticker/name, and selecting one
   loads simulated history. The default fictional selection remains usable.
   See [Security search](SECURITY_SEARCH.md) for the 12-security preview catalogue.
@@ -49,13 +58,16 @@ $env:SMA_ANALYZER_DATA_DIR = "$PWD\.local\preview-data"
   points (most common scenario). Only ending dollar values are shown, with b/c
   percentage differences relative to a.
 - The circled i buttons open help for DCA and the random comparison.
-- Save multiple SMAs across both securities. On Parameters and in the Results
-  saved sheet, each security starts collapsed. Its arrow expands/collapses its
+- Save multiple SMAs across both securities. On Library and in the Results
+  saved sheet, the arrow expands/collapses each security's
   SMA list. Expanded state is shared between those menus during the session.
   Headers show company logo/name/ticker and reserve ticker space when shortening
   long names. Expanded groups share a soft teal enclosure. Selected security
   shows only logo/name; the unsaved archive uses smaller logos and names.
   Each row has View, Hide/Show, heart and notification controls.
+- Results uses a top toolbar for Library, Saved SMAs and Settings. The chart
+  heading displays only company logo/name. Back returns along the page path;
+  there is no Home/Saved/Learn bottom bar.
 
 ## Calculation rules
 

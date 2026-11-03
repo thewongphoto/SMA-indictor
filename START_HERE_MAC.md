@@ -58,12 +58,15 @@ manually launched desktop app untouched.
 
 ## 5. Try the desktop preview
 
-1. The initial selected security is **DEMO-SGX**. To change it, enter a partial
-   ticker/company name in **Search security** (for example `Apple` or `DBS`),
+1. The app opens on **My SMA library**. If you have saved SMAs, their company
+   groups appear immediately. Otherwise the first card offers the guided
+   example. Click **New analysis**, enter a partial ticker/company name in
+   **Search security** (for example `Apple` or `DBS`),
    then press Enter or **Submit**. Click a logo/ticker/name match to load its
    simulated history. Typing alone never searches or changes the security.
-2. Choose **Oscillating** and **12** crossings per year, then click **Optimize
-   SMA**. The app moves from Parameters to Results. All price histories remain
+2. On Parameters choose **12** crossings per year. Expand **Custom** to choose
+   **Oscillating** if needed, then click **Optimize SMA**. The app moves to
+   Results. All price histories remain
    simulated, including results with real company names. See
    [Security search](docs/SECURITY_SEARCH.md) for the preview catalogue.
 3. Plus markers show estimated price/SMA intersections. Drag the mouse across
@@ -79,13 +82,13 @@ manually launched desktop app untouched.
    percentage differences relative to a. Click either circled **i** for help.
 5. Click the outline heart in the Optimal SMA card to save a line. Try another
    target or security, optimize, and save again.
-6. Open **Saved SMAs** with the bottom-left menu. Click the down arrow beside
+6. Open **Saved SMAs** with the top menu. Click the down arrow beside
    a security to expand its saved SMA rows; click the up arrow to collapse them.
    Headers show the logo, company name and ticker. A soft rounded background
    groups each expanded company with its SMAs. Long names shorten at a whole
    word while the ticker stays visible.
    Each row has View, Hide/Show, heart, and notification controls. The saved
-   library on Parameters uses the same groups and shares their expanded state.
+   library on the launch page uses the same groups and shares their expanded state.
 7. Click **View** to open a saved line's exact parameters. **Change parameters**
    returns to the form. The backtesting panel's **View all upward crossings**
    button opens the full event list; its Back arrow returns to Results.
@@ -100,12 +103,12 @@ Close the window when finished. On later visits, repeat step 3 and run
 
 ## Try notification previews
 
-Use the bottom-right gear on Results to open **Notification Settings**. Enable
+Use the gear on Library or the top Results toolbar to open **Notification Settings**. Enable
 Phone Buy or Impending buy, return to Results, expand the security in Saved SMAs,
 and turn on that line's phone notification control. In Settings, enter a session
 number and press **Preview EOD alerts** to see simulated phone text. Preview
 sends nothing. Real phone delivery requires the Android build. Email/Gmail
-controls and sending remain removed in version 0.6.0.
+controls and sending remain removed in version 0.7.0.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;
@@ -119,11 +122,12 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current suite has **100 tests**. Successful output ends with `OK`.
+The current suite has **102 tests**. Successful output ends with `OK`.
 For the focused running-widget desktop checks, use:
 
 ```sh
 bash run-desktop.command --smoke-test --preview-rules-only
+bash run-desktop.command --smoke-test --library-flow-only
 ```
 
 That uses a temporary test database and exits when the checks finish.

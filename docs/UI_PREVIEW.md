@@ -1,9 +1,37 @@
 # Screen layout of the running app
 
-The app now follows the user's labelled screen structure. These are screenshots
-from the tested Kivy application, with calculated results and simulated prices.
+Version **0.7.0** implements the approved library-first structure. The
+[full-app review](design/library-first-review/README.md) contains captures from
+the tested Kivy application with calculated results and simulated prices. Those
+images were prepared before approval and retain their original review labels.
 
-For the current **0.6.0** company identity styling, see the new
+- [Complete app navigation](design/library-first-review/full-app-flow.png)
+- [Start and learn](design/library-first-review/01-start-and-learn.png)
+- [Analyze and compare](design/library-first-review/02-analyze-and-compare.png)
+- [Save and return](design/library-first-review/03-save-and-return.png)
+
+| View | Contents | Navigation |
+| --- | --- | --- |
+| Library | Empty introduction or populated saved company groups | Always opens at launch; New analysis opens Search; saved View opens exact Results |
+| Search | Explicitly submitted ticker/company matches | Selecting a result loads simulated history and opens Parameters |
+| Parameters | Company identity, frequency and expandable Custom settings | Optimize opens Results; Change security opens Search |
+| Guide | Three-year synthetic chart, recovery/false signals and comparisons | Frequency changes recalculate only the lesson; Back returns to Library |
+| Results | Company chart heading, SMA, inspection/pinch and frequency cards | Top Library/Saved SMAs/Settings; Change parameters retains the selection |
+| Backtesting | Period/custom years, ending values, b/c differences and info | Within Results; all crossings opens a separate event list |
+| Saved sheet | Company groups with View/Hide/heart/phone controls | Partial lower overlay; top toolbar stays usable; swipe/backdrop/Back dismisses |
+| Archive | Last ten unsaved lines with small company logos | Restore recovers the exact configuration and refreshes Library |
+| Settings / crossing details | Phone preferences/tests or full event list | Fixed Back returns to the prior screen |
+
+There is no Home/Saved/Learn bottom bar. Back dismisses overlays and the
+keyboard before traversing the page stack. Physical Android validation remains
+pending; see the [release checklist](ANDROID_RELEASE_CHECKLIST.md).
+
+## Historical captures through 0.6.0
+
+The sections below describe earlier layouts. Their bottom navigation and Gmail
+controls are historical and are not the current application flow.
+
+For the **0.6.0** company identity styling, see the
 [selected-security screenshot](security-identity-selected.png),
 [saved SMA sheet](security-identity-sheet.png), and
 [unsaved archive](security-identity-archive.png). Screenshots below record earlier

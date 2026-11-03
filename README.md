@@ -72,6 +72,10 @@ Explore the [three proposed landing-screen flows](docs/design/README.md), with
 visual maps and an offline clickable prototype. These are future UI concepts;
 version 0.6.0 still launches on Parameters.
 
+The selected direction is now the [revised library-first full-app review](docs/design/library-first-review/README.md),
+including GitHub-previewable navigation maps and captures of every screen. This
+is an unreleased UI proposal; the published application version is unchanged.
+
 ## Screen navigation
 
 The app opens on **Screen 1: Parameters**. A successful **Optimize SMA** opens

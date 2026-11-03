@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="1600" viewBox="0 0 1600 1600" role="img"><title>Library-first full application flow — unreleased review</title>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#328a7c"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1600" rx="0" fill="#f1f5f4" stroke="none"/>
+<text x="55" y="48" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#607789">SMA / SELECTED LIBRARY-FIRST DESIGN</text>
+<text x="55" y="92" font-family="DejaVu Sans,Arial,sans-serif" font-size="29" font-weight="700" fill="#20384a">The whole app, from launch to returning to a saved line</text>
+<text x="55" y="125" font-family="DejaVu Sans,Arial,sans-serif" font-size="15" font-weight="400" fill="#607789">Unreleased review · 3 November 2026 · simulated prices · fixed top controls · no Home / Saved / Learn bottom bar</text>
+<rect x="590" y="158" width="420" height="45" rx="14" fill="#131f31" stroke="none"/>
+<text x="612" y="187" font-family="DejaVu Sans,Arial,sans-serif" font-size="15" font-weight="700" fill="#eaf6f3">Launch → Are any SMAs saved on this device?</text>
+<path d="M650 203V225H350V250" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="365" y="240" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700" fill="#238b7b">NO</text>
+<path d="M950 203V225H1250V250" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1265" y="240" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700" fill="#238b7b">YES</text>
+<rect x="102" y="255" width="500" height="180" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="100" y="250" width="500" height="180" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="100" y="250" width="500" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="116" y="277" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">01 / First visit — empty library</text>
+<text x="116" y="318" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">First card: New to moving averages and upward</text>
+<text x="116" y="341" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">crossing buy signals? → guided example</text>
+<text x="116" y="364" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">New analysis → security search</text>
+<text x="116" y="387" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Recently unsaved → archive; gear → Settings</text>
+<rect x="1002" y="255" width="500" height="180" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="1000" y="250" width="500" height="180" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="1000" y="250" width="500" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="1016" y="277" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">05 / Returning visit — populated library</text>
+<text x="1016" y="318" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Always the launch state when at least one SMA exists.</text>
+<text x="1016" y="341" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Logo / company / ticker groups expand into saved lines.</text>
+<text x="1016" y="364" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">View → exact saved chart; New analysis → search.</text>
+<text x="1016" y="387" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Heart / Hide / phone controls; history → archive.</text>
+<path d="M300 430V560" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="315" y="500" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700" fill="#238b7b">New analysis</text>
+<path d="M1200 430V480H300" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="790" y="467" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700" fill="#238b7b">New analysis</text>
+<path d="M1430 430V520H1325V560" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1442" y="485" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700" fill="#238b7b">View</text>
+<rect x="102" y="565" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="100" y="560" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="100" y="560" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="116" y="587" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">02 / Choose a security</text>
+<text x="116" y="628" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Partial ticker / company query.</text>
+<text x="116" y="651" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Enter or Submit → local matches.</text>
+<text x="116" y="674" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Logo / ticker / name → select.</text>
+<text x="116" y="697" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">No-match / failure → retry here.</text>
+<text x="116" y="720" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Typing alone makes no request.</text>
+<rect x="602" y="565" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="600" y="560" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="600" y="560" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="616" y="587" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">03 / Parameters + Custom</text>
+<text x="616" y="628" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Company logo and name.</text>
+<text x="616" y="651" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Target upward crossings / year.</text>
+<text x="616" y="674" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Custom expands simulation settings.</text>
+<text x="616" y="697" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Optimize; invalid input stays here.</text>
+<text x="616" y="720" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Loading disables conflicting actions.</text>
+<rect x="1102" y="565" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="1100" y="560" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="1100" y="560" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="1116" y="587" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">04 / Results</text>
+<text x="1116" y="628" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Company logo/name; exact SMA.</text>
+<text x="1116" y="651" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">1Y / 3Y / 5Y / Max chart ranges.</text>
+<text x="1116" y="674" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">One finger: EOD/date/SMA popup.</text>
+<text x="1116" y="697" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Two fingers: pinch zoom; Zoom out.</text>
+<text x="1116" y="720" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Save / Hide / Change parameters.</text>
+<path d="M450 650H600" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="470" y="620" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Select match</text>
+<text x="470" y="640" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="400" fill="#607789">load history</text>
+<path d="M950 650H1100" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="972" y="635" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700" fill="#238b7b">Optimize</text>
+<path d="M1220 750V800H775V750" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="800" y="788" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Change parameters</text>
+<path d="M100 335H48V990H100" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="58" y="925" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700" fill="#238b7b">Guide</text>
+<rect x="102" y="925" width="350" height="195" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="100" y="920" width="350" height="195" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="100" y="920" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="116" y="947" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">06 / Guided example</text>
+<text x="116" y="988" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Three-year chart with many crossings.</text>
+<text x="116" y="1011" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Recovery may follow; losses can too.</text>
+<text x="116" y="1034" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">SMA lag / false signals explained.</text>
+<text x="116" y="1057" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Frequency → real sample SMA +</text>
+<text x="116" y="1080" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">$100-per-buy investment comparisons.</text>
+<text x="116" y="1103" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Choose own security → Search.</text>
+<path d="M275 920V750" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="287" y="860" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Choose own</text>
+<rect x="602" y="925" width="350" height="195" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="600" y="920" width="350" height="195" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="600" y="920" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="616" y="947" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">07 / Saved SMA sheet</text>
+<text x="616" y="988" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Same company groups as Library.</text>
+<text x="616" y="1011" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">View restores exact period/target.</text>
+<text x="616" y="1034" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Hide/Show changes chart visibility.</text>
+<text x="616" y="1057" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Phone On/Off; heart → unsave.</text>
+<text x="616" y="1080" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Swipe / backdrop / Back dismisses.</text>
+<text x="616" y="1103" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Library button returns to launch view.</text>
+<path d="M1160 750V850H775V920" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="794" y="841" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Save / Saved SMAs menu</text>
+<rect x="1102" y="925" width="350" height="195" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="1100" y="920" width="350" height="195" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="1100" y="920" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="1116" y="947" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">08 / Backtesting in Results</text>
+<text x="1116" y="988" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">1Y / 3Y / 5Y / Max / Custom years.</text>
+<text x="1116" y="1011" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">a. N upward-crossing buys</text>
+<text x="1116" y="1034" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">b. N equal-period (DCA) buys</text>
+<text x="1116" y="1057" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">c. N random buys: 500-sample mode</text>
+<text x="1116" y="1080" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Ending values, b/c % vs a; info help.</text>
+<text x="1116" y="1103" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">View all upward crossings → details.</text>
+<path d="M1375 750V920" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1390" y="865" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Scroll</text>
+<rect x="102" y="1245" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="100" y="1240" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="100" y="1240" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="116" y="1267" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">09 / Phone Settings</text>
+<text x="116" y="1308" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Gear from Library or Results.</text>
+<text x="116" y="1331" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Phone buy / monitor preferences.</text>
+<text x="116" y="1354" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Test EOD preview + permission test.</text>
+<text x="116" y="1377" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Allow / deny → clear status; retry.</text>
+<text x="116" y="1400" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Back returns to the prior screen.</text>
+<text x="116" y="1423" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Email functionality stays removed.</text>
+<rect x="602" y="1245" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="600" y="1240" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="600" y="1240" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="616" y="1267" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">10 / Recently unsaved archive</text>
+<text x="616" y="1308" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Last 10 unsaved configurations.</text>
+<text x="616" y="1331" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Small company logo and name.</text>
+<text x="616" y="1354" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Restore → saved library, exact SMA.</text>
+<text x="616" y="1377" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Original visibility / phone flags kept.</text>
+<text x="616" y="1400" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Last unsave → empty Library state.</text>
+<text x="616" y="1423" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Close / Back returns to prior view.</text>
+<rect x="1102" y="1245" width="350" height="190" rx="14" fill="#dce7e3" stroke="none"/>
+<rect x="1100" y="1240" width="350" height="190" rx="14" fill="#ffffff" stroke="#c8d9d1"/>
+<rect x="1100" y="1240" width="350" height="40" rx="12" fill="#131f31" stroke="none"/>
+<text x="1116" y="1267" font-family="DejaVu Sans,Arial,sans-serif" font-size="16" font-weight="700" fill="#eaf6f3">11 / All upward crossings</text>
+<text x="1116" y="1308" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Full event list for the selected SMA.</text>
+<text x="1116" y="1331" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Estimated crossing price and SMA.</text>
+<text x="1116" y="1354" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Scrollable details remain separate.</text>
+<text x="1116" y="1377" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Back returns to the same Results.</text>
+<text x="1116" y="1400" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">DCA / random info dialogs dismiss</text>
+<text x="1116" y="1423" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">without changing the comparison.</text>
+<path d="M550 430V445H28V1330H100" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="38" y="1210" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700" fill="#238b7b">Gear</text>
+<path d="M775 1115V1240" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="791" y="1180" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">History / restore</text>
+<path d="M1325 1115V1240" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1340" y="1180" font-family="DejaVu Sans,Arial,sans-serif" font-size="13" font-weight="700" fill="#238b7b">Details</text>
+<path d="M775 1430V1485H1550V340H1500" fill="none" stroke="#328a7c" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text x="1020" y="1515" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="700" fill="#238b7b">Restore → populated Library with exact saved parameters</text>
+<text x="55" y="1565" font-family="DejaVu Sans,Arial,sans-serif" font-size="14" font-weight="400" fill="#607789">Back closes help/keyboard/sheets first, then returns along the page stack. The optimizer matches frequency, not investment profit.</text>
+</svg>

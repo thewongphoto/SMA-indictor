@@ -1,5 +1,11 @@
 # Landing-screen flow concepts
 
+**Selected and revised direction:** [Library first — complete app review](library-first-review/README.md).
+The 3 November revision applies the requested wording, saved-library startup,
+Custom controls, removed bottom tabs and multi-year recovery-signal lesson.
+It includes navigation for the entire app, not just the introductory flow.
+The earlier three options below remain as historical alternatives.
+
 These proposals were created after publishing APK source **0.6.0**, on
 **30 October 2026 (Singapore)**. They are design explorations; the released
 application still starts on Parameters. All displayed prices/results are

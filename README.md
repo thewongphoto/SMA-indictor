@@ -64,6 +64,12 @@ uses a **12-security local preview catalogue and simulated history**,
 with no Twelve Data calls. See [Security search](docs/SECURITY_SEARCH.md) for the
 catalogue, request boundaries and focused UI checks.
 
+The proposed private-use Yahoo feed is documented in the
+[Yahoo Finance integration plan](docs/YAHOO_FINANCE_INTEGRATION_PLAN.md),
+including endpoint/request budgets, persistent caching, full-history MAX and
+owner preparation. See also [private iPhone installation](docs/PRIVATE_IPHONE_INSTALLATION.md).
+These are planning documents; this release still uses simulated prices.
+
 Version **0.6.0** uses a company logo and name in **Selected security**. Both saved
 SMA menus show logo, company name and ticker; names shorten at whole-word
 boundaries with an ellipsis while the ticker stays visible. Each expanded

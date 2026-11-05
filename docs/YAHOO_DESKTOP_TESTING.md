@@ -1,6 +1,6 @@
 # Private Yahoo desktop test
 
-**Android 0.8.0 is now a separate private data test.** Use
+**Android 0.9.0 is a separate private data/UI test.** Use
 [the Android/request-log guide](YAHOO_ANDROID_TESTING.md) for its mobile HTTPS
 adapter, artifact and copyable HTTP diagnostics. Desktop continues using the
 isolated Python yfinance transport described here.
@@ -53,8 +53,9 @@ not additional network operations.
 4. Results shows company logo/name, actual dates, quotation currency, last close
    and refresh time. The chart and backtest use calendar-year windows on Yahoo
    data; MAX includes every downloaded completed daily bar.
-5. Each comparison invests 100 units of the security's quotation currency per
-   buy. USD and SGD quotations are supported; this is not an FX-converted portfolio.
+5. Each comparison contributes USD 100 per buy and applies quotation-price
+   returns. USD and SGD quotations are supported; currency movements are excluded
+   and no historical FX conversion is performed.
    Yahoo Close is used with auto_adjust=False; Yahoo may still normalize for splits.
    Cash dividends, fees, taxes and slippage are excluded.
 6. Crossing prices remain interpolated intersections of daily line segments.
@@ -63,9 +64,11 @@ not additional network operations.
 7. Save two different SMA periods for the same security. View each from Library;
    each should retain its own exact period and both should share one cache.
 
-The guided example and old preview saves remain synthetic, separate from Yahoo
-identities. They do not use the live API. The local-demo screenshots and prior
-preview guide describe that simulation mode rather than historical Yahoo prices.
+In live mode, the guided example uses the selected company's downloaded history,
+or explicitly searches/loads SPY if no company is selected. It shows up to three
+calendar years and never substitutes fictional prices on a failure.
+Old preview saves remain separate from Yahoo identities. The local-demo screenshots
+and prior preview guide describe that offline mode rather than historical prices.
 Use `bash run-desktop.command --demo` to open the separate offline demo.
 
 ## Persistence and offline checks
@@ -92,7 +95,7 @@ Test persistence:
 3. Disconnect Wi-Fi and open the same saved SMA. The startup check may warn;
    the saved chart should remain available. A stale refresh failure must retain
    the old data and show its last close, not replace it with an empty chart.
-4. Reconnect. Use Settings → Check Yahoo connection and Refresh selected prices.
+4. Reconnect. Use Settings → Check data connection and Refresh selected prices.
 5. Settings → Clear downloaded prices and search results asks for confirmation.
    It keeps company identities, saved parameters, preferences and unsaved-line
    history. Opening a Yahoo saved line afterwards downloads its history again.

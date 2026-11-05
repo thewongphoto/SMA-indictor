@@ -1,16 +1,18 @@
 # SMA Stock Analyzer
 
-**Android 0.8.0 private Yahoo data test:** real company search, daily history,
-persistent caches and visible request diagnostics. Read the
+**Android 0.9.0 UI refinements:** smoother pinch zoom, stable SMA colors,
+calendar labels, cached analysis reuse and a scrollable request log. Read the
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_8_0.md). Notification/background tests remain deferred.
+[release notes](docs/RELEASE_0_9_0.md). See the
+[GitHub preview screenshots](docs/design/ui-0.9/README.md), including the new
+search-plus icon. Notification/background tests remain deferred.
 
 The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for its data and calculation rules.
 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-does not enable background/notification delivery tests. Android 0.8.0 is
+does not enable background/notification delivery tests. Android 0.9.0 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

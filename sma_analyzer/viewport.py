@@ -43,12 +43,12 @@ class ChartViewport:
         self.reset(session_count)
 
     @property
-    def bounds(self) -> tuple[int, int]:
+    def bounds(self) -> tuple[float, float]:
         return self.start, self.end
 
     @property
     def is_zoomed(self) -> bool:
-        return self.bounds != self.base_range
+        return any(not math.isclose(a,b,abs_tol=1e-8) for a,b in zip(self.bounds,self.base_range))
 
     def reset(self, session_count=None):
         if session_count is not None:
@@ -97,17 +97,18 @@ class ChartViewport:
             return False
         span = min(self.session_count - 1, max(1, (initial_bounds[1] - initial_bounds[0]) / scale))
         start = min(self.session_count - 1 - span, max(0, anchor - fraction * span))
-        bounds = (round(start), round(start + span))
+        bounds = (start, start + span)
         if bounds[0] == bounds[1]:
             return False
-        changed = bounds != self.bounds
+        changed = any(not math.isclose(a,b,abs_tol=1e-8) for a,b in zip(bounds,self.bounds))
         self.start, self.end = bounds
         return changed
 
     def y_limits(self, prices, averages=()) -> tuple[float, float] | None:
         """Scale only visible prices/overlays, ignoring gaps and adding padding."""
+        first,last = max(0,math.floor(self.start)),min(self.session_count,math.ceil(self.end)+1)
         values = [value for series in (prices, *averages)
-                  for value in series[self.start:self.end + 1]
+                  for value in series[first:last]
                   if value is not None and math.isfinite(value)]
         if not values:
             return None

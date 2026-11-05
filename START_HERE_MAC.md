@@ -4,7 +4,7 @@ The latest Kivy desktop preview is available on GitHub's **main** branch.
 It now retrieves **Yahoo Finance EOD data for private testing**. These instructions
 download and run that version; no Android APK build is needed.
 See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for the API/cache checks.
-For the separate Android 0.8.0 APK and request-log reporting, use
+For Android APK testing and request-log reporting, use
 [Android Yahoo testing](docs/YAHOO_ANDROID_TESTING.md).
 
 These instructions assume you have never used Python or Kivy. Python runs the
@@ -85,11 +85,12 @@ overwrites an existing destination. Close older app copies first.
    zoom requires an input device/provider that supplies two touches to Kivy;
    a normal laptop mouse supplies one pointer. **Zoom out** restores a preset.
 4. Scroll to section **03 / Backtesting**. Its independent period dropdown sits
-   beside **If you invested USD/SGD 100 for the past:**. Each scenario buys N times:
+   beside **If you invested USD 100 per buy for the past:**. Each scenario buys N times:
    a at upward crossings, b at equal-period starts (DCA), and c using the most
    common whole-dollar average-price group among 500 random samples. Each
-   purchase invests 100 units of the stock's quotation currency (USD or SGD).
-   Only ending values are displayed, with b/c
+   purchase contributes USD 100 to a price-return comparison; currency movements
+   are excluded. The total contributed appears above the scenarios. Ending
+   values show a's percentage growth against that contribution, and b/c
    percentage differences relative to a. Click either circled **i** for help.
 5. Click the outline heart in the Optimal SMA card to save a line. Try another
    target or security, optimize, and save again.
@@ -98,6 +99,10 @@ overwrites an existing destination. Close older app copies first.
    Headers show the logo, company name and ticker. A soft rounded background
    groups each expanded company with its SMAs. Long names shorten at a whole
    word while the ticker stays visible.
+   Every company starts collapsed on each fresh launch. SMA colors remain tied
+   to their periods within each company, even when another line is selected.
+   The magnifier-plus at the chart's top left opens **Choose a security**;
+   Settings stays at the top right on every page.
    Each row has View, Hide/Show, heart, and notification controls. The saved
    library on the launch page uses the same groups and shares their expanded state.
 7. Click **View** to open a saved line's exact parameters. **Change parameters**

@@ -31,6 +31,7 @@ from sma_analyzer.android_window import WindowMetrics
 from sma_analyzer.model import AnalyzerModel
 from sma_analyzer.storage import LineStore
 from sma_analyzer.engine import crossover_events, simple_moving_average
+from sma_analyzer.palette import line_color
 from sma_analyzer.mock_data import Dataset
 from unittest.mock import Mock, patch
 from sma_analyzer.notifications import evaluate_eod, NotificationSettings, Alert
@@ -227,7 +228,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.model.result is result_before
             assert ui.model.summary() == summary_before
             assert not ui.chart.is_zoomed
-        assert ui.legend_labels[:2] == ["simulated close", "upward crossings"]
+        assert ui.legend_labels[:2] == ["example close", "upward crossings"]
         assert all(":" not in label and "Triangles" not in label for label in ui.legend_labels)
         self.check("timeline ranges preserve full-history results; revised cards, contained actions and symbol legend")
         original_data = ui.model.dataset
@@ -308,19 +309,19 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert len(ui.model.saved_lines()) == 1
         assert ui.save_button.selected
         assert ui.saved_sheet.is_open
-        assert ui.saved_menu_button.kind == "down"
+        assert not hasattr(ui,"saved_menu_button")
         for _ in range(8): yield
         assert ui.saved_sheet.body.top < ui.height
         assert ui.saved_sheet.body.y >= ui.y-dp(1)
         assert ui.saved_sheet.top <= ui.results_toolbar.y+dp(1)
         original_bounds = ui.chart.viewport.bounds
         # The persistent bottom-left menu toggles the sheet down, then up.
-        pointer = Pointer(*ui.saved_menu_button.to_window(*ui.saved_menu_button.center))
+        pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
         for _ in range(10): yield
         assert not ui.saved_sheet.is_open and ui.saved_sheet.parent is None
-        assert ui.saved_menu_button.kind == "menu"
-        pointer = Pointer(*ui.saved_menu_button.to_window(*ui.saved_menu_button.center))
+        assert ui.saved_menu_label.text == "Saved SMAs"
+        pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
         for _ in range(10): yield
         assert ui.saved_sheet.is_open
@@ -513,7 +514,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             for _ in range(4): yield
             assert ui.hide_button.width == dp(88)
             assert ui.change_parameters_button.width >= dp(110)
-            assert ui.saved_menu_button.height >= dp(44)
+            assert ui.saved_menu_label.height >= dp(44)
             assert ui.settings_button.right <= ui.width
             assert ui.save_button.width == dp(44) and ui.save_button.height >= dp(44)
             ui.expanded_saved_securities.update(line.counter for line in ui.model.store.list_all_lines())
@@ -528,7 +529,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(row["heart"].right - row["push"].right) < dp(1)
                 assert row["heart"].right < ui.saved_security_groups[line.counter]["group"].right
                 active = ui.model.result is not None and line.period == ui.model.result.period
-                assert row["swatch"].ink == ui.chart.period_color(line.period,active)
+                assert row["swatch"].ink == line_color(ui.model.store.color_index(line.counter,line.scenario,line.period))
             ui.saved_sheet.dismiss(animate=False)
             if size[0] == 320:
                 ui.export_to_png("artifacts/prototype-small-phone.png")
@@ -646,11 +647,14 @@ class SmokeApp(SMAStockAnalyzerApp):
         first.down(); second.down()
         assert chart.inspection is None and len(chart._touches) == 2
         first.move_to(*location(.2)); second.move_to(*location(.8))
+        for _ in range(6): yield
         spread_bounds = chart.viewport.bounds
         assert spread_bounds[1]-spread_bounds[0] < initial_bounds[1]-initial_bounds[0]
         first.move_to(*location(.42)); second.move_to(*location(.58))
+        for _ in range(6): yield
         assert chart.viewport.end-chart.viewport.start > spread_bounds[1]-spread_bounds[0]
         first.move_to(*location(.2)); second.move_to(*location(.8))
+        for _ in range(6): yield
         second.up()
         before_lift = chart.viewport.bounds
         first.move_to(*location(.4)); first.up()
@@ -908,6 +912,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8):yield
         assert ui.manager.current=='library' and ui.model.dataset is previous
         ui.show_parameters()
+        ui.target.text="Custom"
+        ui.custom_target.text="17"  # Uncached target exercises cancellation, not instant reuse.
         late=Future()
         with patch.object(ui.executor,'submit',return_value=late):
             ui.on_optimize()
@@ -1162,7 +1168,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.backtest_captions["crossings"].text == f"a. at {count} upward crossings."
         assert ui.backtest_captions["dca"].text == f"b. at {count} equal periods."
         assert ui.backtest_captions["random"].text == f"c. At {count} random points (most common scenario)."
-        assert ui.backtest_heading.text == "If you invested $100 for the past:"
+        assert ui.backtest_heading.text == "If you invested $100 per buy for the past:"
         assert ui.backtest_heading.parent is ui.backtest_period.parent
         assert ui.backtest_heading.right <= ui.backtest_period.x
         assert ui.backtest_details.text.count("\n") == 1
@@ -1316,7 +1322,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             touch = Pointer(*button.to_window(*button.center)); touch.down(); touch.up()
             yield from settle()
             assert ui.model.dataset.counter == "NASDAQ:AAPL"
-            assert ui.model.result is None and "simulated" in ui.search_status.text.lower()
+            assert ui.model.result is None and "example" in ui.search_status.text.lower()
             spy.historical_data.assert_called_once()
             self.check("security search: typing makes no requests; Submit searches once; real result tap loads only selected simulated history")
 

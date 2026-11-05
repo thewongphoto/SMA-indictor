@@ -4,9 +4,10 @@ import sys
 
 from .schedule import SGT
 from .version import APP_VERSION
+from .presentation import display_text,endpoint_label
 
 
-def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100):
+def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100, public_view=False):
     now = datetime.now(timezone.utc)
     lines = [
         f"SMA Stock Analyzer {APP_VERSION}",
@@ -31,9 +32,10 @@ def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100):
         lines.append(f"\n{stamp} [{kind} {identity}] {event['operation']} · "
                      f"{event['symbol']} · {event['status']}{code}{duration}")
         if event["endpoint"]:
-            lines.append(event["endpoint"])
+            lines.append(endpoint_label(event["endpoint"]) if public_view else event["endpoint"])
         if event["detail"]:
             lines.append(event["detail"])
     if not cache.diagnostic_events(1):
         lines.append("\nNo recorded events yet.")
-    return "\n".join(lines)
+    report = "\n".join(lines)
+    return display_text(report) if public_view else report

@@ -1,21 +1,22 @@
-# Android 0.8.0: Yahoo data and request-log test
+# Android 0.9.0: market data and UI test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
 It contains no scheduled background fetcher or notification-delivery tests.
-The optional guided example remains explicitly simulated.
+The optional guided example uses the selected company's downloaded history, or
+loads SPY when no security has been selected. Visible app labels are provider-neutral.
 
 ## Get the APK from GitHub
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.8.0** / version **0.8.0**. A queued/running
+2. Open the run for tag **apk-v0.9.0** / version **0.9.0**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **PRIVATE TEST · 0.8.0**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.9.0**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.
@@ -45,13 +46,16 @@ A failed download never generates substitute demo prices.
 
 1. Tap the **gear → Settings**.
 2. Tap **View data request log**.
-3. Read the newest entries first. Times are Singapore time.
+3. Read the newest entries first. **Swipe up/down inside the list** to browse
+   calls. Times are Singapore time. **Load older calls** adds another 100 locally
+   recorded entries; it does not make a data request.
 4. **Refresh log (no API call)** reloads local log entries; it does not contact Yahoo.
-5. Tap **Copy diagnostic report**, return to this chat and paste it.
+5. Tap **Copy diagnostic report**, return to this chat and paste it. Copy includes
+   the loaded entries, including older calls after you load them.
 
 The report includes app version, platform, Python version, transport, selected
 cached date range, operation/request IDs, HTTP status codes, durations and
-endpoint paths. It is stored locally and survives restarting the app.
+endpoint purpose labels. The underlying event log is stored locally and survives restarting the app.
 No report is sent automatically.
 
 | Row | Meaning |
@@ -121,8 +125,27 @@ The error identifies availability from this device, not a confirmed global outag
 
 Older simulated saves are retained in storage but excluded from the Yahoo
 library/archive, so fictional lines cannot be interpreted as real investments.
-Return comparisons use 100 units of quotation currency per buy, Yahoo Close,
-estimated daily-line crossing fills and no cash dividends/fees/taxes.
+Return comparisons contribute USD 100 per buy and use quotation-price returns,
+estimated daily-line crossing fills and no cash dividends/fees/taxes or currency
+movements. They do not include historical FX conversion.
+
+## Check the UI refinements
+
+- Cold-launch the app with two companies saved. Both should start collapsed.
+- Save two different SMA periods for one company. Switch View between them:
+  the first keeps amber and the next keeps its own color. Restart and check again.
+- Choose an already analyzed target and tap Optimize. Its cached analysis should
+  open immediately; a saved target uses its exact saved period. New daily prices
+  invalidate unsaved analysis results, while saved periods remain fixed.
+- Pinch slowly with two fingers. Spread to zoom in and bring them together to
+  zoom out. Small movements should produce small range changes; lifting one
+  finger should preserve the view. One finger still inspects EOD points.
+- Check month/year labels on shorter ranges and spaced year labels on Max.
+- Use the magnifier-plus to choose another security. Settings is top-right on
+  all pages; Saved SMAs opens without a hamburger icon.
+- In backtesting, verify total contributed equals crossings × USD 100. A's
+  arrow/percentage compares ending value to contributions. B/C remain relative
+  to A. A loss displays a red downward arrow; zero buys display N/A.
 
 ## Transport and platform scope
 

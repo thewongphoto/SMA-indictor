@@ -1,5 +1,8 @@
 """Testable presentation state shared by buttons, chart, cards, and event table."""
 from dataclasses import dataclass
+import hashlib
+import json
+import math
 
 from .engine import OptimizationResult, Price, crossover_events, optimize_sma, simple_moving_average
 from .market_data import PreviewMarketDataProvider
@@ -15,6 +18,7 @@ class PlotLine:
     target_frequency: int
     sma: tuple[Price, ...]
     active: bool = False
+    color_index: int | None = None
 
 
 class AnalyzerModel:
@@ -28,6 +32,7 @@ class AnalyzerModel:
         self.active_visible = True
         self.viewing_saved = False
         self.period_preserved = False
+        self._fingerprint_cache = None
 
     def select_dataset(self, counter: str, scenario: str) -> None:
         # Generate before replacing state so invalid choices leave the current data intact.
@@ -62,6 +67,37 @@ class AnalyzerModel:
         self.active_visible = True
         self.viewing_saved = False
         self.period_preserved = False
+        self._fingerprint_cache = None
+
+    def data_fingerprint(self):
+        if self._fingerprint_cache is None or self._fingerprint_cache[0] is not self.dataset:
+            data = self.dataset
+            payload = json.dumps((1,data.version,data.dates,
+                [float(p) if p is not None and math.isfinite(p) else None for p in data.prices]),
+                separators=(",",":"),allow_nan=False).encode()
+            self._fingerprint_cache = (data,hashlib.sha256(payload).hexdigest())
+        return self._fingerprint_cache[1]
+
+    def remember_result(self,result):
+        self.store.cache_choice(self.dataset.counter,self.dataset.scenario,result.target_frequency,
+                                self.data_fingerprint(),result.period)
+
+    def reuse_result(self):
+        saved = [line for line in self.saved_lines() if line.target_frequency == self.target_frequency]
+        for line in reversed(saved):
+            try:
+                result = self.result_for_dataset(self.dataset,line.period,line.target_frequency)
+            except ValueError:
+                continue
+            self.apply_result(result)
+            self.viewing_saved = True
+            return True
+        period = self.store.cached_choice(self.dataset.counter,self.dataset.scenario,
+                                          self.target_frequency,self.data_fingerprint())
+        if period is not None:
+            self.apply_result(self.result_for_dataset(self.dataset,period,self.target_frequency))
+            return True
+        return False
 
     def set_target(self, text: str) -> None:
         try:
@@ -81,6 +117,7 @@ class AnalyzerModel:
     def calculate(self) -> OptimizationResult:
         """Synchronous route for tests and non-UI clients."""
         result = optimize_sma(self.dataset.prices, self.target_frequency)
+        self.remember_result(result)
         self.apply_result(result)
         return result
 
@@ -150,13 +187,14 @@ class AnalyzerModel:
         return True
 
     def plot_lines(self) -> list[PlotLine]:
-        # One visual line per period; the selected result has the primary color.
+        # One visual line per period, with its persistent security-specific color.
         lines: dict[int, PlotLine] = {}
         for saved in self.saved_lines():
             if saved.visible and saved.period <= len(self.dataset.prices):
                 lines[saved.period] = PlotLine(
                     f"saved-{saved.id}", saved.period, saved.target_frequency,
                     tuple(simple_moving_average(self.dataset.prices, saved.period)),
+                    color_index=self.store.color_index(saved.counter,saved.scenario,saved.period),
                 )
         if self.result is not None:
             # Active visibility controls this period even if it was also saved.
@@ -164,6 +202,7 @@ class AnalyzerModel:
             if self.active_visible:
                 lines[self.result.period] = PlotLine(
                     "active", self.result.period, self.result.target_frequency, self.result.sma, True,
+                    self.store.color_index(self.dataset.counter,self.dataset.scenario,self.result.period),
                 )
         return list(lines.values())
 
@@ -180,5 +219,7 @@ class AnalyzerModel:
     def event_rows(self) -> list[tuple[str, str, str]]:
         if self.result is None:
             return []
-        return [(f"{event.index + 1:03d}", f"{event.price:.4f}", f"{event.sma:.4f}")
+        live = not getattr(self.dataset, "is_simulated", True)
+        return [(self.dataset.dates[event.index] if live else f"{event.index + 1:03d}",
+                 f"{event.price:.4f}", f"{event.sma:.4f}")
                 for event in self.result.events]

@@ -287,6 +287,27 @@ def draw_icon(kind, x, y, radius, selected=False):
             points.extend((x+r*math.cos(angle),y+r*math.sin(angle)))
         Line(points=points,close=True,width=dp(1.1))
         Line(circle=(x,y,radius*.3),width=dp(1.1))
+    elif kind == "search_add":
+        # Theme-native magnifier with a small floating plus at the top right.
+        Color(.58,.91,.85,1)
+        Line(circle=(x-radius*.22,y+radius*.10,radius*.65),width=dp(1.25))
+        Line(points=[x+radius*.25,y-radius*.38,x+radius*.8,y-radius*.93],
+             width=dp(1.5),cap="round")
+        Color(.075,.122,.192,1)
+        Ellipse(pos=(x+radius*.25,y+radius*.32),size=(radius*1.12,radius*1.12))
+        Color(.58,.91,.85,1)
+        Line(points=[x+radius*.81,y+radius*.5,x+radius*.81,y+radius*1.25],
+             width=dp(1.1),cap="round")
+        Line(points=[x+radius*.44,y+radius*.88,x+radius*1.18,y+radius*.88],
+             width=dp(1.1),cap="round")
+    elif kind in ("gain","loss"):
+        Color(*((.22,.94,.43,1) if kind=="gain" else (1,.35,.40,1)))
+        direction = 1 if kind=="gain" else -1
+        Line(points=[x-radius*.65,y-direction*radius*.55,x-radius*.1,y,
+                     x+radius*.65,y+direction*radius*.65],width=dp(1.3),cap="round")
+        Line(points=[x+radius*.05,y+direction*radius*.65,
+                     x+radius*.65,y+direction*radius*.65,
+                     x+radius*.65,y+direction*radius*.05],width=dp(1.3),cap="round")
 
 
 class IconButton(Button):
@@ -306,10 +327,13 @@ class IconButton(Button):
 
 
 class IconSymbol(Widget):
+    kind = StringProperty("info")
     def __init__(self, kind, **kwargs):
-        super().__init__(size_hint=(None,None), size=(dp(24),dp(28)), **kwargs)
+        kwargs.setdefault("size_hint",(None,None))
+        kwargs.setdefault("size",(dp(24),dp(28)))
+        super().__init__(**kwargs)
         self.kind = kind
-        self.bind(pos=self._paint, size=self._paint)
+        self.bind(pos=self._paint, size=self._paint,kind=self._paint)
 
     def _paint(self, *_):
         self.canvas.clear()

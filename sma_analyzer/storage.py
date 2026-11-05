@@ -52,6 +52,17 @@ class LineStore:
                 data_version INTEGER NOT NULL)""")
             connection.execute("CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             connection.execute("CREATE TABLE IF NOT EXISTS deliveries (event_key TEXT PRIMARY KEY)")
+            connection.execute("""CREATE TABLE IF NOT EXISTS sma_colors (
+                counter TEXT NOT NULL, scenario TEXT NOT NULL, period INTEGER NOT NULL,
+                color_index INTEGER NOT NULL, PRIMARY KEY(counter,scenario,period))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS analysis_choices (
+                counter TEXT NOT NULL, scenario TEXT NOT NULL, target INTEGER NOT NULL,
+                fingerprint TEXT NOT NULL, period INTEGER NOT NULL,
+                PRIMARY KEY(counter,scenario,target,fingerprint))""")
+            # Upgrade in original save order; the first saved period stays amber.
+            rows = connection.execute("SELECT counter,scenario,period FROM saved_lines ORDER BY id").fetchall()
+            for counter,scenario,period in rows:
+                self._allocate_color(connection,counter,scenario,period)
 
     @contextmanager
     def _connect(self):
@@ -87,6 +98,7 @@ class LineStore:
 
     def save(self, counter: str, scenario: str, period: int, target: int) -> None:
         with self._connect() as connection:
+            self._allocate_color(connection,counter,scenario,period)
             connection.execute(
                 "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version) "
                 "VALUES (?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
@@ -138,6 +150,39 @@ class LineStore:
                                "push_enabled,email_enabled,data_version) VALUES (?,?,?,?,?,?,?,?) "
                                "ON CONFLICT(counter,scenario,period,target_frequency,data_version) DO NOTHING", row)
             connection.execute("DELETE FROM unsaved_lines WHERE id=?", (history_id,))
+            self._allocate_color(connection,*row[:3])
+
+    @staticmethod
+    def _allocate_color(connection,counter,scenario,period):
+        row = connection.execute("SELECT color_index FROM sma_colors WHERE counter=? AND scenario=? AND period=?",
+                                 (counter,scenario,period)).fetchone()
+        if row:
+            return row[0]
+        index = connection.execute("SELECT COALESCE(MAX(color_index),-1)+1 FROM sma_colors "
+                                   "WHERE counter=? AND scenario=?", (counter,scenario)).fetchone()[0]
+        connection.execute("INSERT INTO sma_colors VALUES (?,?,?,?)",(counter,scenario,period,index))
+        return index
+
+    def color_index(self,counter,scenario,period):
+        with self._connect() as connection:
+            row = connection.execute("SELECT color_index FROM sma_colors WHERE counter=? AND scenario=? AND period=?",
+                                     (counter,scenario,period)).fetchone()
+            if row:
+                return row[0]
+            return connection.execute("SELECT COALESCE(MAX(color_index),-1)+1 FROM sma_colors "
+                                      "WHERE counter=? AND scenario=?", (counter,scenario)).fetchone()[0]
+
+    def cache_choice(self,counter,scenario,target,fingerprint,period):
+        with self._connect() as connection:
+            connection.execute("INSERT INTO analysis_choices VALUES (?,?,?,?,?) ON CONFLICT "
+                               "(counter,scenario,target,fingerprint) DO UPDATE SET period=excluded.period",
+                               (counter,scenario,target,fingerprint,period))
+
+    def cached_choice(self,counter,scenario,target,fingerprint):
+        with self._connect() as connection:
+            row = connection.execute("SELECT period FROM analysis_choices WHERE counter=? AND scenario=? "
+                                     "AND target=? AND fingerprint=?", (counter,scenario,target,fingerprint)).fetchone()
+        return row[0] if row else None
 
     def notification_settings(self) -> NotificationSettings:
         with self._connect() as connection:

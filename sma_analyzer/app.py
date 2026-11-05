@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 from dataclasses import replace
 from datetime import datetime
+import math
 from threading import Event
 
 from kivy.config import Config
@@ -52,6 +53,8 @@ from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
 from .securities import security_by_key, normalize_query
 from .version import APP_VERSION
+from .presentation import display_text
+from .palette import line_color as saved_color
 
 BG = (0.075, 0.122, 0.192, 1)
 PANEL = (0.122, 0.188, 0.282, 1)
@@ -170,8 +173,8 @@ class AnalyzerScreen(FloatLayout):
         self._syncing_controls = False
         self._page_stack = ["library"]
         self._result_origin = "parameters"
-        saved = model.library_lines()
-        self.expanded_saved_securities = {saved[0].counter} if saved else set()
+        self.expanded_saved_securities = set()
+        self.page_settings_buttons = {}
         self._guide_job = 0
         self.guide_busy = False
         self.guide_lesson = None
@@ -199,7 +202,7 @@ class AnalyzerScreen(FloatLayout):
         self.header = header
         header.bind(minimum_height=header.setter("height"))
         self.parameter_content.add_widget(header)
-        header.add_widget(WrappedLabel(text="PRIVATE YAHOO EOD TEST" if self.yahoo_enabled else "OFFLINE LAB / SIMULATED DATA", color=MUTED,
+        header.add_widget(WrappedLabel(text="DAILY CLOSING PRICES" if self.yahoo_enabled else "OFFLINE EDUCATIONAL EXAMPLE", color=MUTED,
                                             font_size=sp(11), bold=True))
         self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
         header.add_widget(self.heading)
@@ -219,7 +222,7 @@ class AnalyzerScreen(FloatLayout):
         search_row.add_widget(self.security_search)
         search_row.add_widget(self.search_submit)
         self.search_panel.add_widget(search_row)
-        self.search_status = WrappedLabel(text="Search the preview catalogue by ticker or company name. All prices are simulated.",
+        self.search_status = WrappedLabel(text="Search the example catalogue by ticker or company name.",
                                           color=MUTED, font_size=sp(11))
         self.search_panel.add_widget(self.search_status)
         if self.yahoo_enabled:
@@ -265,7 +268,8 @@ class AnalyzerScreen(FloatLayout):
         self.custom_panel = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(8))
         self.custom_panel.bind(minimum_height=self.custom_panel.setter("height"))
         self.custom_panel.add_widget(self.scenario_cell)
-        controls.add_widget(self.custom_toggle)
+        if not self.yahoo_enabled:
+            controls.add_widget(self.custom_toggle)
         target_row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
         target_row.bind(minimum_height=target_row.setter("height"))
         target_values = tuple(f"{n} / year" for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
@@ -365,11 +369,11 @@ class AnalyzerScreen(FloatLayout):
         self.content.add_widget(self.explanation)
         self.saved_panel = Panel()
         self.saved_sheet = SavedLinesSheet(self, self.saved_panel)
-        self.saved_sheet.bind(is_open=lambda _, opened: setattr(self.saved_menu_button,"kind","down" if opened else "menu"))
         self.landing_saved_panel = Panel()
         self.library_intro = Panel()
         self.library_intro.add_widget(WrappedLabel(text=INTRODUCTION, bold=True, font_size=sp(20)))
-        self.library_intro.add_widget(WrappedLabel(text="See how recovery signals and false crossings appear over three simulated years.", color=MUTED))
+        self.library_intro.add_widget(WrappedLabel(text="See how recovery signals and false crossings appear on "
+            + ("actual daily prices." if self.yahoo_enabled else "an educational price example."), color=MUTED))
         self.guide_button = LabButton(text="See the guided example")
         self.guide_button.bind(on_release=self.show_guide)
         self.library_intro.add_widget(self.guide_button)
@@ -387,9 +391,6 @@ class AnalyzerScreen(FloatLayout):
             self._build_api_settings()
         self._build_notification_settings()
         self.library_settings_button = self._page_heading("library", "My SMA library")
-        self.library_settings_button.unbind(on_release=self.go_back)
-        self.library_settings_button.kind = "settings"
-        self.library_settings_button.bind(on_release=self.show_settings)
         self.search_back_button = self._page_heading("search", "Choose a security")
         self.parameters_back_button = self._page_heading("parameters", "Set your preference")
         self.guide_back_button = self._page_heading("guide", "Guided example")
@@ -400,9 +401,9 @@ class AnalyzerScreen(FloatLayout):
         self.settings_scroll.bind(size=self.keep_editor_visible)
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
-                 + ("Yahoo EOD comparisons use estimated crossing fills and exclude cash dividends, fees and taxes. "
-                  "The guided example is simulated." if self.yahoo_enabled else
-                  "All prices are simulated; 252 sessions represent one trading year."),
+                 + ("Comparisons use estimated crossing fills and exclude cash dividends, fees and taxes. "
+                  "Displayed market prices are historical." if self.yahoo_enabled else
+                  "Educational example only; 252 sessions represent one trading year."),
             color=MUTED, font_size=sp(11)))
 
         self.security_search.bind(text=self.on_security_query_edited, on_text_validate=self.submit_security_search)
@@ -441,22 +442,20 @@ class AnalyzerScreen(FloatLayout):
                                             spacing=dp(4),padding=(dp(16),dp(6)))
             self.results_footer.bind(minimum_height=self.results_footer.setter("height"))
             bar = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-            self.saved_menu_button = IconButton(kind="menu")
-            self.saved_menu_button.bind(on_release=self.toggle_saved_sheet)
-            bar.add_widget(self.saved_menu_button)
             self.saved_menu_label = LabButton(text="Saved SMAs", halign="left")
             self.saved_menu_label.bind(on_release=self.toggle_saved_sheet)
             bar.add_widget(self.saved_menu_label)
             self.settings_button = IconButton(kind="settings")
+            self.page_settings_buttons["results"] = self.settings_button
             self.settings_button.bind(on_release=self.show_settings)
             bar.add_widget(self.settings_button)
             self.results_footer.add_widget(bar)
             self.results_feedback = WrappedLabel(text="",color=MUTED,font_size=sp(11))
             # Fixed top toolbar; no bottom tab bar in the library-first flow.
             self.results_toolbar = self.results_footer
-            library = LabButton(text="Library", size_hint_x=None, width=dp(70))
-            library.bind(on_release=self.show_library)
-            bar.add_widget(library,index=len(bar.children))
+            self.new_security_button = IconButton(kind="search_add")
+            self.new_security_button.bind(on_release=self.show_search)
+            bar.add_widget(self.new_security_button,index=len(bar.children))
             column.add_widget(self.results_toolbar,index=len(column.children))
         return scroll, content
 
@@ -465,11 +464,16 @@ class AnalyzerScreen(FloatLayout):
         row = BoxLayout(size_hint_y=None,height=dp(56),spacing=dp(8),padding=(dp(16),dp(6)))
         button = IconButton(kind="back")
         button.bind(on_release=self.go_back)
-        row.add_widget(button)
+        if page_name != "library":
+            row.add_widget(button)
         row.add_widget(WrappedLabel(text=title,bold=True,font_size=sp(18),pos_hint={"center_y":.5}))
+        settings = IconButton(kind="settings")
+        settings.bind(on_release=self.show_settings)
+        row.add_widget(settings)
+        self.page_settings_buttons[page_name] = settings
         column = self.pages[page_name].children[0]
         column.add_widget(row,index=len(column.children))
-        return button
+        return settings if page_name=="library" else button
 
     def _resize(self, *_):
         for scroll in (self.scroll,self.parameter_scroll,self.library_scroll,self.search_scroll,
@@ -517,7 +521,7 @@ class AnalyzerScreen(FloatLayout):
         self.guide_chart = PriceChart(size_hint_y=None,height=dp(280))
         self.guide_scroll.chart = self.guide_chart
         self.guide_content.add_widget(self.guide_chart)
-        self.guide_content.add_widget(WrappedLabel(text="3Y simulated history · turquoise close · amber SMA/plus crossings. Drag to inspect; pinch to zoom.",color=MUTED,font_size=sp(11)))
+        self.guide_content.add_widget(WrappedLabel(text="Turquoise daily close · amber SMA/plus crossings. Drag to inspect; pinch to zoom.",color=MUTED,font_size=sp(11)))
         self.guide_content.add_widget(WrappedLabel(text=COMPARISON_HELP,color=MUTED))
         self.guide_values = WrappedLabel(text="",bold=True)
         self.guide_content.add_widget(self.guide_values)
@@ -533,8 +537,20 @@ class AnalyzerScreen(FloatLayout):
         self._guide_job += 1
         token = self._guide_job
         self.guide_busy = True
-        self.guide_status.text = "Calculating the three-year example…"
-        future = self.executor.submit(calculate_lesson,int(self.guide_target.text.split()[0]))
+        self.guide_status.text = "Loading the historical example…" if self.yahoo_enabled else "Calculating the educational example…"
+        target = int(self.guide_target.text.split()[0])
+        data = self.model.dataset
+        def work():
+            lesson_data = data
+            if self.yahoo_enabled and not data.prices:
+                provider = self.model.data_provider
+                matches = provider.search("SPY")
+                security = next((match for match in matches if match.ticker == "SPY"), None)
+                if security is None:
+                    raise ValueError("Example security unavailable. Select a company and try again.")
+                lesson_data = provider.historical_data(security)
+            return calculate_lesson(target,lesson_data if self.yahoo_enabled else None)
+        future = self.market_executor.submit(work)
         future.add_done_callback(lambda done:Clock.schedule_once(lambda _:self._guide_complete(done,token),0))
 
     def _guide_complete(self, future, token):
@@ -546,21 +562,27 @@ class AnalyzerScreen(FloatLayout):
             result,report = lesson.result,lesson.report
             self.guide_chart.update(lesson.dataset.prices,
                 [PlotLine("guide",result.period,result.target_frequency,result.sma,True)],
-                lesson.dataset.dates,(result.period,result.sma))
-            self.guide_chart.set_timeline("3Y")
-            self.guide_status.text = (f"SIMULATED DATA · 756 sessions · SMA {result.period} · "
+                lesson.dataset.dates,(result.period,result.sma),calendar_dates=self.yahoo_enabled)
+            self.guide_chart.set_timeline("3Y" if "3Y" in available_timelines(
+                len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
+            name = self.model.security(lesson.dataset.counter).name if self.yahoo_enabled else "Educational example"
+            self.guide_status.text = (f"{name} · {lesson.dataset.dates[report.start]} – {lesson.dataset.dates[report.end]}\n"
+                f"SMA {result.period} · "
                 f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
                 f"{len(report.crossings.indices)} buys per comparison")
-            values = [f"a. Upward crossings: ${report.crossings.ending_value:,.2f}"]
+            prefix = "USD " if self.yahoo_enabled else "$"
+            values = [f"a. Upward crossings: {prefix}{report.crossings.ending_value:,.2f}"]
             for key,title in (("dca","b. Equal periods"),("random","c. Most common random")):
                 scenario = getattr(report,key)
                 delta = scenario.difference_percent(report.crossings)
                 difference = "N/A" if delta is None else f"{delta:+.2f}%"
-                values.append(f"{title}: ${scenario.ending_value:,.2f} ({difference} vs a)")
+                values.append(f"{title}: {prefix}{scenario.ending_value:,.2f} ({difference} vs a)")
             self.guide_values.text = "\n".join(values)
-        except Exception:
+            if self.yahoo_enabled:
+                self._update_api_status()
+        except Exception as error:
             logging.exception("Guided example failed")
-            self.guide_status.text = "Could not load the example. Open it again to retry."
+            self.guide_status.text = display_text(f"Could not load the example: {error}. Open it again to retry.")
 
     def show_parameters(self, *_):
         if self.yahoo_enabled and not self.model.dataset.prices:
@@ -637,7 +659,7 @@ class AnalyzerScreen(FloatLayout):
 
     def handle_back(self):
         """Consume overlays/editing first, then pages; only Library may exit."""
-        for name in ("history_popup", "validation_popup", "backtest_help_popup"):
+        for name in ("history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
             popup = getattr(self, name, None)
             if popup is not None and popup._is_open:
                 popup.dismiss()
@@ -722,6 +744,7 @@ class AnalyzerScreen(FloatLayout):
             self._refresh_saved()
 
     def message(self, text, error=False, quiet=False):
+        text = display_text(text)
         self.status.text = text
         self.status.color = ERROR if error else MUTED
         self.results_feedback.text = text
@@ -755,8 +778,8 @@ class AnalyzerScreen(FloatLayout):
         self.search_busy = self.history_loading = False
         self.search_submit.disabled = False
         self._clear_security_matches()
-        self.search_status.text = ("Press Enter or Submit to search Yahoo Finance." if self.yahoo_enabled else
-                                   "Press Enter or Submit to search. Preview prices are simulated.")
+        self.search_status.text = ("Press Enter or Submit to search." if self.yahoo_enabled else
+                                   "Press Enter or Submit to search the examples.")
         self._set_busy(self.busy)
 
     def submit_security_search(self, *_, force=False):
@@ -779,7 +802,7 @@ class AnalyzerScreen(FloatLayout):
         self.search_busy = True
         self.search_submit.disabled = True
         self._clear_security_matches()
-        self.search_status.text = "Searching Yahoo Finance…" if self.yahoo_enabled else "Searching preview securities…"
+        self.search_status.text = "Searching securities…" if self.yahoo_enabled else "Searching preview securities…"
         self.search_status.color = MUTED
         future = (self.market_executor.submit(self.model.data_provider.search, query, force=force)
                   if self.yahoo_enabled else self.market_executor.submit(self.model.data_provider.search, query))
@@ -799,14 +822,14 @@ class AnalyzerScreen(FloatLayout):
                 button.bind(on_release=lambda _, item=security: self.select_security_match(item))
                 self.security_match_buttons.append(button)
                 self.search_matches.add_widget(button)
-            self.search_status.text = ((f"{len(matches)} matches. Select one to load Yahoo daily history."
-                                       if matches else "No US/SG stock or ETF matches. Try the Yahoo ticker (e.g. AAPL or D05.SI), or refresh results.")
+            self.search_status.text = ((f"{len(matches)} matches. Select one to load daily price history."
+                                       if matches else "No US/SG stock or ETF matches. Try the ticker (e.g. AAPL or D05.SI), or refresh results.")
                                       if self.yahoo_enabled else
-                                      (f"{len(matches)} preview matches. Select one to load simulated history."
+                                      (f"{len(matches)} preview matches. Select one to load example history."
                                        if matches else "No preview matches. Try a partial ticker or company name, such as Apple or DBS."))
         except Exception as error:
             self._clear_security_matches()
-            self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError)
+            self.search_status.text = (display_text(error) if self.yahoo_enabled and isinstance(error, RuntimeError)
                                        else "Search could not be completed. Press Submit to try again.")
             self.search_status.color = ERROR
         self._update_api_status()
@@ -823,8 +846,8 @@ class AnalyzerScreen(FloatLayout):
         self.history_loading = True
         scenario = self.model.data_provider.scenario if self.yahoo_enabled else self.scenario.text
         self._set_busy(False)
-        self.search_status.text = (f"Loading all available Yahoo daily history for {security.ticker}…"
-                                   if self.yahoo_enabled else f"Loading simulated history for {security.ticker}…")
+        self.search_status.text = (f"Loading all available daily history for {security.ticker}…"
+                                   if self.yahoo_enabled else f"Loading example history for {security.ticker}…")
         self.search_status.color = MUTED
         future = self.market_executor.submit(self.model.data_provider.historical_data, security, scenario)
         future.add_done_callback(lambda done: Clock.schedule_once(
@@ -852,11 +875,11 @@ class AnalyzerScreen(FloatLayout):
             self.show_parameters()
             self.refresh()
             warning = getattr(self.model.data_provider, "last_warning", "")
-            self.message(warning or ("Yahoo history ready. Press Optimize SMA; MAX includes all downloaded history."
-                                    if self.yahoo_enabled else "Simulated history loaded. Press Optimize SMA to calculate a result."),
+            self.message(warning or ("History ready. Press Optimize SMA; MAX includes all downloaded history."
+                                    if self.yahoo_enabled else "Example history loaded. Press Optimize SMA to calculate a result."),
                          error=bool(warning), quiet=not warning)
         except Exception as error:
-            self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError) else
+            self.search_status.text = (display_text(error) if self.yahoo_enabled and isinstance(error, RuntimeError) else
                                       "Could not load history. Your previous security is unchanged; select a match to retry.")
             self.search_status.color = ERROR
         self._update_api_status()
@@ -871,9 +894,9 @@ class AnalyzerScreen(FloatLayout):
         finally:
             self._syncing_search = False
         self._clear_security_matches()
-        self.search_status.text = (f"Selected {security.ticker} · {security.name}. Yahoo EOD history ready."
+        self.search_status.text = (f"Selected {security.ticker} · {security.name}. Daily history ready."
                                    if security.provider == "yahoo" else
-                                   f"Selected {security.ticker} · {security.name}. Simulated history ready.")
+                                   f"Selected {security.ticker} · {security.name}. Example history ready.")
 
     def on_dataset_change(self, *_):
         if self._syncing_controls:
@@ -884,10 +907,10 @@ class AnalyzerScreen(FloatLayout):
         try:
             self.model.select_dataset(self.counter.text, self.scenario.text)
             self._show_selected_security(security_by_key(self.counter.text))
-            self.message("Simulation changed. Press Optimize SMA to calculate a new result.")
+            self.message("Example changed. Press Optimize SMA to calculate a new result.")
             self.refresh()
         except (ValueError, sqlite3.Error, OSError) as error:
-            self.message(f"Could not load simulation: {error}", True)
+            self.message(f"Could not load example: {error}", True)
 
     def _read_target(self):
         self.model.set_target(self.custom_target.text if self.target.text == "Custom" else self.target.text.split(" / ")[0])
@@ -942,6 +965,13 @@ class AnalyzerScreen(FloatLayout):
         except ValueError as error:
             self.message(str(error), True)
             return
+        if self.model.reuse_result():
+            self._job += 1
+            self.refresh()
+            self.show_results()
+            self.scroll.scroll_y = 1
+            self.message("Saved or cached SMA loaded.",quiet=True)
+            return
         self._job += 1
         token = self._job
         self._calculation_job = token
@@ -963,7 +993,9 @@ class AnalyzerScreen(FloatLayout):
             return
         self._set_busy(False)
         try:
-            self.model.apply_result(future.result())
+            result = future.result()
+            self.model.remember_result(result)
+            self.model.apply_result(result)
             self.refresh()
             self.show_results()
             self.scroll.scroll_y = 1
@@ -972,7 +1004,7 @@ class AnalyzerScreen(FloatLayout):
             self.message(f"Unable to optimize: {error}", True)
         except Exception:
             logging.exception("Unexpected optimization failure")
-            self.message("Calculation failed unexpectedly. Try another simulation; details are in the log.", True)
+            self.message("Calculation failed unexpectedly. Try another security; details are in the log.", True)
 
     def on_save(self, *_):
         try:
@@ -1090,7 +1122,7 @@ class AnalyzerScreen(FloatLayout):
             self.message(warning or f"Viewing exact saved SMA {selected.period}.", bool(warning), quiet=not warning)
         except (ValueError, RuntimeError, sqlite3.Error, OSError) as error:
             self.message(f"Could not open saved SMA: {error}", True)
-            self.source_warning.text = str(error)
+            self.source_warning.text = display_text(error)
             self._refresh_saved()
         self._update_api_status()
 
@@ -1113,7 +1145,7 @@ class AnalyzerScreen(FloatLayout):
                           calendar_dates=live)
         self._refresh_chart_header()
         self.legend.clear_widgets()
-        close_label = f"close ({data.currency})" if live and data.prices else "close" if live else "simulated close"
+        close_label = f"close ({data.currency})" if live and data.prices else "close" if live else "example close"
         self.legend_labels = [close_label, "upward crossings"]
         def add_legend(text, color, plus=False):
             item = LegendItem(text, color, plus=plus)
@@ -1121,7 +1153,7 @@ class AnalyzerScreen(FloatLayout):
             self.legend.add_widget(item)
 
         add_legend(close_label, PRICE_COLOR)
-        add_legend("upward crossings", ACTIVE_COLOR, plus=True)
+        add_legend("upward crossings", MUTED, plus=True)
         for index, line in enumerate(lines):
             label = f"SMA {line.period}"
             self.legend_labels.append(label)
@@ -1129,6 +1161,8 @@ class AnalyzerScreen(FloatLayout):
         for key, value in self.model.summary().items():
             if key in self.card_values:
                 self.card_values[key].text = value
+        self.card_values["period"].color = (saved_color(self.model.store.color_index(
+            data.counter,data.scenario,self.model.result.period)) if self.model.result else ACTIVE_COLOR)
         self._set_busy(self.busy)
         self.save_button.selected = self.model.current_saved_line() is not None
         self.optimal_caption.text = ("SAVED SMA" if self.model.viewing_saved else
@@ -1160,20 +1194,21 @@ class AnalyzerScreen(FloatLayout):
                                     data.dates if not getattr(data, "is_simulated", True) else ())
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
-        self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units\nCrossing markers estimate daily-line intersections."
+        self.plot_subtitle.text = f"EDUCATIONAL EXAMPLE · {len(data.prices)} sessions · example price units\nCrossing markers estimate daily-line intersections."
         if not getattr(data, "is_simulated", True) and data.prices:
             from .schedule import SGT
             fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
-            self.plot_subtitle.text = (f"YAHOO EOD · {data.currency} Close · {len(data.prices)} sessions\n"
+            self.plot_subtitle.text = (f"{data.currency} daily close · {len(data.prices)} sessions\n"
                                       f"Last close {data.dates[-1]} · fetched {fetched}\n"
                                       "Crossing fills are daily-line estimates; cash dividends excluded.")
             if data.stale:
                 self.plot_subtitle.text += "\nSaved data · refresh pending or unavailable."
         elif not getattr(data, "is_simulated", True):
-            self.plot_subtitle.text = "Choose a real company to download Yahoo daily history."
+            self.plot_subtitle.text = "Choose a company to download daily price history."
         if data.prices:
             start, end = self.chart.view_range
-            self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
+            first,last = max(0,math.ceil(start)),min(len(data.prices)-1,math.floor(end))
+            self.plot_subtitle.text += f"\n{self.chart.timeline} view · {data.dates[first]} – {data.dates[last]}"
 
     def _refresh_saved(self):
         self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.library_lines())
@@ -1240,13 +1275,13 @@ class AnalyzerScreen(FloatLayout):
         self._refresh_saved()
 
     def _add_saved_row(self, panel, line):
-        label = f"{line.scenario} · SMA {line.period} · target {line.target_frequency}/yr"
+        label = f"SMA {line.period} · target {line.target_frequency}/yr"
         if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
             label += " · saved previously; outside current search limit"
         title = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
         active = (self.model.result is not None and self.model.result.period == line.period
                   and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
-        swatch = LegendSymbol(self.chart.period_color(line.period, active))
+        swatch = LegendSymbol(saved_color(self.model.store.color_index(line.counter,line.scenario,line.period)))
         title.add_widget(swatch)
         title_label = Button(text=label, color=TEXT, font_size=sp(13), halign="left",
                              background_normal="", background_down="", background_color=(0,0,0,0))
@@ -1312,7 +1347,7 @@ class AnalyzerScreen(FloatLayout):
             identity = SecurityIdentity(security_by_key(line.counter), logo_size=dp(20),
                                          height=dp(32), font_size=sp(12))
             entry.add_widget(identity)
-            entry.add_widget(WrappedLabel(text=f"{line.scenario} · SMA {line.period} · target {line.target_frequency}/yr",
+            entry.add_widget(WrappedLabel(text=f"SMA {line.period} · target {line.target_frequency}/yr",
                                            color=MUTED, font_size=sp(12)))
             restore = LabButton(text="Restore saved line")
             restore.bind(on_release=lambda _, entry=line: self.restore_unsaved(entry))
@@ -1410,7 +1445,7 @@ class AnalyzerScreen(FloatLayout):
     def _build_api_settings(self):
         panel = Panel()
         self.settings_content.add_widget(panel)
-        panel.add_widget(WrappedLabel(text=f"YAHOO FINANCE · PRIVATE TEST · {APP_VERSION}", bold=True))
+        panel.add_widget(WrappedLabel(text=f"DATA CONNECTION · {APP_VERSION}", bold=True))
         panel.add_widget(WrappedLabel(
             text="Requests run on launch or your actions. Downloaded history survives closing the app. "
                  "Background fetching and notification delivery are not enabled in this data test.",
@@ -1418,7 +1453,7 @@ class AnalyzerScreen(FloatLayout):
         self.api_status = WrappedLabel(text="No data request completed yet.", color=MUTED, font_size=sp(12))
         panel.add_widget(self.api_status)
         for title, name, callback in (
-            ("Check Yahoo connection", "api_check_button", lambda _: self.check_yahoo_source(force=True)),
+            ("Check data connection", "api_check_button", lambda _: self.check_yahoo_source(force=True)),
             ("Refresh selected prices", "api_refresh_button", lambda _: self.refresh_current_prices()),
             ("Refresh all selected history", "api_full_button", lambda _: self.refresh_current_prices(full=True)),
             ("View data request log", "api_log_button", self.show_api_log),
@@ -1436,7 +1471,7 @@ class AnalyzerScreen(FloatLayout):
         operations = self.model.data_provider.cache.operations(1)
         if operations:
             at, operation, symbol, status, detail = operations[0]
-            self.api_status.text = (f"Last event: {operation} · {symbol} · {status}\n"
+            self.api_status.text = display_text(f"Last event: {operation} · {symbol} · {status}\n"
                                     f"{datetime.fromtimestamp(at, SGT):%Y-%m-%d %H:%M:%S} SGT"
                                     + (f"\n{detail}" if detail else ""))
             self.api_status.color = ERROR if status in ("failed","stale","deferred") else MUTED
@@ -1457,12 +1492,12 @@ class AnalyzerScreen(FloatLayout):
         try:
             success, warning = future.result()
         except Exception:
-            success, warning = False, "Unable to check Yahoo from this device. Saved data remains available."
-        self.source_warning.text = "" if success else warning
+            success, warning = False, "Unable to check the data connection from this device. Saved data remains available."
+        self.source_warning.text = "" if success else display_text(warning)
         self._refresh_saved()
         # Startup success stays quiet. Explicit tests have a result in Settings.
         if explicit and success:
-            self.api_status.text = "Yahoo price-data check succeeded."
+            self.api_status.text = "Data connection check succeeded."
         self._update_api_status()
 
     def refresh_current_prices(self, *_, full=False):
@@ -1470,7 +1505,7 @@ class AnalyzerScreen(FloatLayout):
             return
         data, result = self.model.dataset, self.model.result
         if getattr(data, "is_simulated", True) or not data.prices:
-            self.api_status.text = "Select a Yahoo security first. The guided example and older demo saves stay simulated."
+            self.api_status.text = "Select a company first to load its daily price history."
             return
         self._history_token += 1
         token = self._history_token
@@ -1504,10 +1539,10 @@ class AnalyzerScreen(FloatLayout):
             warning = getattr(self.model.data_provider, "last_warning", "")
             if not data.stale:
                 self.source_warning.text = ""
-            self.api_status.text = warning or f"History refreshed through {data.dates[-1]}. Selected SMA period is unchanged."
+            self.api_status.text = display_text(warning) if warning else f"History refreshed through {data.dates[-1]}. Selected SMA period is unchanged."
             self.message(self.api_status.text, bool(warning), quiet=not warning)
         except (ValueError, RuntimeError, OSError, sqlite3.Error) as error:
-            self.api_status.text = str(error)
+            self.api_status.text = display_text(error)
         self._update_api_status()
 
     def show_api_log(self, *_):
@@ -1516,22 +1551,45 @@ class AnalyzerScreen(FloatLayout):
         self.api_log_status = WrappedLabel(text="Copy this report to share an error. HTTP rows show network requests; CACHE rows send none.",
                                            color=MUTED,font_size=sp(11))
         content.add_widget(self.api_log_status)
-        self.api_log_text = EditingField(readonly=True,multiline=True,font_size=sp(12),
-                                         foreground_color=TEXT,background_color=(.08,.12,.18,1))
-        content.add_widget(self.api_log_text)
+        self.api_log_limit = 100
+        self.api_log_scroll = ScrollView(do_scroll_x=False,bar_width=dp(4),scroll_type=["content","bars"])
+        self.api_log_entries = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(8))
+        self.api_log_entries.bind(minimum_height=self.api_log_entries.setter("height"))
+        self.api_log_scroll.add_widget(self.api_log_entries)
+        content.add_widget(self.api_log_scroll)
         def refresh(*_):
-            self.api_log_text.text = diagnostic_report(
+            self._reset_scroll(self.api_log_scroll)
+            self.api_log_report = diagnostic_report(
                 self.model.data_provider.cache,platform,
                 getattr(self.model.data_provider,"transport_name","Test transport"),
-                self.model.dataset)
+                self.model.dataset,limit=self.api_log_limit,public_view=True)
+            self.api_log_entries.clear_widgets()
+            # Separate small textures avoid the GPU size limit of one giant label.
+            for block in self.api_log_report.split("\n\n"):
+                card = Panel()
+                card.add_widget(WrappedLabel(text=block,font_size=sp(11)))
+                self.api_log_entries.add_widget(card)
+            self.api_log_scroll.scroll_y = 1
+        def older(*_):
+            previous_limit = self.api_log_limit
+            self.api_log_limit += 100
+            refresh()
+            cards = list(reversed(self.api_log_entries.children))
+            if len(cards)>previous_limit+1:
+                first_older = cards[previous_limit+1]
+                def reveal(*_):
+                    if first_older.parent is self.api_log_entries:
+                        self.api_log_scroll.scroll_to(first_older,padding=dp(4),animate=False)
+                Clock.schedule_once(reveal,.1)
         def copy(*_):
             try:
                 from kivy.core.clipboard import Clipboard
-                Clipboard.copy(self.api_log_text.text)
+                Clipboard.copy(self.api_log_report)
                 self.api_log_status.text = "Report copied. Paste it into this chat with the action that failed."
             except Exception:
-                self.api_log_status.text = "Clipboard unavailable. Select the report text or share a screenshot."
-        for title, callback in (("Copy diagnostic report",copy),("Refresh log (no API call)",refresh)):
+                self.api_log_status.text = "Clipboard unavailable. Share a screenshot of the relevant calls."
+        for title, callback in (("Copy diagnostic report",copy),("Refresh log (no API call)",refresh),
+                                ("Load older calls",older)):
             button = LabButton(text=title)
             button.bind(on_release=callback)
             content.add_widget(button)
@@ -1549,7 +1607,7 @@ class AnalyzerScreen(FloatLayout):
         content = BoxLayout(orientation="vertical", spacing=dp(8), padding=dp(12))
         content.add_widget(WrappedLabel(
             text="Clear downloaded prices and cached search results? Saved SMA parameters, company identities "
-                 "and preferences will remain. Opening a Yahoo saved line afterwards needs a download."))
+                 "and preferences will remain. Opening a saved line afterwards needs a download."))
         cancel, clear = LabButton(text="Cancel"), LabButton(text="Clear downloaded data")
         content.add_widget(cancel)
         content.add_widget(clear)
@@ -1677,7 +1735,7 @@ class AnalyzerScreen(FloatLayout):
         table = GridLayout(cols=3, size_hint_y=None, row_default_height=dp(30),
                            row_force_default=True,spacing=dp(3))
         table.bind(minimum_height=table.setter("height"))
-        for title in ("Session","Crossing price","SMA at cross"):
+        for title in (("Date" if self.yahoo_enabled else "Session"),"Crossing price","SMA at cross"):
             table.add_widget(Label(text=title,color=MUTED,font_size=sp(12)))
         for row in rows:
             for value in row:
@@ -1689,7 +1747,7 @@ class AnalyzerScreen(FloatLayout):
         if not hasattr(self, "backtest_period"):
             self.table_panel.add_widget(WrappedLabel(text="03  /  BACKTESTING · SELECTED SMA", font_size=sp(11), color=MUTED))
             self.backtest_header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(6))
-            self.backtest_heading = WrappedLabel(text="If you invested $100 for the past:", bold=True, font_size=sp(14))
+            self.backtest_heading = WrappedLabel(text="If you invested $100 per buy for the past:", bold=True, font_size=sp(14))
             self.backtest_heading.pos_hint = {"center_y": .5}
             self.backtest_header.add_widget(self.backtest_heading)
             self.backtest_period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
@@ -1705,6 +1763,8 @@ class AnalyzerScreen(FloatLayout):
             self.backtest_custom_row.add_widget(LabButton(text="Apply", on_release=self._refresh_backtest))
             self.backtest_custom_holder = BoxLayout(orientation="vertical", size_hint_y=None, height=0)
             self.table_panel.add_widget(self.backtest_custom_holder)
+            self.backtest_contribution = WrappedLabel(font_size=sp(13))
+            self.table_panel.add_widget(self.backtest_contribution)
             self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(11))
             self.table_panel.add_widget(self.backtest_details)
             self.backtest_values = {}
@@ -1738,6 +1798,13 @@ class AnalyzerScreen(FloatLayout):
                     difference.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(2)))
                     value_row.add_widget(difference)
                     self.backtest_differences[key] = difference
+                else:
+                    self.backtest_gain_icon = IconSymbol(kind="gain",size_hint=(None,None),
+                                                        size=(dp(18),dp(24)),pos_hint={"center_y":.5})
+                    value_row.add_widget(self.backtest_gain_icon)
+                    self.backtest_gain = Label(text="",size_hint_x=None,font_size=sp(12),color=PRICE_COLOR)
+                    self.backtest_gain.bind(texture_size=lambda widget,size:setattr(widget,"width",size[0]+dp(2)))
+                    value_row.add_widget(self.backtest_gain)
                 row.add_widget(value_row)
                 self.backtest_values[key] = value
                 self.table_panel.add_widget(row)
@@ -1759,6 +1826,9 @@ class AnalyzerScreen(FloatLayout):
             self.backtest_years.focus = False
         self.backtest_custom_holder.height = dp(44) if custom else 0
         self.backtest_report = None
+        self.backtest_contribution.text = ""
+        self.backtest_gain.text = ""
+        self.backtest_gain_icon.opacity = 0
         self.crossing_details_button.disabled = self.model.result is None
         for value in self.backtest_values.values():
             value.text = "—"
@@ -1772,22 +1842,36 @@ class AnalyzerScreen(FloatLayout):
         try:
             data, result = self.model.dataset, self.model.result
             dates = data.dates if not getattr(data, "is_simulated", True) else None
-            self.backtest_heading.text = (f"If you invested {data.currency} 100 for the past:"
-                                          if dates else "If you invested $100 for the past:")
+            self.backtest_heading.text = ("If you invested USD 100 per buy for the past:"
+                                          if dates else "If you invested $100 per buy for the past:")
             sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices), dates)
             report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
             self.backtest_report = report
             count = len(report.crossings.indices)
             self._set_backtest_captions(count)
-            self.backtest_details.text = (f"Simulated dates: {data.dates[report.start]} - {data.dates[report.end]}\n"
-                "Percentages compare ending values with scenario a.")
+            from datetime import date
+            years = ((date.fromisoformat(data.dates[report.end])-date.fromisoformat(data.dates[report.start])).days/365.2425
+                     if dates else (report.end-report.start+1)/252)
+            prefix = "USD " if dates else "$"
+            self.backtest_contribution.text = (f"Over {years:.2f} years, following {count} upward crossings, "
+                f"you would have invested {prefix}{report.crossings.invested:,.0f} in total ({count} × {prefix}100).")
+            self.backtest_details.text = (f"Dates: {data.dates[report.start]} - {data.dates[report.end]}\n"
+                "Scenario a: change from total invested. Scenarios b and c: percentages compare ending values with scenario a."
+                + ("\nUSD comparison uses price returns; currency movements are excluded." if dates else ""))
+            gain = report.crossings.return_percent
+            if gain is not None:
+                self.backtest_gain_icon.kind = "gain" if gain>=0 else "loss"
+                self.backtest_gain_icon.opacity = 1
+                self.backtest_gain.text = f"{gain:+.2f}%"
+                self.backtest_gain.color = (.22,.94,.43,1) if gain>=0 else ERROR
+            else:
+                self.backtest_gain.text = "N/A"
             self.backtest_note.text = (
                 f"Scenario a's moving average strategy outperforms {report.outperformance_percent:.1f}% of all 500 random buy scenarios."
                 if report.outperformance_percent is not None else
                 "Scenario a's moving average strategy outperformance is N/A: no upward crossings in this period.")
             for key, value in self.backtest_values.items():
                 scenario = getattr(report, key)
-                prefix = f"{data.currency} " if dates else "$"
                 value.text = f"{prefix}{scenario.ending_value:,.2f}"
                 if key in self.backtest_differences:
                     percent = scenario.difference_percent(report.crossings)
@@ -1805,7 +1889,7 @@ class AnalyzerScreen(FloatLayout):
 
     def show_backtest_help(self, scenario):
         if scenario == "dca":
-            text = ("This scenario simulates the popular dollar cost averaging strategy. "
+            text = ("This scenario follows the popular dollar cost averaging strategy. "
                     "It invests $100 at the EOD price at the start of each of N equal periods, "
                     "including the start of the chosen period when N is 1.")
         else:
@@ -1838,7 +1922,7 @@ class AnalyzerScreen(FloatLayout):
         self.full_table_panel.clear_widgets()
         data, result = self.model.dataset, self.model.result
         self.full_table_panel.add_widget(WrappedLabel(
-            text=f"{data.counter} · {data.scenario} · SMA {result.period} · {result.crossing_count} upward crossings", bold=True))
+            text=f"{self.model.security(data.counter).name} · SMA {result.period} · {result.crossing_count} upward crossings", bold=True))
         self.full_crossover_table = self._crossing_table(self.model.event_rows())
         self.full_table_panel.add_widget(self.full_crossover_table)
         self._navigate("crossovers")
@@ -1851,6 +1935,9 @@ class AnalyzerScreen(FloatLayout):
         self.finish_editing()
         self._search_token += 1
         self._history_token += 1
+        self._guide_job += 1
+        self.chart._cancel_selection()
+        self.guide_chart._cancel_selection()
         self.market_executor.shutdown(wait=False, cancel_futures=True)
         self.executor.shutdown(wait=False, cancel_futures=True)
 

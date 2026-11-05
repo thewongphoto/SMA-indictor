@@ -60,9 +60,10 @@ class MobileYahooSmoke(YahooSmoke):
         ui=self.screen
         calls=len(self.client.calls)
         ui.show_api_log()
-        assert "Yahoo HTTPS" in ui.api_log_text.text
-        assert "HTTP 200" in ui.api_log_text.text
-        assert "cache_hit" in ui.api_log_text.text
+        assert "Market data HTTPS" in ui.api_log_report
+        assert "yahoo" not in ui.api_log_report.lower()
+        assert "HTTP 200" in ui.api_log_report
+        assert "cache_hit" in ui.api_log_report
         copy=next(w for w in ui.api_log_popup.content.children
                   if getattr(w,"text","")=="Copy diagnostic report")
         refresh=next(w for w in ui.api_log_popup.content.children
@@ -70,7 +71,8 @@ class MobileYahooSmoke(YahooSmoke):
         with patch("kivy.core.clipboard.Clipboard.copy") as clipboard:
             copy.dispatch("on_release")
             clipboard.assert_called_once()
-            assert "SMA Stock Analyzer 0.8.0" in clipboard.call_args.args[0]
+            from sma_analyzer.version import APP_VERSION
+            assert f"SMA Stock Analyzer {APP_VERSION}" in clipboard.call_args.args[0]
         refresh.dispatch("on_release")
         assert len(self.client.calls)==calls
         ui.api_log_popup.dismiss()

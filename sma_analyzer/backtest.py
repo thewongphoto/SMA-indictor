@@ -57,6 +57,10 @@ class InvestmentScenario:
         return len(self.indices) * 100.0
 
     @property
+    def return_percent(self):
+        return (self.ending_value/self.invested-1)*100 if self.invested else None
+
+    @property
     def average_price(self):
         return math.fsum(self.entry_prices) / len(self.entry_prices) if self.entry_prices else None
 
@@ -145,7 +149,7 @@ def compare_investments(prices, sma, events, sessions, dates=None):
                       key=lambda event: event.index)
     count = len(selected)
     if count > len(eligible) or len({event.index for event in selected}) != count:
-        raise ValueError("Each simulated session can have at most one upward crossing.")
+            raise ValueError("Each session can have at most one upward crossing.")
 
     def investment(indices, entry_prices=None):
         entries = tuple(prices[i] for i in indices) if entry_prices is None else tuple(entry_prices)

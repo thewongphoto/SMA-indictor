@@ -39,6 +39,11 @@
   subset; it does not import pandas/curl_cffi or launch desktop helpers.
   p4a installs generic modules with --no-deps, so buildozer.spec must list the
   complete requests dependency closure. Preserve app signing/package identity.
+- The Android UI iteration after 0.8.0 adds smooth pinch input, per-security SMA
+  colors, calendar axis labels, persistent analysis reuse, neutral visible data
+  labels and a scrolling request log. Its live guide must use downloaded history.
+  USD backtest values use quotation-price ratios, excluding currency movements;
+  do not imply that an FX conversion/history API has been integrated.
 - Keep authentication values and raw responses out of request logs. Record
   app actions, HTTP outcomes and cache hits separately and preserve log upgrades.
 
@@ -48,6 +53,7 @@
 - Offline UI: .venv/bin/python -m scripts.smoke_ui
 - Yahoo UI with synthetic transport: .venv/bin/python -m scripts.smoke_yahoo_ui
 - Mobile JSON/UI fixtures: .venv/bin/python -m scripts.smoke_mobile_yahoo_ui
+- Gesture/live-screen refinements: .venv/bin/python -m scripts.smoke_ui_refinements
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

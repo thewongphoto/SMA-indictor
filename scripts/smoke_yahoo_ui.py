@@ -102,7 +102,8 @@ class YahooSmoke(App):
         assert ui.model.result is not None, ui.status.text
         assert ui.manager.current=="results"
         assert ui.plot_title.security.name=="Apple Inc."
-        assert "YAHOO EOD" in ui.plot_subtitle.text
+        assert "USD daily close" in ui.plot_subtitle.text
+        assert "yahoo" not in ui.plot_subtitle.text.lower()
         ui.chart.set_timeline("Max")
         assert tuple(ui.chart.view_range)==(0,1699)
         self.checked("long-history optimization and full MAX chart")

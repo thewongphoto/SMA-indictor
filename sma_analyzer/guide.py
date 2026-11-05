@@ -16,14 +16,14 @@ RECOVERY_HELP = (
 RISK_HELP = (
     "It does not guarantee a recovery or stop an investment falling after a buy. "
     "SMAs lag prices, and false crossings can be followed by renewed declines. "
-    "This three-year simulated chart deliberately includes reversals as well as recoveries."
+    "Inspect the chart for reversals as well as recoveries."
 )
 COMPARISON_HELP = (
     "Choose a crossing frequency to see its SMA and investment-return comparisons. "
     "The optimizer matches crossing frequency, not profit. The comparisons use "
     "$100 per buy: a. upward crossings; b. equal-period buys; c. the most common "
     "of 500 random-buy scenarios, with the same number of buys in each. "
-    "These are simulations, not forecasts."
+    "These comparisons are estimates, not forecasts."
 )
 
 
@@ -35,13 +35,16 @@ def lesson_dataset():
 
 @dataclass(frozen=True)
 class Lesson:
-    dataset: Dataset
+    dataset: object
     result: object
     report: object
 
 
-def calculate_lesson(target):
-    data = lesson_dataset()
+def calculate_lesson(target, data=None):
+    data = data if data is not None else lesson_dataset()
     result = optimize_sma(data.prices, target)
-    report = compare_investments(data.prices, result.sma, result.events, len(data.prices))
+    from .backtest import period_sessions
+    dates = data.dates if not getattr(data, "is_simulated", True) else None
+    sessions = period_sessions("3Y", "", len(data.prices), dates)
+    report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
     return Lesson(data, result, report)

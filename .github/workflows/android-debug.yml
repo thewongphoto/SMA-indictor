@@ -49,6 +49,7 @@ jobs:
           xvfb-run -a python -m scripts.smoke_ui 2>&1 | tee artifacts/ui-smoke.log
           xvfb-run -a python -m scripts.smoke_ui --library-flow-only 2>&1 | tee artifacts/ui-library-flow.log
           xvfb-run -a python -m scripts.smoke_mobile_yahoo_ui 2>&1 | tee artifacts/mobile-yahoo-ui.log
+          xvfb-run -a python -m scripts.smoke_ui_refinements 2>&1 | tee artifacts/ui-refinements.log
       - name: Reuse debug signing identity
         uses: actions/cache@v4
         with:
@@ -93,3 +94,5 @@ jobs:
             artifacts/ui-library-flow.json
             artifacts/mobile-yahoo-ui.log
             artifacts/mobile-yahoo-ui-smoke.json
+            artifacts/ui-refinements.log
+            artifacts/ui-refinements-smoke.json

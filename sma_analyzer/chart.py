@@ -1,8 +1,11 @@
 """Native Kivy canvas chart: no browser, Matplotlib, or platform-specific widget."""
 import math
+from collections import OrderedDict
+from kivy.clock import Clock
 
 from kivy.core.text import Label as CoreLabel
-from kivy.graphics import Color, Line, Rectangle, Ellipse, RoundedRectangle, PushMatrix, PopMatrix, Rotate
+from kivy.graphics import (Color, Line, Rectangle, Ellipse, RoundedRectangle, PushMatrix,
+                          PopMatrix, Rotate, StencilPush, StencilUse, StencilUnUse, StencilPop)
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, ListProperty, StringProperty
 from kivy.uix.scrollview import ScrollView
@@ -10,6 +13,8 @@ from kivy.uix.widget import Widget
 
 from .engine import crossover_events
 from .viewport import ChartViewport
+from .axis import date_ticks
+from .palette import line_color as palette_color
 
 PRICE_COLOR = (0.30, 0.87, 0.77, 1)
 ACTIVE_COLOR = (1.0, 0.74, 0.36, 1)
@@ -72,10 +77,19 @@ class PriceChart(Widget):
         self._touches = []
         self._pinch = None
         self._pinch_finished = False
+        self._positions = {}
+        self._pinch_clock = None
+        self._display_limits = None
+        self._smooth_limits = False
+        self._textures = OrderedDict()
+        self.axis_ticks = ()
+        self._redraw_trigger = Clock.create_trigger(self.redraw,0)
         self.bind(pos=self.redraw, size=self.redraw)
 
     @staticmethod
     def line_color(line, index):
+        if line.color_index is not None:
+            return palette_color(line.color_index)
         return PriceChart.period_color(line.period, line.active)
 
     @staticmethod
@@ -95,6 +109,7 @@ class PriceChart(Widget):
         self.marker_events = {line.key: crossover_events(self.prices, line.sma) for line in self.series}
         if changed:
             self._cancel_selection()
+            self._display_limits = None
             self.viewport.reset(len(self.prices))
             self.viewport.show_timeline("1Y")
             self.timeline = "1Y"
@@ -108,6 +123,7 @@ class PriceChart(Widget):
     def set_timeline(self, label):
         self._cancel_selection()
         self.viewport.show_timeline(label)
+        self._display_limits = None
         self.timeline = label
         self._sync_view()
         self.redraw()
@@ -128,6 +144,7 @@ class PriceChart(Widget):
     def reset_zoom(self, *_):
         self._cancel_selection()
         self.viewport.reset()
+        self._display_limits = None
         self._sync_view()
         self.redraw()
 
@@ -135,14 +152,20 @@ class PriceChart(Widget):
         for touch in self._touches:
             touch.ungrab(self)
         self._touches = []
+        self._positions.clear()
         self._pinch = None
         self._pinch_finished = False
         self.inspection = None
+        if self._pinch_clock is not None:
+            self._pinch_clock.cancel()
+            self._pinch_clock = None
+        self._redraw_trigger.cancel()
+        self._smooth_limits = False
 
     def _inspect(self, x):
         start, end = self.viewport.bounds
         index = round(self._index_at_x(x))
-        valid = [i for i in range(start, end + 1)
+        valid = [i for i in range(max(0,math.ceil(start)), min(len(self.prices),math.floor(end)+1))
                  if self.prices[i] is not None and math.isfinite(self.prices[i])]
         if not valid:
             self.inspection = None
@@ -165,15 +188,20 @@ class PriceChart(Widget):
         if self.viewport.y_limits(self.prices) is None:
             return False
         self._touches.append(touch)
+        self._positions[touch.uid] = (touch.x,touch.y)
         touch.grab(self)
         if len(self._touches) == 1:
             self._pinch_finished = False
             self._inspect(touch.x)
         else:
-            first, second = self._touches
-            midpoint = (first.x + second.x) / 2
-            distance = math.hypot(first.x - second.x, first.y - second.y)
-            self._pinch = (self.viewport.bounds, self._index_at_x(midpoint), max(dp(6), distance))
+            first, second = [self._positions[item.uid] for item in self._touches]
+            midpoint = (first[0]+second[0])/2
+            distance = math.dist(first,second)
+            self._pinch = dict(bounds=self.viewport.bounds,anchor=self._index_at_x(midpoint),
+                               distance=max(dp(12),distance),log_scale=0.,midpoint=midpoint,
+                               ready=distance>=dp(12))
+            self._smooth_limits = True
+            self._pinch_clock = Clock.schedule_interval(self._advance_pinch,0)
             self.inspection = None
         self.redraw()
         return True
@@ -181,19 +209,40 @@ class PriceChart(Widget):
     def on_touch_move(self, touch):
         if touch in self._touches:
             if touch.grab_current is self:
+                # Store both samples in chart coordinates. Another touch object's
+                # current x/y may already have been restored to window coordinates.
+                self._positions[touch.uid] = (touch.x,touch.y)
                 if len(self._touches) == 2 and self._pinch is not None:
-                    first, second = self._touches
-                    bounds, anchor, initial_distance = self._pinch
-                    distance = max(dp(1), math.hypot(first.x-second.x, first.y-second.y))
-                    left, _, width, _ = self.plot_rect
-                    fraction = min(1, max(0, ((first.x+second.x)/2-left)/width))
-                    self.viewport.pinch(bounds, anchor, fraction, distance/initial_distance)
-                    self._sync_view()
+                    pass  # One coalesced input/paint update at the next display frame.
                 elif not self._pinch_finished:
                     self._inspect(touch.x)
-                self.redraw()
+                    self._redraw_trigger()
             return True
         return super().on_touch_move(touch)
+
+    def _advance_pinch(self, dt):
+        if self._pinch is None or len(self._touches)!=2:
+            return False
+        first,second = [self._positions[item.uid] for item in self._touches]
+        state = self._pinch
+        distance = max(dp(2),math.dist(first,second))
+        if not state["ready"]:
+            if distance < dp(12):
+                return True
+            midpoint = (first[0]+second[0])/2
+            state.update(distance=distance,anchor=self._index_at_x(midpoint),
+                         midpoint=midpoint,ready=True)
+            return True
+        target = math.log(distance/state["distance"])
+        alpha = 1-math.exp(-min(.1,max(1/120,dt))/.04)
+        state["log_scale"] += (target-state["log_scale"])*alpha
+        state["midpoint"] += ((first[0]+second[0])/2-state["midpoint"])*alpha
+        left,_,width,_ = self.plot_rect
+        fraction = min(1,max(0,(state["midpoint"]-left)/width))
+        self.viewport.pinch(state["bounds"],state["anchor"],fraction,math.exp(state["log_scale"]))
+        self._sync_view()
+        self.redraw()
+        return True
 
     def on_touch_up(self, touch):
         if touch in self._touches:
@@ -201,23 +250,38 @@ class PriceChart(Widget):
                 if self._pinch is not None:
                     self._pinch_finished = True
                     self._pinch = None
+                    if self._pinch_clock:
+                        self._pinch_clock.cancel()
+                        self._pinch_clock = None
                 elif not self._pinch_finished:
                     self._inspect(touch.x)
                 touch.ungrab(self)
                 self._touches.remove(touch)
+                self._positions.pop(touch.uid,None)
                 self.redraw()
             return True
         return super().on_touch_up(touch)
 
+    def _texture(self,text,color=MUTED):
+        key = (text,tuple(color),sp(10))
+        if key not in self._textures:
+            label = CoreLabel(text=text,font_size=sp(10),color=color)
+            label.refresh()
+            self._textures[key] = label.texture
+            if len(self._textures)>256:
+                self._textures.popitem(last=False)
+        self._textures.move_to_end(key)
+        return self._textures[key]
+
     def _text(self, text, x, y, color=MUTED, center=False):
-        label = CoreLabel(text=text, font_size=sp(10), color=color)
-        label.refresh()
-        width, height = label.texture.size
+        texture = self._texture(text,color)
+        width,height = texture.size
         Color(1, 1, 1, 1)
-        Rectangle(texture=label.texture, pos=(x - width / 2 if center else x, y), size=(width, height))
+        Rectangle(texture=texture, pos=(x - width / 2 if center else x, y), size=(width, height))
 
     def redraw(self, *_):
         self.canvas.clear()
+        self.axis_ticks = ()
         with self.canvas:
             if not self.prices or not any(p is not None for p in self.prices):
                 self._text("No prices loaded. Choose a security to begin.",
@@ -230,6 +294,16 @@ class PriceChart(Widget):
                            self.center_x, self.center_y, center=True)
                 return
             low, high = limits
+            if self._smooth_limits and self._display_limits:
+                old_low,old_high = self._display_limits
+                tolerance = max(1e-7,(high-low)*.001)
+                if max(abs(old_low-low),abs(old_high-high))>tolerance:
+                    low,high = old_low+(low-old_low)*.4,old_high+(high-old_high)*.4
+                    if self._pinch is None:
+                        self._redraw_trigger()
+                elif self._pinch is None:
+                    self._smooth_limits = False
+            self._display_limits = (low,high)
             start, end = self.viewport.bounds
 
             def point(index, price):
@@ -243,15 +317,16 @@ class PriceChart(Widget):
                 Line(points=[left, y, left + width, y], width=dp(0.6))
                 value = low + fraction * (high - low)
                 self._text(f"{value:.2f}" if high - low < 5 else f"{value:.0f}", self.x + dp(12), y - dp(6))
-            ticks = 6 if width >= dp(550) else 3
-            for index in sorted({round(start + (end - start) * n / (ticks - 1)) for n in range(ticks)}):
-                x, _ = point(index, low)
+            self.axis_ticks = date_ticks(self.dates,start,end,width,
+                                         lambda label:self._texture(label).size[0],dp(10))
+            for tick in self.axis_ticks:
+                x, _ = point(tick.index, low)
                 Color(0.13, 0.18, 0.24, 1)
                 Line(points=[x, bottom, x, bottom + height], width=dp(0.5))
-                self._text(str(index + 1), x, self.y + dp(20), center=True)
+                self._text(tick.label,left+tick.center,self.y+dp(20),center=True)
             Color(*MUTED)
             Line(points=[left, bottom + height, left, bottom, left + width, bottom], width=dp(0.6))
-            self._text("Session", left + width / 2, self.y, center=True)
+            self._text("Date", left + width / 2, self.y, center=True)
             PushMatrix()
             Rotate(angle=90, origin=(self.x + dp(3), bottom + height / 2))
             self._text("Price", self.x + dp(3), bottom + height / 2, center=True)
@@ -260,7 +335,7 @@ class PriceChart(Widget):
             def draw_series(values, color, thickness):
                 points = []
                 Color(*color)
-                for index in range(start, min(end + 1, len(values))):
+                for index in range(max(0,math.floor(start)), min(math.ceil(end)+1, len(values))):
                     value = values[index]
                     if value is None or not math.isfinite(value):
                         if len(points) >= 4:
@@ -271,6 +346,9 @@ class PriceChart(Widget):
                 if len(points) >= 4:
                     Line(points=points, width=thickness)
 
+            StencilPush()
+            Rectangle(pos=(left,bottom),size=(width,height))
+            StencilUse()
             draw_series(self.prices, PRICE_COLOR, dp(1.2))
             for index, line in enumerate(self.series):
                 color = self.line_color(line, index)
@@ -280,6 +358,9 @@ class PriceChart(Widget):
                         continue
                     x, y = point(event.plot_index, event.price)
                     draw_plus(x, y, dp(5), color)
+            StencilUnUse()
+            Rectangle(pos=(left,bottom),size=(width,height))
+            StencilPop()
 
             if self.inspection is not None:
                 info = self.inspection
@@ -291,7 +372,7 @@ class PriceChart(Widget):
                     Color(*PRICE_COLOR)
                     Ellipse(pos=(x-dp(3), y-dp(3)), size=(dp(6), dp(6)))
                     sma = "Unavailable (warm-up/gap)" if info["sma"] is None else f'{info["sma"]:.4f}'
-                    caption = f'Simulated date: {info["date"]}\nEOD: {info["price"]:.4f}\n'
+                    caption = f'Date: {info["date"]}\nEOD: {info["price"]:.4f}\n'
                     caption += f'SMA {info["period"]}: {sma}' if info["period"] else 'SMA: optimize first'
                     label = CoreLabel(text=caption, font_size=sp(10), color=(0.94, 0.97, 1, 1),
                                       text_size=(min(dp(205), self.width-dp(20)), None))

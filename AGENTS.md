@@ -46,6 +46,12 @@
   do not imply that an FX conversion/history API has been integrated.
 - Keep authentication values and raw responses out of request logs. Record
   app actions, HTTP outcomes and cache hits separately and preserve log upgrades.
+- Live charts, SMA signals, lessons and return comparisons use dividend/split
+  **Adj Close**. Fetch/store Close and corporate actions too, but never fill a
+  missing adjustment with ordinary Close or add cash dividends on top of the
+  adjusted-return calculation. A dividend/revision requires a full resync to
+  keep historical adjustment factors consistent. Reuse legacy cached Adj Close
+  only when complete; otherwise fetch MAX without deleting saved SMA parameters.
 
 ## Useful checks
 

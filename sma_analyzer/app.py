@@ -335,7 +335,9 @@ class AnalyzerScreen(FloatLayout):
         self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
         self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
-        plot_panel.add_widget(WrappedLabel(text="Drag one finger to inspect EOD prices. Pinch with two fingers to zoom in/out.", font_size=sp(11), color=MUTED))
+        plot_panel.add_widget(WrappedLabel(text="Drag one finger to inspect "
+            + ("adjusted daily prices." if self.yahoo_enabled else "EOD prices.")
+            + " Pinch with two fingers to zoom in/out.",font_size=sp(11),color=MUTED))
         legend_holder = AnchorLayout(size_hint_y=None, height=dp(24))
         self.legend = StackLayout(size_hint=(None, None), spacing=(dp(12), dp(2)))
         self.legend.bind(minimum_height=self.legend.setter("height"))
@@ -401,7 +403,7 @@ class AnalyzerScreen(FloatLayout):
         self.settings_scroll.bind(size=self.keep_editor_visible)
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
-                 + ("Comparisons use estimated crossing fills and exclude cash dividends, fees and taxes. "
+                 + ("Comparisons use dividend/split-adjusted prices and estimated crossing fills. Fees, taxes and currency movements are excluded. "
                   "Displayed market prices are historical." if self.yahoo_enabled else
                   "Educational example only; 252 sessions represent one trading year."),
             color=MUTED, font_size=sp(11)))
@@ -521,7 +523,8 @@ class AnalyzerScreen(FloatLayout):
         self.guide_chart = PriceChart(size_hint_y=None,height=dp(280))
         self.guide_scroll.chart = self.guide_chart
         self.guide_content.add_widget(self.guide_chart)
-        self.guide_content.add_widget(WrappedLabel(text="Turquoise daily close · amber SMA/plus crossings. Drag to inspect; pinch to zoom.",color=MUTED,font_size=sp(11)))
+        self.guide_content.add_widget(WrappedLabel(text=("Turquoise adjusted close (dividends included)" if self.yahoo_enabled
+            else "Turquoise example close") + " · amber SMA/plus crossings. Drag to inspect; pinch to zoom.",color=MUTED,font_size=sp(11)))
         self.guide_content.add_widget(WrappedLabel(text=COMPARISON_HELP,color=MUTED))
         self.guide_values = WrappedLabel(text="",bold=True)
         self.guide_content.add_widget(self.guide_values)
@@ -562,7 +565,8 @@ class AnalyzerScreen(FloatLayout):
             result,report = lesson.result,lesson.report
             self.guide_chart.update(lesson.dataset.prices,
                 [PlotLine("guide",result.period,result.target_frequency,result.sma,True)],
-                lesson.dataset.dates,(result.period,result.sma),calendar_dates=self.yahoo_enabled)
+                lesson.dataset.dates,(result.period,result.sma),calendar_dates=self.yahoo_enabled,
+                price_label="Adj. close" if self.yahoo_enabled else "EOD")
             self.guide_chart.set_timeline("3Y" if "3Y" in available_timelines(
                 len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
             name = self.model.security(lesson.dataset.counter).name if self.yahoo_enabled else "Educational example"
@@ -1142,10 +1146,10 @@ class AnalyzerScreen(FloatLayout):
         lines = self.model.plot_lines()
         self.chart.update(data.prices, lines, data.dates,
                           (self.model.result.period, self.model.result.sma) if self.model.result else None,
-                          calendar_dates=live)
+                          calendar_dates=live,price_label="Adj. close" if live else "EOD")
         self._refresh_chart_header()
         self.legend.clear_widgets()
-        close_label = f"close ({data.currency})" if live and data.prices else "close" if live else "example close"
+        close_label = f"adj. close ({data.currency})" if live and data.prices else "adj. close" if live else "example close"
         self.legend_labels = [close_label, "upward crossings"]
         def add_legend(text, color, plus=False):
             item = LegendItem(text, color, plus=plus)
@@ -1198,9 +1202,9 @@ class AnalyzerScreen(FloatLayout):
         if not getattr(data, "is_simulated", True) and data.prices:
             from .schedule import SGT
             fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
-            self.plot_subtitle.text = (f"{data.currency} daily close · {len(data.prices)} sessions\n"
+            self.plot_subtitle.text = (f"{data.currency} adjusted daily close · {len(data.prices)} sessions\n"
                                       f"Last close {data.dates[-1]} · fetched {fetched}\n"
-                                      "Crossing fills are daily-line estimates; cash dividends excluded.")
+                                      "Dividends/splits included; crossing fills are daily-line estimates.")
             if data.stale:
                 self.plot_subtitle.text += "\nSaved data · refresh pending or unavailable."
         elif not getattr(data, "is_simulated", True):
@@ -1857,7 +1861,7 @@ class AnalyzerScreen(FloatLayout):
                 f"you would have invested {prefix}{report.crossings.invested:,.0f} in total ({count} × {prefix}100).")
             self.backtest_details.text = (f"Dates: {data.dates[report.start]} - {data.dates[report.end]}\n"
                 "Scenario a: change from total invested. Scenarios b and c: percentages compare ending values with scenario a."
-                + ("\nUSD comparison uses price returns; currency movements are excluded." if dates else ""))
+                + ("\nDividends included through adjusted prices; fees, taxes and currency movements are excluded." if dates else ""))
             gain = report.crossings.return_percent
             if gain is not None:
                 self.backtest_gain_icon.kind = "gain" if gain>=0 else "loss"
@@ -1890,7 +1894,8 @@ class AnalyzerScreen(FloatLayout):
     def show_backtest_help(self, scenario):
         if scenario == "dca":
             text = ("This scenario follows the popular dollar cost averaging strategy. "
-                    "It invests $100 at the EOD price at the start of each of N equal periods, "
+                    + ("It invests USD 100 at the dividend/split-adjusted daily close " if self.yahoo_enabled
+                       else "It invests $100 at the EOD price ") + "at the start of each of N equal periods, "
                     "including the start of the chosen period when N is 1.")
         else:
             text = ("This scenario assumes the most common average price of 500 different scenarios "

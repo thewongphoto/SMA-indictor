@@ -14,11 +14,42 @@ from .schedule import latest_due
 from .securities import Security, SECURITIES, normalize_query, register_security
 
 SCENARIO = "Yahoo EOD"
+PRICE_BASIS = "dividend-split-adjusted-close-v1"
 UTC = timezone.utc
 
 
 class MarketDataError(RuntimeError):
     pass
+
+
+def adjusted_prices(bars):
+    """Use provider Adj Close only, preserving genuine missing-session gaps.
+
+    Adj Close is also the Close column returned by yfinance auto_adjust=True.
+    Never substitute raw Close for an absent adjustment or add dividends again.
+    """
+    prices = []
+    for bar in bars:
+        close, adjusted = bar.get("close"), bar.get("adj_close")
+        if close is None:
+            prices.append(None)
+            continue
+        if any(isinstance(value,bool) or not isinstance(value,(int,float))
+               or not math.isfinite(value) or value<=0 for value in (close,adjusted)):
+            raise MarketDataError("Dividend-adjusted closing prices are missing or invalid. "
+                                  "Refresh all selected history or try again later; "
+                                  "unadjusted prices are not substituted.")
+        prices.append(adjusted)
+    return tuple(prices)
+
+
+def adjusted_history_available(bars):
+    if not bars:
+        return False
+    try:
+        return any(price is not None for price in adjusted_prices(bars))
+    except MarketDataError:
+        return False
 
 
 def public_error(error):
@@ -54,6 +85,7 @@ class HistoricalDataset:
     version: int = 1
     is_simulated: bool = False
     source: str = "yahoo"
+    price_basis: str = PRICE_BASIS
 
     @property
     def label(self):
@@ -77,6 +109,8 @@ class YFinanceClient:
 
     def history(self, symbol, **kwargs):
         ticker = self.yf.Ticker(symbol)
+        # Fetch both series in the same operation. Analysis uses Adj Close;
+        # retaining Close/actions lets us detect revisions and resync history.
         frame = ticker.history(interval="1d", auto_adjust=False, back_adjust=False,
                                actions=True, repair=False, prepost=False, keepna=True,
                                timeout=10, **kwargs)
@@ -245,15 +279,16 @@ class YahooMarketDataProvider:
         bars, fetched, revision = self.cache.history(security.key)
         if not bars:
             raise MarketDataError("No downloaded history is available for this security.")
-        return HistoricalDataset(security.key, tuple(b.get("close") for b in bars),
+        return HistoricalDataset(security.key, adjusted_prices(bars),
                                  tuple(b["date"] for b in bars), security.currency,
                                  security.timezone, fetched, revision, stale)
 
     def cached_data(self, security):
         _, fetched, _ = self.cache.history(security.key)
         stale = fetched is None or fetched < latest_due(security.region, self.now()).timestamp()
-        self.cache.operation("history",security.symbol,"cache_hit","Persisted saved chart; no HTTP request.")
-        return self._dataset(security, stale=stale)
+        data = self._dataset(security, stale=stale)
+        self.cache.operation("history",security.symbol,"cache_hit","Persisted dividend-adjusted chart; no HTTP request.")
+        return data
 
     def historical_data(self, security, scenario=None, force=False, full=False, strict=False):
         if security.provider != "yahoo":
@@ -261,11 +296,15 @@ class YahooMarketDataProvider:
         with self._lock:
             security = self.cache.security(security.key) or security
             old, fetched, _ = self.cache.history(security.key)
+            old_adjusted = adjusted_history_available(old)
             now = self.now()
             self.last_warning = ""
-            if old and not force and fetched >= latest_due(security.region, now).timestamp():
-                self.cache.operation("history",security.symbol,"cache_hit","Persisted daily history; no HTTP request.")
+            if old_adjusted and not force and fetched >= latest_due(security.region, now).timestamp():
+                self.cache.operation("history",security.symbol,"cache_hit","Persisted dividend-adjusted history; no HTTP request.")
                 return self._dataset(security)
+            # Older cache rows already contain both columns when available.
+            # Reuse complete adjustments locally; otherwise replace from MAX.
+            full = full or bool(old and not old_adjusted)
             kwargs = {"period": "max"}
             if old and not full:
                 kwargs = {"start": (date.fromisoformat(old[-1]["date"]) - timedelta(days=10)).isoformat()}
@@ -287,8 +326,6 @@ class YahooMarketDataProvider:
                 if not bars or (not old and sum(b.get("close") is not None for b in bars) < 4):
                     raise MarketDataError("Yahoo returned insufficient completed daily history.")
                 old_by_date = {b["date"]: b for b in old}
-                bars = [old_by_date[b["date"]] if b.get("close") is None and
-                        old_by_date.get(b["date"], {}).get("close") is not None else b for b in bars]
                 correction = any(
                     b["date"] in old_by_date and
                     (b.get("splits") != old_by_date[b["date"]].get("splits") or
@@ -304,21 +341,25 @@ class YahooMarketDataProvider:
                     bars = completed_bars(raw, security, metadata, now)
                     while bars and bars[-1].get("close") is None:
                         bars.pop()
-                    bars = [old_by_date[b["date"]] if b.get("close") is None and
-                            old_by_date.get(b["date"], {}).get("close") is not None else b for b in bars]
                     full = True
                 if not bars or (old and full and (bars[0]["date"] > old[0]["date"] or
                                                   bars[-1]["date"] < old[-1]["date"] or
                                                   not set(old_by_date).issubset({b["date"] for b in bars}))):
                     raise MarketDataError("Full refresh returned incomplete coverage; previous data is retained.")
+                if full and any(b.get("close") is None and old_by_date.get(b["date"],{}).get("close") is not None
+                                for b in bars):
+                    raise MarketDataError("Full refresh returned missing known closes; previous data is retained.")
+                # Validate before the transaction. Mixing old adjusted bars into
+                # a newly adjusted full series could mix dividend/split bases.
+                adjusted_prices(bars)
                 self.cache.merge_history(security, bars, now.timestamp(), replace=bool(full))
                 register_security(security)
                 return self._dataset(security)
             except Exception as error:
                 warning = str(error) if isinstance(error, MarketDataError) else public_error(error)
                 self.last_warning = warning
-                self.cache.operation("history-result", security.symbol, "stale" if old else "failed", warning)
-                if old and not strict:
+                self.cache.operation("history-result", security.symbol, "stale" if old_adjusted else "failed", warning)
+                if old_adjusted and not strict:
                     return self._dataset(security, stale=True)
                 raise MarketDataError(warning) from None
 

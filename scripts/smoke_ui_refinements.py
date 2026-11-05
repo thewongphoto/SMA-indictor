@@ -53,6 +53,8 @@ class RefinementSmoke(MobileYahooSmoke):
         assert ui.guide_lesson.dataset.counter=="YAHOO:SPY"
         assert ui.model.dataset.counter=="UNSELECTED"
         assert ui.guide_chart.viewport.dates==ui.guide_lesson.dataset.dates
+        assert ui.guide_chart.prices==tuple(b["adj_close"] for b in self.client.bars)
+        assert ui.guide_chart.price_label=="Adj. close"
         self.checked("live guided lesson downloads actual provider data without changing selection")
         ui.show_search()
         ui.security_search.text="apple"
@@ -187,7 +189,7 @@ class RefinementSmoke(MobileYahooSmoke):
         sg=ui.model.dataset
         ui.model.store.save(sg.counter,sg.scenario,9,6)
         ui.on_view_saved(ui.model.saved_lines()[0])
-        assert ui.model.dataset.currency=="SGD" and "SGD daily close" in ui.plot_subtitle.text
+        assert ui.model.dataset.currency=="SGD" and "SGD adjusted daily close" in ui.plot_subtitle.text
         assert ui.backtest_values["crossings"].text.startswith("USD ")
         assert "currency movements are excluded" in ui.backtest_details.text
         assert ui.model.store.color_index(sg.counter,sg.scenario,9)==0

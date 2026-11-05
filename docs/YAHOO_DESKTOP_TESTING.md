@@ -1,6 +1,6 @@
 # Private Yahoo desktop test
 
-**Android 0.9.0 is a separate private data/UI test.** Use
+**Android 0.9.1 is a separate private data/UI test.** Use
 [the Android/request-log guide](YAHOO_ANDROID_TESTING.md) for its mobile HTTPS
 adapter, artifact and copyable HTTP diagnostics. Desktop continues using the
 isolated Python yfinance transport described here.
@@ -53,11 +53,14 @@ not additional network operations.
 4. Results shows company logo/name, actual dates, quotation currency, last close
    and refresh time. The chart and backtest use calendar-year windows on Yahoo
    data; MAX includes every downloaded completed daily bar.
-5. Each comparison contributes USD 100 per buy and applies quotation-price
+5. Each comparison contributes USD 100 per buy and applies dividend-adjusted
    returns. USD and SGD quotations are supported; currency movements are excluded
    and no historical FX conversion is performed.
-   Yahoo Close is used with auto_adjust=False; Yahoo may still normalize for splits.
-   Cash dividends, fees, taxes and slippage are excluded.
+   **Adj Close** is used throughout, including dividend and split adjustments.
+   Returns approximate reinvested dividends. The desktop request retains
+   auto_adjust=False to fetch both Close and Adj Close in one operation; its
+   analysis prices equal the Close column produced by auto_adjust=True.
+   Cash dividends are not added again. Fees, taxes and slippage are excluded.
 6. Crossing prices remain interpolated intersections of daily line segments.
    These are estimates using confirming EOD data, not observed intraday fills or
    a promise that a live trade could have obtained those prices.
@@ -72,6 +75,15 @@ and prior preview guide describe that offline mode rather than historical prices
 Use `bash run-desktop.command --demo` to open the separate offline demo.
 
 ## Persistence and offline checks
+
+Complete cached Adj Close values are reused without a download, even if that
+history was saved by an earlier version. Missing/invalid adjusted values require
+a full-history download; the app never silently uses ordinary Close instead.
+Existing saved periods/colors remain fixed and their lines are recomputed on
+adjusted history. Unsaved optimization choices from the old price basis are
+invalidated. A failed adjustment refresh retains a complete prior adjusted
+revision when available. A legacy cache with no usable adjustments produces a
+visible error until a complete adjusted history can be downloaded.
 
 On macOS the normal launcher uses:
 

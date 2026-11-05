@@ -1,4 +1,4 @@
-"""Equal-budget desktop illustrations using simulated crossing and EOD prices."""
+"""Equal-budget return comparisons using one consistent daily price basis."""
 from bisect import bisect_left
 from dataclasses import dataclass
 import math
@@ -136,6 +136,8 @@ def compare_investments(prices, sma, events, sessions, dates=None):
     selected period, including dates before the selected SMA finishes warming up.
     Seeds 0..499 each sample N distinct dates. Percentile counts strictly higher
     random arithmetic average prices, exactly as requested (not ending returns).
+    Live callers supply Adj Close throughout; dividends must not be added again
+    to those dividend/split-adjusted price ratios.
     """
     if len(prices) != len(sma) or sessions < 1 or not prices:
         raise ValueError("A price/SMA history and a positive period are required.")

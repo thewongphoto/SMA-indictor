@@ -95,6 +95,8 @@ class YahooSmoke(App):
         assert ui.manager.current=="parameters", ui.search_status.text
         assert ui.model.dataset.counter=="YAHOO:AAPL"
         assert len(ui.model.dataset.prices)==1700
+        assert ui.model.dataset.prices==tuple(b["adj_close"] for b in self.client.bars)
+        assert ui.chart.prices==ui.model.dataset.prices
         assert ui.scenario_cell.parent is None
         self.checked("full real-date provider result and no fictional pattern controls")
         ui.on_optimize()
@@ -102,7 +104,9 @@ class YahooSmoke(App):
         assert ui.model.result is not None, ui.status.text
         assert ui.manager.current=="results"
         assert ui.plot_title.security.name=="Apple Inc."
-        assert "USD daily close" in ui.plot_subtitle.text
+        assert "USD adjusted daily close" in ui.plot_subtitle.text
+        assert "Dividends/splits included" in ui.plot_subtitle.text
+        assert ui.chart.price_label=="Adj. close"
         assert "yahoo" not in ui.plot_subtitle.text.lower()
         ui.chart.set_timeline("Max")
         assert tuple(ui.chart.view_range)==(0,1699)

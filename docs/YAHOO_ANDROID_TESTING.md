@@ -1,4 +1,4 @@
-# Android 0.9.0: market data and UI test
+# Android 0.9.1: dividend-inclusive prices and UI test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
@@ -10,13 +10,13 @@ loads SPY when no security has been selected. Visible app labels are provider-ne
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.9.0** / version **0.9.0**. A queued/running
+2. Open the run for tag **apk-v0.9.1** / version **0.9.1**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.9.0**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.9.1**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.
@@ -125,9 +125,26 @@ The error identifies availability from this device, not a confirmed global outag
 
 Older simulated saves are retained in storage but excluded from the Yahoo
 library/archive, so fictional lines cannot be interpreted as real investments.
-Return comparisons contribute USD 100 per buy and use quotation-price returns,
-estimated daily-line crossing fills and no cash dividends/fees/taxes or currency
-movements. They do not include historical FX conversion.
+Return comparisons contribute USD 100 per buy and use dividend/split-adjusted
+prices (the provider's Adj Close), approximating reinvested dividends. Cash
+dividends are not added again. Crossing fills remain daily-line estimates;
+fees, taxes and currency movements are excluded. There is no historical FX conversion.
+
+## Check dividend-inclusive prices
+
+- The chart subtitle says **adjusted daily close** and **Dividends/splits included**.
+  Its legend and inspector identify adjusted closes. The guided lesson uses the
+  same price basis.
+- Backtesting says dividends are included through adjusted prices. All three
+  scenarios and SMA crossing prices use the same series.
+- The request report records **dividend-split-adjusted-close-v1** as the price basis.
+- Existing cached Adj Close values are used locally if complete. Otherwise the
+  next selection/View requests MAX to fill them; saved periods and colors remain.
+  A missing adjustment produces a visible failure, never an ordinary-Close fallback.
+- When a new dividend, split or price revision changes adjustment factors, an
+  incremental request can be followed by a full-history resync. The complete
+  response is validated before replacing the previous cache, preventing a mixture
+  of old and new adjustment factors. A failed resync retains prior adjusted data.
 
 ## Check the UI refinements
 

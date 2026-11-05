@@ -29,7 +29,7 @@ def main():
                 data = provider.historical_data(security, force=args.refresh)
                 report["history"] = {"first":data.dates[0], "last":data.dates[-1],
                                      "sessions":len(data.prices), "currency":data.currency,
-                                     "stale":data.stale}
+                                     "stale":data.stale, "price_basis":data.price_basis}
     except MarketDataError as error:
         report["error"] = str(error)
     report["recent_operations"] = cache.operations(10)

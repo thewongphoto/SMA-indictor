@@ -191,7 +191,8 @@ class YahooJSONClient:
         return quotes
 
     def history(self, symbol, **options):
-        parameters = {"interval":"1d","events":"div,splits,capitalGains","includePrePost":"false"}
+        parameters = {"interval":"1d","events":"div,splits,capitalGains","includePrePost":"false",
+                      "includeAdjustedClose":"true"}
         if "start" in options:
             tz = ZoneInfo("Asia/Singapore" if symbol.upper().endswith(".SI") else "America/New_York")
             parameters["period1"] = int(datetime.fromisoformat(options["start"]).replace(tzinfo=tz).timestamp())

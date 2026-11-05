@@ -1,8 +1,10 @@
-# UI refinements for 0.9.0
+# UI refinements for 0.9.x
 
 These are screenshots of the implemented Kivy screens using **controlled test
 prices and HTTP responses**. The company names are real; the chart values and
 returns in these previews are test fixtures, not actual market results.
+Updated for 0.9.1: live charts and comparisons identify dividend/split-adjusted
+closes, and the HTTP fixtures deliberately supply different Close/Adj Close values.
 
 The selected icon is a thin mint magnifier with a small plus at the top right.
 It uses the app's own vector drawing so its appearance is consistent across

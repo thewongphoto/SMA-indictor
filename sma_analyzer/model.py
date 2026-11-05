@@ -72,7 +72,7 @@ class AnalyzerModel:
     def data_fingerprint(self):
         if self._fingerprint_cache is None or self._fingerprint_cache[0] is not self.dataset:
             data = self.dataset
-            payload = json.dumps((1,data.version,data.dates,
+            payload = json.dumps((2,data.version,getattr(data,"price_basis","example-close"),data.dates,
                 [float(p) if p is not None and math.isfinite(p) else None for p in data.prices]),
                 separators=(",",":"),allow_nan=False).encode()
             self._fingerprint_cache = (data,hashlib.sha256(payload).hexdigest())

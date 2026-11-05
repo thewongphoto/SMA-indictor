@@ -69,6 +69,7 @@ class MobileYahooTests(unittest.TestCase):
         self.assertEqual(len(bars),5)
         self.assertLess(session.calls[0][1]["params"]["period1"],0)
         self.assertNotIn("range",session.calls[0][1]["params"])
+        self.assertEqual(session.calls[0][1]["params"]["includeAdjustedClose"],"true")
         client.history("SPY",period="5d")
         self.assertEqual(session.calls[1][1]["params"]["range"],"5d")
 

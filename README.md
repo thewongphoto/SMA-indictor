@@ -1,9 +1,10 @@
 # SMA Stock Analyzer
 
-**Android 0.9.0 UI refinements:** smoother pinch zoom, stable SMA colors,
-calendar labels, cached analysis reuse and a scrollable request log. Read the
+**Android 0.9.1 dividend-inclusive prices:** charts, SMA signals and comparisons
+now use dividend/split-adjusted closes, with safe persistent-cache reuse. It also
+includes the 0.9.0 chart/library refinements. Read the
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_9_0.md). See the
+[release notes](docs/RELEASE_0_9_1.md). See the
 [GitHub preview screenshots](docs/design/ui-0.9/README.md), including the new
 search-plus icon. Notification/background tests remain deferred.
 
@@ -12,7 +13,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-does not enable background/notification delivery tests. Android 0.9.0 is
+does not enable background/notification delivery tests. Android 0.9.1 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

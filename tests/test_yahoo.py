@@ -157,10 +157,8 @@ class YahooTests(unittest.TestCase):
         self.assertFalse(data.stale)
         self.assertEqual(len(data.prices), 1700)
 
-    def test_new_split_resynchronizes_even_when_adjusted_close_is_unavailable(self):
+    def test_new_split_resynchronizes_full_adjusted_history(self):
         self.client.bars = bars_ending(count=10)
-        for bar in self.client.bars:
-            bar["adj_close"] = None
         security = self.apple()
         self.provider.historical_data(security)
         extra = dict(self.client.bars[-1],date="2026-11-05",splits=2.0)
@@ -305,6 +303,8 @@ class YahooTests(unittest.TestCase):
             self.assertEqual(options["interval"],"1d")
             self.assertFalse(options["auto_adjust"])
             self.assertFalse(options["repair"])
+            self.assertEqual(bars[0]["close"],100.)
+            self.assertEqual(bars[0]["adj_close"],99.)
             self.assertEqual(bars[-1]["date"],"2026-11-04")
             self.assertEqual(metadata["currency"],"USD")
             ticker.return_value.get_history_metadata.assert_called_once()

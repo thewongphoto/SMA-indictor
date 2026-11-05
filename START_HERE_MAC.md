@@ -88,7 +88,7 @@ overwrites an existing destination. Close older app copies first.
    beside **If you invested USD 100 per buy for the past:**. Each scenario buys N times:
    a at upward crossings, b at equal-period starts (DCA), and c using the most
    common whole-dollar average-price group among 500 random samples. Each
-   purchase contributes USD 100 to a price-return comparison; currency movements
+   purchase contributes USD 100 to a dividend-adjusted return comparison; currency movements
    are excluded. The total contributed appears above the scenarios. Ending
    values show a's percentage growth against that contribution, and b/c
    percentage differences relative to a. Click either circled **i** for help.
@@ -109,12 +109,13 @@ overwrites an existing destination. Close older app copies first.
    returns to the form. The backtesting panel's **View all upward crossings**
    button opens the full event list; its Back arrow returns to Results.
 
-Yahoo results use actual dates and show their currency, last close and fetch time.
-The optional guided example and older demo saves remain simulated. Crossing prices
-are interpolated from daily line segments, not observed intraday trades. The SMA
-optimizer matches a chosen crossing frequency rather than maximizing returns.
-The comparisons exclude cash dividends, fees and taxes. See the Yahoo testing
-guide for cache behavior and API limits.
+Results use actual dates and show quotation currency, adjusted close and fetch time.
+Live charts, SMAs, comparisons and the guided example use **Adj Close**, including
+dividend and split adjustments. Returns approximate reinvested dividends; fees,
+taxes and currency movements are excluded. Dividends are not added a second time.
+Crossing prices are interpolated from adjusted daily segments, not observed
+intraday trades. The SMA optimizer matches crossing frequency rather than
+maximizing returns. See the Yahoo testing guide for cache behavior and API limits.
 
 Close the window when finished. On later visits, repeat step 3 and run
 `bash run-desktop.command` again. That reuses this copy's environment and saves.

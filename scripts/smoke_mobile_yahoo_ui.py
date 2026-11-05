@@ -44,6 +44,11 @@ class MobileYahooSmoke(YahooSmoke):
     def build(self):
         root=Path(temporary.name)
         self.client=FakeYahooClient()
+        # Deliberately distinct Close/Adj Close so the live UI cannot pass by
+        # accidentally drawing the raw series. These remain fictional prices.
+        for bar in self.client.bars[:-100]:
+            bar["adj_close"] *= .97
+        self.client.bars[-100]["dividends"]=3.
         self.provider=create_provider(root,"android")
         self.cache=self.provider.cache
         self.provider.now=lambda:NOW

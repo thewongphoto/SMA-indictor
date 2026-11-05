@@ -123,6 +123,8 @@ bars = ticker.history(
 metadata = ticker.get_history_metadata()
 currency = metadata.get("currency")
 timezone = metadata.get("exchangeTimezoneName")
+# Current analysis policy: use the provider's dividend/split-adjusted series.
+analysis_prices = bars["Adj Close"]
 ```
 
 The directory and selection/query variables above belong to the future adapter.
@@ -131,22 +133,24 @@ In 1.8.0 the history `raise_errors` argument is deprecated in favor of the
 configuration shown above. A successful HTTP response with invalid or empty
 data still needs explicit handling.
 
-Recommended initial price policy: store both Yahoo **Close** and **Adj Close**
-when provided, use **Close** for the chart/SMA/price-return comparisons, and label
-the policy. `auto_adjust=False` avoids yfinance's default dividend adjustment;
-it does **not** establish that Close is the original unadjusted, as-traded price.
-Yahoo may already normalize prices for splits. Preserve corporate actions and
-the dataset revision, and resynchronize old prices when that basis changes.
+Current policy (0.9.1, requested by the owner): store **Close**, **Adj Close** and
+corporate actions; use **Adj Close** for every live chart, SMA, signal, lesson and
+comparison. `auto_adjust=False` deliberately retrieves both series together.
+The selected Adj Close values equal the Close column from auto_adjust=True.
+Never use ordinary Close as a replacement for a missing adjustment.
 
-Under this policy the ending values are price-only estimates, excluding cash
-dividends, fees, taxes and slippage. Using Adj Close instead would represent a
-different adjustment/return assumption and change the displayed historical prices.
-Do not silently mix the two series.
+Adjusted-price ratios approximate returns with reinvested dividends and include
+split adjustments. Do not add cash dividends again. Preserve dataset revisions
+and fully resynchronize historical factors when a dividend/split/revision is
+observed. Validate the full candidate before committing, and retain an existing
+complete adjusted revision if resynchronization fails. Never splice old adjusted
+observations into a full response using a changed adjustment basis.
 
-Show the actual quotation currency. The initial proposal is **100 units of that
-security's currency per buy** (e.g. USD 100 or SGD 100), with no FX conversion
-endpoint. Correct for provider quotation units such as pence if those securities
-are later supported. Do not present SGD prices as USD.
+Charts show the security's quotation currency. Comparisons contribute **USD 100**
+per buy and apply adjusted-price ratios; currency movements, fees, taxes and
+slippage are excluded. There is no FX conversion/history endpoint. This is a
+USD-normalized comparison, not an FX-converted portfolio. Correct for provider
+quotation units such as pence if those securities are later supported.
 
 EOD data cannot establish when a live intraday SMA crossing occurred or its
 executable price. The app's current crossing prices are intersections of straight
@@ -290,9 +294,9 @@ market histories, private exports or credentials to this repository.
 2. Supply a short priority test list of SGX/US securities and confirm whether
    stocks alone or ETFs too should appear in search. The examples above are a
    suitable initial test set; coverage must be checked against actual responses.
-3. Review the proposed **Close / price-only return** policy and **100 units of
-   quotation currency** convention before implementation. MAX covering all
-   available history is already confirmed.
+3. The owner requested **dividend-inclusive prices**, now implemented using
+   Adj Close. USD 100 per buy is a normalized comparison with FX movements
+   excluded. MAX covering all available history is already confirmed.
 4. For live tests in this cloud environment, enable the Yahoo destinations through
    the supported network configuration and publish that configuration to the
    environment. The active cloud policy currently permits package/GitHub access,

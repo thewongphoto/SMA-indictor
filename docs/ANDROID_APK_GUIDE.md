@@ -1,5 +1,12 @@
 # Build and test the Android app — beginner guide
 
+**0.8.0 Yahoo data test:** use [the current Android testing/request-log guide](YAHOO_ANDROID_TESTING.md).
+It covers the apk-v0.8.0 artifact, real-company searches, persistent caches,
+connection errors and copying a diagnostic report into this chat.
+Background fetching and notification-delivery tests remain deferred.
+The older notification/Gmail sections below are historical and do not describe
+this data-only test release.
+
 **Version 0.7.0:** the app launches into Library, uses the approved top-navigation
 flow and includes the three-year guide and company logo/name chart heading.
 Notifications remain phone-only. Email switches, recipient fields,
@@ -92,7 +99,7 @@ If installation says the app is incompatible, check that the phone supports
 64-bit ARM and Android 8+. If it says signatures do not match an existing app,
 read the signing note below before uninstalling anything.
 
-## Part 3 — test phone notifications
+## Part 3 — historical demo notification tests (not enabled in 0.8.0)
 
 1. From Library choose New analysis, search/select **DEMO-SGX**, then on
    Parameters expand **Custom** and choose **Sideways** with target **12 / year**.

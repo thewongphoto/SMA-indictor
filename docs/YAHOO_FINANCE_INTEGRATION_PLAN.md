@@ -1,5 +1,10 @@
 # Yahoo Finance integration plan
 
+**Android 0.8.0 update:** [the mobile data test](YAHOO_ANDROID_TESTING.md)
+implements search/chart HTTPS requests, persistent caches and request reporting
+without embedding the desktop yfinance native stack. Background execution and
+iOS packaging remain separate validation.
+
 **Implementation update, 5 November 2026:** interactive desktop search/history,
 persistent cache, full-history MAX, real dates/currency and startup diagnostics
 are implemented. See [the desktop testing guide](YAHOO_DESKTOP_TESTING.md) for

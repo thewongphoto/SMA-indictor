@@ -173,22 +173,56 @@ def optimize_sma(
         result = _fast_optimization(values, periods, minimum, target_frequency, cancel)
         if result is not None:
             return result
-    best = None
+    best_key, best_period = None, None
     for period in sorted(set(periods)):
         if cancel is not None and cancel.is_set():
             raise ValueError("Optimization cancelled.")
-        average = simple_moving_average(values, period)
-        comparisons = observable_comparisons(values, average)
+        count, comparisons = _rolling_score(values,period)
         if comparisons < minimum:
             continue
-        result = OptimizationResult(period, target_frequency, len(values), comparisons,
-                                    tuple(average), crossover_events(values, average))
-        if best is None or (result.frequency_error, result.period) < (best.frequency_error, best.period):
-            best = result
-    if best is None:
+        key = (abs(annual_frequency(count,comparisons)-target_frequency),period)
+        if best_key is None or key < best_key:
+            best_key, best_period = key, period
+    if best_period is None:
         raise ValueError(f"Insufficient valid history: need at least {minimum} observable "
                          "price/SMA comparisons after warm-up and gaps.")
-    return best
+    average = tuple(simple_moving_average(values,best_period))
+    return OptimizationResult(best_period,target_frequency,len(values),
+                              observable_comparisons(values,average),average,
+                              crossover_events(values,average))
+
+
+def _rolling_score(values, period):
+    """One-pass candidate scoring with the reference rolling arithmetic.
+
+    Avoids re-validating and allocating several full arrays/events per candidate
+    on mobile. Gaps, equality, operation order and frequency tie rules match the
+    reference functions; only the final winning result builds display arrays.
+    """
+    total, run, previous_side, previous_valid, count, comparisons = 0.0, 0, None, False, 0, 0
+    for index, price in enumerate(values):
+        if price is None:
+            total, run, previous_side, previous_valid = 0.0, 0, None, False
+            continue
+        total += price
+        run += 1
+        if run > period:
+            total -= values[index-period]
+        if run < period:
+            continue
+        average = total/period
+        if not math.isfinite(average):
+            previous_side, previous_valid = None, False
+            continue
+        if previous_valid:
+            comparisons += 1
+        previous_valid = True
+        side = 1 if price > average else -1 if price < average else 0
+        if side:
+            if previous_side == -1 and side == 1:
+                count += 1
+            previous_side = side
+    return count, comparisons
 
 
 def _fast_optimization(values, periods, minimum, target, cancel):

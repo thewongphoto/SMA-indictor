@@ -1,5 +1,10 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
+**Android 0.8.0 update:** real Yahoo search/daily history, persistent caches and
+copyable HTTP/app/cache diagnostics are included in the private data test.
+See [the Android guide](docs/YAHOO_ANDROID_TESTING.md). Background fetching,
+notification delivery and iOS signing remain separate future validation.
+
 **Desktop update, 5 November 2026:** the main branch adds private Yahoo EOD
 retrieval, persistent prices/searches, actual dates/currency and full-history
 MAX. Follow [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md).

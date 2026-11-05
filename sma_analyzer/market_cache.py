@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import sqlite3
 import time
+from urllib.parse import urlsplit
 
 from .securities import Security
 
@@ -39,6 +40,12 @@ class MarketCache:
                 CREATE TABLE IF NOT EXISTS runtime_leases (
                     key TEXT PRIMARY KEY, owner TEXT NOT NULL, expires_at REAL NOT NULL);
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(market_operations)")}
+            for name, kind in (("request_id","TEXT NOT NULL DEFAULT ''"),
+                               ("http_status","INTEGER"), ("duration_ms","REAL"),
+                               ("endpoint","TEXT NOT NULL DEFAULT ''")):
+                if name not in columns:
+                    db.execute(f"ALTER TABLE market_operations ADD COLUMN {name} {kind}")
 
     @contextmanager
     def connect(self):
@@ -104,16 +111,30 @@ class MarketCache:
             db.execute("INSERT INTO market_preferences VALUES (?,?) ON CONFLICT(key) DO UPDATE "
                        "SET payload=excluded.payload", (key, json.dumps(value)))
 
-    def operation(self, operation, symbol, status, detail="", now=None):
+    def operation(self, operation, symbol, status, detail="", now=None, *,
+                  request_id="", http_status=None, duration_ms=None, endpoint=""):
         # Details are controlled summaries, never raw responses or cookies.
+        if endpoint:
+            parsed = urlsplit(endpoint if "://" in endpoint else "//"+endpoint)
+            endpoint = (parsed.hostname or "")+parsed.path
         with self.connect() as db:
-            db.execute("INSERT INTO market_operations(at,operation,symbol,status,detail) VALUES (?,?,?,?,?)",
-                       (time.time() if now is None else now, operation, symbol, status, detail))
+            db.execute("INSERT INTO market_operations(at,operation,symbol,status,detail,"
+                       "request_id,http_status,duration_ms,endpoint) VALUES (?,?,?,?,?,?,?,?,?)",
+                       (time.time() if now is None else now, operation, symbol, status, detail,
+                        request_id,http_status,duration_ms,endpoint))
 
     def operations(self, limit=20):
         with self.connect() as db:
             return db.execute("SELECT at,operation,symbol,status,detail FROM market_operations "
                               "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+
+    def diagnostic_events(self, limit=100):
+        names = ("at","operation","symbol","status","detail","request_id",
+                 "http_status","duration_ms","endpoint")
+        with self.connect() as db:
+            rows = db.execute("SELECT "+",".join(names)+" FROM market_operations "
+                              "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        return [dict(zip(names,row)) for row in rows]
 
     def clear_downloads(self):
         # Keep identities, saved parameters, jobs and delivery keys resolvable.

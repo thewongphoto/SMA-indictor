@@ -4,6 +4,8 @@ The latest Kivy desktop preview is available on GitHub's **main** branch.
 It now retrieves **Yahoo Finance EOD data for private testing**. These instructions
 download and run that version; no Android APK build is needed.
 See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for the API/cache checks.
+For the separate Android 0.8.0 APK and request-log reporting, use
+[Android Yahoo testing](docs/YAHOO_ANDROID_TESTING.md).
 
 These instructions assume you have never used Python or Kivy. Python runs the
 program; Kivy draws the app's screen. You do not need to edit any code.

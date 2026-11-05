@@ -23,7 +23,10 @@
   Explicit --demo is the only launcher route into the local simulation.
 - Treat security alerts as unresolved until the exact file and wording have
   been investigated; do not disable protection or presume a false positive.
-- Background API/notification testing is deferred to a user-authorized APK stage.
+- The user authorized the Android 0.8.0 Yahoo data-test APK and build tag.
+  Its scope is interactive search/history, persistent caching, visible failures
+  and copyable request logs. Background scheduling and notification delivery
+  tests remain deferred.
   Preserve the future schedule definitions: US listings Tue–Sat 06:00
   Asia/Singapore; Singapore listings Mon–Fri 17:30 Asia/Singapore.
 - These are target times, not a guarantee that Android or iOS will execute
@@ -32,12 +35,19 @@
 - Keep base/mobile dependencies in requirements.txt and desktop Yahoo
   dependencies in requirements-desktop.txt until mobile packaging is validated.
   A desktop update does not authorize an APK tag/build.
+- Mobile uses the portable Yahoo JSON transport for the yfinance search/chart
+  subset; it does not import pandas/curl_cffi or launch desktop helpers.
+  p4a installs generic modules with --no-deps, so buildozer.spec must list the
+  complete requests dependency closure. Preserve app signing/package identity.
+- Keep authentication values and raw responses out of request logs. Record
+  app actions, HTTP outcomes and cache hits separately and preserve log upgrades.
 
 ## Useful checks
 
 - Unit tests: .venv/bin/python -m unittest discover -s tests -v
 - Offline UI: .venv/bin/python -m scripts.smoke_ui
 - Yahoo UI with synthetic transport: .venv/bin/python -m scripts.smoke_yahoo_ui
+- Mobile JSON/UI fixtures: .venv/bin/python -m scripts.smoke_mobile_yahoo_ui
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

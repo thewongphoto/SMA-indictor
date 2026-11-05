@@ -22,7 +22,7 @@ class MarketDataError(RuntimeError):
 
 
 def public_error(error):
-    if isinstance(error, MarketDataError):
+    if isinstance(error, MarketDataError) and not hasattr(error,"status"):
         return str(error)
     text = str(error).lower()
     if "429" in text or "rate" in text and "limit" in text:
@@ -34,7 +34,9 @@ def public_error(error):
     if "timeout" in text or "timed out" in text:
         return "Yahoo data request timed out. Saved data is retained."
     if isinstance(error, ImportError):
-        return "Install requirements-desktop.txt using the desktop launcher to enable Yahoo data."
+        name = getattr(error,"name",None)
+        module = f" ({name})" if name and all(c.isalnum() or c in "_." for c in name) else ""
+        return f"Market-data support is missing{module}. Use the latest app build or desktop launcher and share the request log."
     return "Unable to retrieve Yahoo Finance data from this device. Showing saved data when available."
 
 
@@ -174,19 +176,25 @@ class YahooMarketDataProvider:
         now = self.now().timestamp()
         retry_at = self.cache.preference("yahoo_retry_at", 0)
         if now < retry_at:
+            self.cache.operation(operation,symbol,"deferred","Rate-limit cooldown; no HTTP request sent.")
             raise MarketDataError("Yahoo requests are paused after rate limiting. "
                                   f"Try again in {math.ceil(retry_at-now)} seconds; saved data remains available.")
         owner = uuid.uuid4().hex
+        started = time.monotonic()
         deadline = time.monotonic() + 45
         while not self.cache.lease("yahoo-network", owner, time.time(), 600):
             if time.monotonic() > deadline:
                 raise MarketDataError("Another Yahoo request is still running. Saved data is retained.")
             time.sleep(.15)
         try:
+            self.cache.operation(operation,symbol,"started",request_id=owner)
             if self._client is None:
                 self._client = self.client_factory(self.cache.path.parent / "yfinance-state")
+            if hasattr(self._client,"begin_operation"):
+                self._client.begin_operation(owner,operation,symbol)
             value = function(self._client)
-            self.cache.operation(operation, symbol, "ok")
+            self.cache.operation(operation, symbol, "ok",request_id=owner,
+                                 duration_ms=(time.monotonic()-started)*1000)
             return value
         except Exception as error:
             message = public_error(error)
@@ -205,7 +213,9 @@ class YahooMarketDataProvider:
                     if math.isfinite(seconds):
                         delay = max(delay, seconds)
                 self.cache.set_preference("yahoo_retry_at", now+delay)
-            self.cache.operation(operation, symbol, "failed", message)
+            self.cache.operation(operation, symbol, "failed", message,request_id=owner,
+                                 duration_ms=(time.monotonic()-started)*1000,
+                                 http_status=getattr(error,"status",None))
             raise MarketDataError(message) from None
         finally:
             self.cache.release_lease("yahoo-network", owner)
@@ -217,6 +227,7 @@ class YahooMarketDataProvider:
         with self._lock:
             cached = self.cache.search(query)
             if cached is not None and not force:
+                self.cache.operation("search",query,"cache_hit","Persisted query; no HTTP request.")
                 return tuple(register_security(s) for s in cached)
             quotes = self._request("search", query, lambda c: c.search(query))
             matches = {}
@@ -241,6 +252,7 @@ class YahooMarketDataProvider:
     def cached_data(self, security):
         _, fetched, _ = self.cache.history(security.key)
         stale = fetched is None or fetched < latest_due(security.region, self.now()).timestamp()
+        self.cache.operation("history",security.symbol,"cache_hit","Persisted saved chart; no HTTP request.")
         return self._dataset(security, stale=stale)
 
     def historical_data(self, security, scenario=None, force=False, full=False, strict=False):
@@ -252,6 +264,7 @@ class YahooMarketDataProvider:
             now = self.now()
             self.last_warning = ""
             if old and not force and fetched >= latest_due(security.region, now).timestamp():
+                self.cache.operation("history",security.symbol,"cache_hit","Persisted daily history; no HTTP request.")
                 return self._dataset(security)
             kwargs = {"period": "max"}
             if old and not full:
@@ -263,7 +276,7 @@ class YahooMarketDataProvider:
                 ZoneInfo(tz)  # Reject unrecognized timezone metadata before mutating the cache.
                 currency = metadata.get("currency") or security.currency
                 if currency not in {"USD", "SGD"}:
-                    raise MarketDataError("This desktop preview supports USD and SGD quotations only.")
+                    raise MarketDataError("This private test supports USD and SGD quotations only.")
                 identity_change = currency != security.currency or tz != security.timezone
                 security = replace(security, timezone=tz, currency=currency,
                                    name=metadata.get("longName") or metadata.get("shortName") or security.name)

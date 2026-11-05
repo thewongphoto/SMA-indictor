@@ -1,5 +1,10 @@
 # Private Yahoo desktop test
 
+**Android 0.8.0 is now a separate private data test.** Use
+[the Android/request-log guide](YAHOO_ANDROID_TESTING.md) for its mobile HTTPS
+adapter, artifact and copyable HTTP diagnostics. Desktop continues using the
+isolated Python yfinance transport described here.
+
 This iteration adds Yahoo EOD retrieval to the approved Kivy screens. It makes
 requests on launch or user interaction only. It does **not** run a background
 worker, deliver desktop notifications or start an APK build.

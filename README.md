@@ -1,13 +1,19 @@
 # SMA Stock Analyzer
 
+**Android 0.8.0 private Yahoo data test:** real company search, daily history,
+persistent caches and visible request diagnostics. Read the
+[Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
+[release notes](docs/RELEASE_0_8_0.md). Notification/background tests remain deferred.
+
 The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for its data and calculation rules.
 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
-[Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update does
-not trigger an APK build or enable background/notification delivery tests.
+[Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
+does not enable background/notification delivery tests. Android 0.8.0 is
+requested separately through its APK build tag.
 
-**Android version 0.7.0** released the approved library-first UI, three-year guided
+**Previous Android version 0.7.0** released the approved library-first UI, three-year guided
 example and company logo/name chart heading. See the [release notes](docs/RELEASE_0_7_0.md).
 
 **New to Python and using a Mac? Start with [the step-by-step Mac guide](START_HERE_MAC.md).**
@@ -16,8 +22,10 @@ A personal Python/Kivy app for finding a simple moving average whose
 upward-crossing frequency is closest to a chosen target. The desktop Yahoo
 preview downloads US/SG stock and ETF daily history for private use; analysis
 stays local. The guided example and `DEMO-SGX`/`DEMO-US` remain fictional.
-Android/iOS packaging of the Yahoo dependencies and native background adapters
-are separate future work. No Yahoo account/API key is normally required.
+Android uses a portable HTTPS adapter for the same Yahoo search/chart subset;
+the APK does not include the desktop yfinance native dependency stack.
+iOS packaging and native background adapters remain separate work.
+No Yahoo account/API key is normally required.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
@@ -61,7 +69,7 @@ If PowerShell activation is restricted, run `.\.venv\Scripts\python.exe` in plac
 of `python`. Installation downloads dependencies; the desktop app retrieves
 Yahoo prices when needed and retains them locally.
 Desktop analysis needs no Android SDK. Live data requests require network access;
-previously downloaded data remains available offline. For the existing phone test APK, use the
+previously downloaded data remains available offline. For the current phone test APK, use the
 [beginner Android APK guide](docs/ANDROID_APK_GUIDE.md).
 
 ## Security search
@@ -267,7 +275,7 @@ and posts the selected phone alerts. Successful events are deduplicated. The
 generic **Test Android phone notification** remains repeatable. Denying permission
 returns a helpful message and re-enables the controls.
 
-These are local OS alerts; the prototype has no remote push server, daily
+Those older demo alerts had no remote push server, daily
 scheduler or live EOD-price source. The APK guide's old Gmail sections are
 historical and do not apply to version 0.4.0.
 

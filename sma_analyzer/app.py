@@ -51,6 +51,7 @@ from .notifications import evaluate_eod, evaluate_dataset_eod, deliver_alerts, A
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
 from .securities import security_by_key, normalize_query
+from .version import APP_VERSION
 
 BG = (0.075, 0.122, 0.192, 1)
 PANEL = (0.122, 0.188, 0.282, 1)
@@ -198,7 +199,7 @@ class AnalyzerScreen(FloatLayout):
         self.header = header
         header.bind(minimum_height=header.setter("height"))
         self.parameter_content.add_widget(header)
-        header.add_widget(WrappedLabel(text="PRIVATE YAHOO EOD PREVIEW" if self.yahoo_enabled else "OFFLINE LAB / SIMULATED DATA", color=MUTED,
+        header.add_widget(WrappedLabel(text="PRIVATE YAHOO EOD TEST" if self.yahoo_enabled else "OFFLINE LAB / SIMULATED DATA", color=MUTED,
                                             font_size=sp(11), bold=True))
         self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
         header.add_widget(self.heading)
@@ -382,9 +383,9 @@ class AnalyzerScreen(FloatLayout):
         self.crossovers_back_button = self._page_heading("crossovers","All upward crossings")
         self.full_table_panel = Panel()
         self.full_crossovers_content.add_widget(self.full_table_panel)
-        self._build_notification_settings()
         if self.yahoo_enabled:
             self._build_api_settings()
+        self._build_notification_settings()
         self.library_settings_button = self._page_heading("library", "My SMA library")
         self.library_settings_button.unbind(on_release=self.go_back)
         self.library_settings_button.kind = "settings"
@@ -779,6 +780,7 @@ class AnalyzerScreen(FloatLayout):
         self.search_submit.disabled = True
         self._clear_security_matches()
         self.search_status.text = "Searching Yahoo Finance…" if self.yahoo_enabled else "Searching preview securities…"
+        self.search_status.color = MUTED
         future = (self.market_executor.submit(self.model.data_provider.search, query, force=force)
                   if self.yahoo_enabled else self.market_executor.submit(self.model.data_provider.search, query))
         future.add_done_callback(lambda done: Clock.schedule_once(lambda _: self._security_search_complete(done, token), 0))
@@ -806,6 +808,7 @@ class AnalyzerScreen(FloatLayout):
             self._clear_security_matches()
             self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError)
                                        else "Search could not be completed. Press Submit to try again.")
+            self.search_status.color = ERROR
         self._update_api_status()
 
     def select_security_match(self, security):
@@ -822,6 +825,7 @@ class AnalyzerScreen(FloatLayout):
         self._set_busy(False)
         self.search_status.text = (f"Loading all available Yahoo daily history for {security.ticker}…"
                                    if self.yahoo_enabled else f"Loading simulated history for {security.ticker}…")
+        self.search_status.color = MUTED
         future = self.market_executor.submit(self.model.data_provider.historical_data, security, scenario)
         future.add_done_callback(lambda done: Clock.schedule_once(
             lambda _: self._security_history_complete(done, token, security, scenario), 0))
@@ -854,6 +858,7 @@ class AnalyzerScreen(FloatLayout):
         except Exception as error:
             self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError) else
                                       "Could not load history. Your previous security is unchanged; select a match to retry.")
+            self.search_status.color = ERROR
         self._update_api_status()
 
     def _show_selected_security(self, security):
@@ -1341,7 +1346,7 @@ class AnalyzerScreen(FloatLayout):
         self.settings_content.add_widget(self.settings_panel)
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
         self.settings_panel.add_widget(WrappedLabel(
-            text=("Notification preferences are retained for the future mobile build. Desktop tests cover API retrieval only; "
+            text=("Notification preferences are retained for a later release. This build tests market-data retrieval only; "
                   "background and notification delivery testing are deferred."
                   if self.yahoo_enabled else
                   "SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications."),
@@ -1396,19 +1401,19 @@ class AnalyzerScreen(FloatLayout):
         self.alert_preview = WrappedLabel(text="No alert preview yet.",color=MUTED,font_size=sp(12))
         self.settings_panel.add_widget(self.alert_preview)
         self.last_alerts = ()
-        if self.yahoo_enabled and platform not in ("android", "ios"):
+        if self.yahoo_enabled:
             self.preview_alert_button.disabled = True
             self.phone_test_button.disabled = True
             self.eod_deliver_button.disabled = True
-            self.notification_status.text = "Notification testing is deferred to the APK stage."
+            self.notification_status.text = "This build tests market data. Notification delivery and background scheduling are deferred."
 
     def _build_api_settings(self):
         panel = Panel()
         self.settings_content.add_widget(panel)
-        panel.add_widget(WrappedLabel(text="YAHOO FINANCE · PRIVATE DESKTOP TEST", bold=True))
+        panel.add_widget(WrappedLabel(text=f"YAHOO FINANCE · PRIVATE TEST · {APP_VERSION}", bold=True))
         panel.add_widget(WrappedLabel(
             text="Requests run on launch or your actions. Downloaded history survives closing the app. "
-                 "Background fetching and notification delivery tests are deferred to the APK stage.",
+                 "Background fetching and notification delivery are not enabled in this data test.",
             color=MUTED, font_size=sp(12)))
         self.api_status = WrappedLabel(text="No data request completed yet.", color=MUTED, font_size=sp(12))
         panel.add_widget(self.api_status)
@@ -1431,9 +1436,10 @@ class AnalyzerScreen(FloatLayout):
         operations = self.model.data_provider.cache.operations(1)
         if operations:
             at, operation, symbol, status, detail = operations[0]
-            self.api_status.text = (f"Last request: {operation} · {symbol} · {status}\n"
+            self.api_status.text = (f"Last event: {operation} · {symbol} · {status}\n"
                                     f"{datetime.fromtimestamp(at, SGT):%Y-%m-%d %H:%M:%S} SGT"
                                     + (f"\n{detail}" if detail else ""))
+            self.api_status.color = ERROR if status in ("failed","stale","deferred") else MUTED
         blocked = self._source_check_busy or self.history_loading or self.search_busy or self.busy
         for name in ("api_check_button", "api_refresh_button", "api_full_button", "api_clear_button"):
             getattr(self, name).disabled = blocked
@@ -1496,6 +1502,8 @@ class AnalyzerScreen(FloatLayout):
                 self.model.period_preserved = True
             self.refresh()
             warning = getattr(self.model.data_provider, "last_warning", "")
+            if not data.stale:
+                self.source_warning.text = ""
             self.api_status.text = warning or f"History refreshed through {data.dates[-1]}. Selected SMA period is unchanged."
             self.message(self.api_status.text, bool(warning), quiet=not warning)
         except (ValueError, RuntimeError, OSError, sqlite3.Error) as error:
@@ -1503,20 +1511,36 @@ class AnalyzerScreen(FloatLayout):
         self._update_api_status()
 
     def show_api_log(self, *_):
-        from .schedule import SGT
+        from .diagnostics import diagnostic_report
         content = BoxLayout(orientation="vertical", spacing=dp(8), padding=dp(12))
-        scroll = ScrollView(do_scroll_x=False)
-        label = WrappedLabel(text="\n\n".join(
-            f"{datetime.fromtimestamp(at, SGT):%Y-%m-%d %H:%M:%S} SGT\n"
-            f"{operation} · {symbol} · {status}" + (f"\n{detail}" if detail else "")
-            for at, operation, symbol, status, detail in self.model.data_provider.cache.operations(30))
-            or "No API operations yet.", color=MUTED, font_size=sp(12))
-        scroll.add_widget(label)
-        content.add_widget(scroll)
-        button = LabButton(text="Close")
-        content.add_widget(button)
-        popup = Popup(title="Data requests · newest first", content=content, size_hint=(.94,.8))
-        button.bind(on_release=popup.dismiss)
+        self.api_log_status = WrappedLabel(text="Copy this report to share an error. HTTP rows show network requests; CACHE rows send none.",
+                                           color=MUTED,font_size=sp(11))
+        content.add_widget(self.api_log_status)
+        self.api_log_text = EditingField(readonly=True,multiline=True,font_size=sp(12),
+                                         foreground_color=TEXT,background_color=(.08,.12,.18,1))
+        content.add_widget(self.api_log_text)
+        def refresh(*_):
+            self.api_log_text.text = diagnostic_report(
+                self.model.data_provider.cache,platform,
+                getattr(self.model.data_provider,"transport_name","Test transport"),
+                self.model.dataset)
+        def copy(*_):
+            try:
+                from kivy.core.clipboard import Clipboard
+                Clipboard.copy(self.api_log_text.text)
+                self.api_log_status.text = "Report copied. Paste it into this chat with the action that failed."
+            except Exception:
+                self.api_log_status.text = "Clipboard unavailable. Select the report text or share a screenshot."
+        for title, callback in (("Copy diagnostic report",copy),("Refresh log (no API call)",refresh)):
+            button = LabButton(text=title)
+            button.bind(on_release=callback)
+            content.add_widget(button)
+        close = LabButton(text="Close")
+        content.add_widget(close)
+        popup = Popup(title="Request log · newest first", content=content, size_hint=(.94,.88))
+        self.api_log_popup = popup
+        close.bind(on_release=popup.dismiss)
+        refresh()
         popup.open()
 
     def confirm_clear_market_data(self, *_):
@@ -1849,15 +1873,9 @@ class SMAStockAnalyzerApp(App):
                 directory = data_directory()
             else:
                 directory = Path(self.user_data_dir)
-            source = os.environ.get("SMA_DATA_SOURCE", "preview" if platform in ("android","ios") else "yahoo")
-            provider = None
-            if source == "yahoo":
-                from .market_cache import MarketCache
-                from .yahoo import YahooMarketDataProvider
-                from .desktop_yahoo import DesktopYahooClient
-                factory = DesktopYahooClient if platform not in ("android","ios") else None
-                provider = YahooMarketDataProvider(MarketCache(directory / "market_data.sqlite3"),
-                                                   client_factory=factory)
+            from .providers import create_provider
+            source = os.environ.get("SMA_DATA_SOURCE","yahoo")
+            provider = create_provider(directory,platform,source)
             self.screen = AnalyzerScreen(AnalyzerModel(LineStore(directory / "saved_lines.sqlite3"), provider))
         except (sqlite3.Error, OSError) as error:
             return WrappedLabel(text=f"Local storage could not be opened: {error}\n"

@@ -10,24 +10,24 @@ from sma_analyzer.viewport import ChartViewport, available_timelines
 
 
 class RealDateTests(unittest.TestCase):
-    def test_us_targets_stay_at_6_sgt_on_both_sides_of_dst(self):
+    def test_us_targets_stay_at_630_sgt_on_both_sides_of_dst(self):
         for month in (1,7,11):
             now = datetime(2026,month,15,0,0,tzinfo=timezone.utc)
             due = latest_due("US",now)
-            self.assertEqual((due.hour,due.minute),(6,0))
+            self.assertEqual((due.hour,due.minute),(6,30))
             self.assertIn(due.weekday(),{1,2,3,4,5})
             self.assertEqual(expected_session_date("US",due).weekday(),(due.weekday()-1)%7)
 
     def test_monday_us_target_and_sg_weekend_skip_to_correct_slots(self):
         now = datetime(2026,11,9,7,tzinfo=SGT)  # Monday
-        self.assertEqual(latest_due("US",now).isoformat(),"2026-11-07T06:00:00+08:00")
-        self.assertEqual(next_due("US",now).isoformat(),"2026-11-10T06:00:00+08:00")
-        self.assertEqual(next_due("SG",now).isoformat(),"2026-11-09T17:30:00+08:00")
+        self.assertEqual(latest_due("US",now).isoformat(),"2026-11-07T06:30:00+08:00")
+        self.assertEqual(next_due("US",now).isoformat(),"2026-11-10T06:30:00+08:00")
+        self.assertEqual(next_due("SG",now).isoformat(),"2026-11-09T18:30:00+08:00")
 
     def test_sg_exact_target_is_due_and_future_target_is_next_weekday(self):
-        now = datetime(2026,11,6,17,30,tzinfo=SGT)
+        now = datetime(2026,11,6,18,30,tzinfo=SGT)
         self.assertEqual(latest_due("SG",now),now)
-        self.assertEqual(next_due("SG",now).isoformat(),"2026-11-09T17:30:00+08:00")
+        self.assertEqual(next_due("SG",now).isoformat(),"2026-11-09T18:30:00+08:00")
 
     def test_calendar_backtest_window_uses_dates_not_252_sessions(self):
         dates=("2023-11-03","2024-11-04","2025-11-03","2025-11-04","2026-11-04")

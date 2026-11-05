@@ -1,8 +1,9 @@
-# Android 0.9.1: dividend-inclusive prices and UI test
+# Android 0.10.0: data, UI and scheduled notification test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
-It contains no scheduled background fetcher or notification-delivery tests.
+It adds native daily checks for enabled saved SMAs. See
+[daily notification setup/testing](ANDROID_DAILY_NOTIFICATIONS.md).
 The optional guided example uses the selected company's downloaded history, or
 loads SPY when no security has been selected. Visible app labels are provider-neutral.
 
@@ -10,13 +11,13 @@ loads SPY when no security has been selected. Visible app labels are provider-ne
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.9.1** / version **0.9.1**. A queued/running
+2. Open the run for tag **apk-v0.10.0** / version **0.10.0**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.9.1**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.10.0**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.
@@ -31,7 +32,9 @@ For a later source fix, request a new run on main or use the next release tag.
    Typing alone makes no request. Press Enter or Submit.
 3. Select a matching company/ETF to download its available daily history.
    Results are restricted to supported US/Singapore stocks and ETFs.
-4. Choose a crossing frequency, then Optimize SMA. MAX includes all downloaded
+4. The selected logo/name stays on the same screen, its heading becomes
+   **Set your preference**, and target/Optimize controls reveal downward. Choose
+   a crossing frequency, then Optimize SMA. MAX includes all downloaded
    completed daily history. Long histories take longer to optimize; the work
    runs off the UI thread and does not use a shorter hidden analysis window.
 5. Check company name/logo, actual dates, last close and USD/SGD labels.
@@ -109,7 +112,8 @@ The error identifies availability from this device, not a confirmed global outag
 ## Cache and offline checks
 
 - Repeating a submitted query uses its persistent result. **Refresh search
-  results** explicitly repeats the network search.
+  results** has been removed; Settings' explicit data-clear action also clears
+  cached search results when you need to discard them.
 - Reopening a fresh cached saved SMA should show CACHE and no new history HTTP
   call. Every cold app launch still makes one small availability operation.
 - When a viewed history is due for an update, fetch only the missing/recent
@@ -177,11 +181,11 @@ is unofficial and can be denied or change. There is no API key, fixed guaranteed
 quota or service-level guarantee. Data rights and private-use scope are unchanged.
 The Mac malware alert remains a separate unresolved issue.
 
-The existing Singapore schedule definitions are retained for future native
-work: US Tue–Sat 06:00 SGT; Singapore Mon–Fri 17:30 SGT. They currently control
-on-screen cache freshness only. This build does not trigger new API calls while
-closed, schedule notifications, infer holidays from missing bars, or guarantee
-execution during phone sleep. iPhone packaging still needs its own signed build.
+The Singapore-time targets are now **US Tue–Sat 06:30; SGX Mon–Fri 18:30**.
+Android WorkManager invokes the shared job even with the Kivy activity paused,
+subject to system/network scheduling. This does not infer holidays or guarantee
+an exact execution minute during sleep. iPhone delivery still needs its native
+adapter and separately signed build. Desktop remains interactive only.
 
 ## Validation limits
 

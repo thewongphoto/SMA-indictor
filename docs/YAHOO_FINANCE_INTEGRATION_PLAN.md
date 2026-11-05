@@ -1,15 +1,17 @@
 # Yahoo Finance integration plan
 
-**Android 0.8.0 update:** [the mobile data test](YAHOO_ANDROID_TESTING.md)
+**Android 0.10.0 update (6 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
 implements search/chart HTTPS requests, persistent caches and request reporting
-without embedding the desktop yfinance native stack. Background execution and
-iOS packaging remain separate validation.
+without embedding the desktop yfinance native stack. It now adds native daily
+checks at US 06:30 / SGX 18:30 Singapore time for enabled saved SMAs. See
+[phone notification testing](ANDROID_DAILY_NOTIFICATIONS.md). Physical-device
+sleep behavior still needs validation; native iOS delivery/packaging remain separate.
 
 **Implementation update, 5 November 2026:** interactive desktop search/history,
 persistent cache, full-history MAX, real dates/currency and startup diagnostics
 are implemented. See [the desktop testing guide](YAHOO_DESKTOP_TESTING.md) for
-the current scope and validation limits. Android/iOS packaging, background
-fetching and notification delivery testing remain deferred. The plan below
+the current scope and validation limits. Desktop background work stays disabled.
+The Android update above supersedes the original deferred scheduling scope. The plan below
 records the original design and includes work beyond this desktop iteration.
 
 ## Original planning snapshot (4 November 2026)

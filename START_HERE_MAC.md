@@ -75,7 +75,9 @@ overwrites an existing destination. Close older app copies first.
    then press Enter or **Submit**. Click a logo/ticker/name match to load its
    Yahoo daily history. Typing alone never searches or changes the security.
    Try `AAPL`, `SPY`, or `D05.SI`; search supports US/SG stocks and ETFs.
-2. On Parameters choose **12** crossings per year, then click **Optimize SMA**.
+2. After selection, the same screen changes its heading to **Set your preference**
+   and reveals the target/Optimize group with a short downward animation. Choose
+   **12** crossings per year, then click **Optimize SMA**.
    Custom supports another numeric frequency. Fictional patterns are not offered
    for Yahoo prices. The app moves to Results; MAX includes all available
    completed daily history, which can take longer to analyze.
@@ -94,6 +96,10 @@ overwrites an existing destination. Close older app copies first.
    percentage differences relative to a. Click either circled **i** for help.
 5. Click the outline heart in the Optimal SMA card to save a line. Try another
    target or security, optimize, and save again.
+   The pencil beside a saved line's session count opens **Name saved SMA**.
+   Its custom name appears on the chart, saved menus, backtest and crossing
+   details. Clearing the name restores its default. The selected target stays
+   beside the name, with the session count retained below a custom name.
 6. Open **Saved SMAs** with the top menu. Click the down arrow beside
    a security to expand its saved SMA rows; click the up arrow to collapse them.
    Headers show the logo, company name and ticker. A soft rounded background
@@ -106,7 +112,7 @@ overwrites an existing destination. Close older app copies first.
    Each row has View, Hide/Show, heart, and notification controls. The saved
    library on the launch page uses the same groups and shares their expanded state.
 7. Click **View** to open a saved line's exact parameters. **Change parameters**
-   returns to the form. The backtesting panel's **View all upward crossings**
+   returns to the selected stage of the merged search/preferences screen. The backtesting panel's **View all upward crossings**
    button opens the full event list; its Back arrow returns to Results.
 
 Results use actual dates and show quotation currency, adjusted close and fetch time.
@@ -132,7 +138,8 @@ and View that saved SMA. A connection warning must not erase its chart. Reconnec
 and refresh. Clear downloaded prices and search results asks for confirmation
 and keeps the saved SMA parameters.
 
-Desktop background fetching and notification delivery tests are **deferred**.
+Desktop has no background fetcher or notification delivery. Android 0.10.0 adds
+native daily checks; use [the phone guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
 Notification preferences are retained for the mobile stage. This version does
 not call Yahoo on a schedule after you close the window or start an APK build.
 

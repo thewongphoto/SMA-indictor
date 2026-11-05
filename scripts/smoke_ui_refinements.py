@@ -45,7 +45,7 @@ class RefinementSmoke(MobileYahooSmoke):
                 gear=ui.page_settings_buttons[page]
                 assert gear.kind=="settings" and gear.center_x>ui.center_x
                 assert gear.right<=ui.right and gear.height>=dp(44)
-        self.checked("settings stays at the top right on all seven screens at phone widths")
+        self.checked("settings stays at the top right on all six screens at phone widths")
         ui.show_library()
         ui.show_guide()
         yield lambda:not ui.guide_busy
@@ -191,7 +191,7 @@ class RefinementSmoke(MobileYahooSmoke):
         ui.on_view_saved(ui.model.saved_lines()[0])
         assert ui.model.dataset.currency=="SGD" and "SGD adjusted daily close" in ui.plot_subtitle.text
         assert ui.backtest_values["crossings"].text.startswith("USD ")
-        assert "currency movements are excluded" in ui.backtest_details.text
+        assert ui.backtest_details.text==""
         assert ui.model.store.color_index(sg.counter,sg.scenario,9)==0
         self.checked("SG prices keep SGD on chart; USD price-return comparisons explicitly exclude FX")
         # A cold screen reconstructs saved groups, but never their expansion state.

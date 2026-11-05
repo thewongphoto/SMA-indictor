@@ -12,9 +12,9 @@ UTC = timezone.utc
 
 def schedule_spec(region):
     if region == "US":
-        return (6, 0, {1, 2, 3, 4, 5})
+        return (6, 30, {1, 2, 3, 4, 5})
     if region == "SG":
-        return (17, 30, {0, 1, 2, 3, 4})
+        return (18, 30, {0, 1, 2, 3, 4})
     raise ValueError("Daily background schedules currently support US and Singapore listings.")
 
 

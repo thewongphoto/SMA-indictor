@@ -23,12 +23,12 @@
   Explicit --demo is the only launcher route into the local simulation.
 - Treat security alerts as unresolved until the exact file and wording have
   been investigated; do not disable protection or presume a false positive.
-- The user authorized the Android 0.8.0 Yahoo data-test APK and build tag.
-  Its scope is interactive search/history, persistent caching, visible failures
-  and copyable request logs. Background scheduling and notification delivery
-  tests remain deferred.
-  Preserve the future schedule definitions: US listings Tue–Sat 06:00
-  Asia/Singapore; Singapore listings Mon–Fri 17:30 Asia/Singapore.
+- Android 0.10.0 adds user-authorized scheduled checks for saved live SMAs whose
+  phone switch and at least one signal type are enabled. US: Tue–Sat 06:30;
+  SGX: Mon–Fri 18:30, Asia/Singapore. Native WorkManager starts a short headless
+  Python service; do not replace it with a paused Kivy timer. Use per-slot unique
+  native work and the durable region/due journal; never replay old session alerts.
+  Native iOS delivery still requires its BGTaskScheduler/notification adapter.
 - These are target times, not a guarantee that Android or iOS will execute
   background work at an exact instant. iOS suspends background apps and native
   OS scheduling must be implemented and tested separately.
@@ -44,6 +44,10 @@
   labels and a scrolling request log. Its live guide must use downloaded history.
   USD backtest values use quotation-price ratios, excluding currency movements;
   do not imply that an FX conversion/history API has been integrated.
+- Search and preferences are stages of the same builder Screen. Reveal the
+  target/Optimize group after selection; changing parameters reuses that stage.
+  Saved custom names are plain text, persist through archive/restore, and do not
+  change saved identities, periods, colors or signal deduplication keys.
 - Keep authentication values and raw responses out of request logs. Record
   app actions, HTTP outcomes and cache hits separately and preserve log upgrades.
 - Live charts, SMA signals, lessons and return comparisons use dividend/split
@@ -60,6 +64,7 @@
 - Yahoo UI with synthetic transport: .venv/bin/python -m scripts.smoke_yahoo_ui
 - Mobile JSON/UI fixtures: .venv/bin/python -m scripts.smoke_mobile_yahoo_ui
 - Gesture/live-screen refinements: .venv/bin/python -m scripts.smoke_ui_refinements
+- Merged builder/name flows: .venv/bin/python -m scripts.smoke_ui_flow
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

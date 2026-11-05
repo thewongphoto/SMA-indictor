@@ -65,6 +65,7 @@ class PriceChart(Widget):
     view_range = ListProperty([0, 0])
     timeline = StringProperty("1Y")
     price_label = StringProperty("EOD")
+    inspection_name = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -98,7 +99,7 @@ class PriceChart(Widget):
         # Stable across hiding/showing other periods; shared with saved-row swatches.
         return ACTIVE_COLOR if active else SAVED_COLORS[(period - 2) % len(SAVED_COLORS)]
 
-    def update(self, prices, series, dates=(), inspection_sma=None, calendar_dates=False, price_label="EOD"):
+    def update(self, prices, series, dates=(), inspection_sma=None, calendar_dates=False, price_label="EOD",inspection_name=""):
         # Keep exact engine output; never recalculate an approximation for plotting.
         prices = tuple(prices)
         changed = prices != self.prices or tuple(dates) != self.dates
@@ -108,6 +109,7 @@ class PriceChart(Widget):
         self.viewport.dates = self.dates if calendar_dates else ()
         self.inspection_sma = inspection_sma
         self.price_label = price_label
+        self.inspection_name = inspection_name
         self.marker_events = {line.key: crossover_events(self.prices, line.sma) for line in self.series}
         if changed:
             self._cancel_selection()
@@ -375,7 +377,7 @@ class PriceChart(Widget):
                     Ellipse(pos=(x-dp(3), y-dp(3)), size=(dp(6), dp(6)))
                     sma = "Unavailable (warm-up/gap)" if info["sma"] is None else f'{info["sma"]:.4f}'
                     caption = f'Date: {info["date"]}\n{self.price_label}: {info["price"]:.4f}\n'
-                    caption += f'SMA {info["period"]}: {sma}' if info["period"] else 'SMA: optimize first'
+                    caption += f'{self.inspection_name or "SMA "+str(info["period"])}: {sma}' if info["period"] else 'SMA: optimize first'
                     label = CoreLabel(text=caption, font_size=sp(10), color=(0.94, 0.97, 1, 1),
                                       text_size=(min(dp(205), self.width-dp(20)), None))
                     label.refresh()

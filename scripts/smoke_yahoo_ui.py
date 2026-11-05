@@ -92,7 +92,7 @@ class YahooSmoke(App):
         self.checked("submitted search")
         ui.select_security_match(ui.search_results[0])
         yield lambda:not ui.history_loading
-        assert ui.manager.current=="parameters", ui.search_status.text
+        assert ui.manager.current=="search", ui.search_status.text
         assert ui.model.dataset.counter=="YAHOO:AAPL"
         assert len(ui.model.dataset.prices)==1700
         assert ui.model.dataset.prices==tuple(b["adj_close"] for b in self.client.bars)

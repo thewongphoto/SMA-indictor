@@ -19,6 +19,7 @@ class PlotLine:
     sma: tuple[Price, ...]
     active: bool = False
     color_index: int | None = None
+    name: str = ""
 
 
 class AnalyzerModel:
@@ -195,6 +196,7 @@ class AnalyzerModel:
                     f"saved-{saved.id}", saved.period, saved.target_frequency,
                     tuple(simple_moving_average(self.dataset.prices, saved.period)),
                     color_index=self.store.color_index(saved.counter,saved.scenario,saved.period),
+                    name=saved.display_name,
                 )
         if self.result is not None:
             # Active visibility controls this period even if it was also saved.
@@ -203,18 +205,24 @@ class AnalyzerModel:
                 lines[self.result.period] = PlotLine(
                     "active", self.result.period, self.result.target_frequency, self.result.sma, True,
                     self.store.color_index(self.dataset.counter,self.dataset.scenario,self.result.period),
+                    self.current_line_name(),
                 )
         return list(lines.values())
 
     def summary(self) -> dict[str, str]:
         if self.result is None:
             return {"period": "—", "target": f"{self.target_frequency} / yr", "actual": "—", "count": "—"}
+        saved = self.current_saved_line()
         return {
-            "period": f"{self.result.period} sessions",
+            "period": saved.custom_name if saved and saved.custom_name else f"{self.result.period} sessions",
             "target": f"{self.result.target_frequency} / yr",
             "actual": f"{self.result.actual_annual_frequency:.2f} / yr",
             "count": str(self.result.crossing_count),
         }
+
+    def current_line_name(self):
+        saved = self.current_saved_line()
+        return saved.display_name if saved else f"SMA {self.result.period}" if self.result else "SMA"
 
     def event_rows(self) -> list[tuple[str, str, str]]:
         if self.result is None:

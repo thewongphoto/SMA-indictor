@@ -11,9 +11,38 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.widget import Widget
+from kivy.uix.stencilview import StencilView
+from kivy.animation import Animation
 
 from .chart import MUTED, draw_plus
 from .securities import security_by_key
+
+
+class PreferenceReveal(StencilView):
+    """Clipped, measured disclosure; hidden controls cannot receive touches."""
+    progress=NumericProperty(0)
+
+    def __init__(self,body,**kwargs):
+        super().__init__(size_hint_y=None,height=0,**kwargs)
+        self.body=body
+        self.add_widget(body)
+        self.bind(pos=self._arrange,width=self._arrange,progress=self._arrange)
+        body.bind(minimum_height=self._arrange)
+        self._arrange()
+
+    def _arrange(self,*_):
+        self.body.size=(self.width,self.body.minimum_height)
+        self.height=self.body.height*self.progress
+        self.body.pos=(self.x,self.top-self.body.height+dp(10)*(1-self.progress))
+        self.body.opacity=self.progress
+        self.disabled=self.progress<.999
+
+    def show(self,visible,animate=False):
+        Animation.cancel_all(self,"progress")
+        if visible and animate and self.progress<1:
+            Animation(progress=1,duration=.28,t="out_cubic").start(self)
+        else:
+            self.progress=1 if visible else 0
 
 
 class WordEllipsisLabel(Label):
@@ -216,16 +245,19 @@ class LegendSymbol(Widget):
 
 
 class LegendItem(BoxLayout):
+    max_width=NumericProperty(100000)
     def __init__(self, text, color, plus=False):
         super().__init__(size_hint=(None, None), height=dp(24), spacing=dp(3))
         self.add_widget(LegendSymbol(color, plus))
-        label = Label(text=text, font_size=sp(11), color=MUTED, size_hint=(None, 1))
-        label.bind(texture_size=lambda _, size: self._size_label(label, size))
-        self.add_widget(label)
+        self.natural_width=CoreLabel(font_size=sp(11)).get_extents(text)[0]+dp(29)
+        self.label=WordEllipsisLabel(full_text=text,font_size=sp(11),color=MUTED,size_hint=(None,1))
+        self.add_widget(self.label)
+        self.bind(max_width=self._fit)
+        self._fit()
 
-    def _size_label(self, label, size):
-        label.width = size[0]
-        self.width = label.width + dp(29)
+    def _fit(self,*_):
+        self.width=min(self.natural_width,max(dp(29),self.max_width))
+        self.label.width=max(0,self.width-dp(29))
 
 
 def draw_icon(kind, x, y, radius, selected=False):
@@ -300,6 +332,11 @@ def draw_icon(kind, x, y, radius, selected=False):
              width=dp(1.1),cap="round")
         Line(points=[x+radius*.44,y+radius*.88,x+radius*1.18,y+radius*.88],
              width=dp(1.1),cap="round")
+    elif kind == "edit":
+        Line(points=[x-radius*.65,y-radius*.65,x-radius*.48,y-radius*.08,
+                     x+radius*.5,y+radius*.9,x+radius*.9,y+radius*.5,
+                     x-radius*.08,y-radius*.48,x-radius*.65,y-radius*.65],width=dp(1.1))
+        Line(points=[x+radius*.33,y+radius*.72,x+radius*.72,y+radius*.33],width=dp(1))
     elif kind in ("gain","loss"):
         Color(*((.22,.94,.43,1) if kind=="gain" else (1,.35,.40,1)))
         direction = 1 if kind=="gain" else -1

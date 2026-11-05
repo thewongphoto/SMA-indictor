@@ -17,6 +17,7 @@ def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100, 
         "Times below are Singapore time (UTC+08:00); newest first.",
         "APP started/ok/failed rows share an ID; HTTP rows are wire requests.",
         "CACHE rows use no network. Validation/result rows are not extra requests.",
+        "notification-* rows describe scheduled checks/delivery, not extra API requests.",
         "Cookies, crumbs, headers, response bodies and device/file identifiers are excluded.",
     ]
     if dataset is not None and dataset.prices:

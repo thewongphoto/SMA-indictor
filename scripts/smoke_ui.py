@@ -210,7 +210,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         pointer = Pointer(*ui.change_parameters_button.to_window(*ui.change_parameters_button.center))
         pointer.down(); pointer.up()
         for _ in range(8): yield
-        assert ui.manager.current == "parameters"
+        assert ui.manager.current == "search"
         assert ui.model.result is old_result
         assert ui.target.text == "1" and ui.counter.text == "DEMO-SGX"
         assert ui.scenario.text == "Oscillating"
@@ -490,13 +490,13 @@ class SmokeApp(SMAStockAnalyzerApp):
             ui.show_parameters()
             for _ in range(4): yield
             wide = size[0] >= 760
-            assert ui.control_grid.cols == (3 if wide else 1)
+            assert ui.control_grid.cols == 1
             if wide:
-                assert abs(ui.counter.y - ui.target.y) < dp(1)
-                assert abs(ui.counter.y - ui.optimize_button.y) < dp(1)
-                assert ui.counter.right < ui.target.x
-                assert ui.target.right < ui.optimize_button.x
-                assert ui.controls.height < dp(200), "Collapsed Custom keeps wide controls compact"
+                assert ui.counter.y > ui.target.top
+                assert ui.target.y > ui.optimize_button.top
+                assert abs(ui.counter.x-ui.target.x)<dp(1)
+                assert abs(ui.target.x-ui.optimize_button.x)<dp(1)
+                assert ui.controls.height < dp(450), "Merged controls stay compact while stacked"
                 assert ui.optimal_panel.orientation == "horizontal"
                 assert ui.card_values["period"].right <= ui.save_button.x
             elif ui.control_grid.cols == 1:
@@ -816,7 +816,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         capture('02-search')
         ui.security_match_buttons[0].dispatch('on_release')
         yield from settle()
-        assert ui.manager.current=='parameters' and ui.model.dataset.counter=='NASDAQ:AAPL'
+        assert ui.manager.current=='search' and ui.model.dataset.counter=='NASDAQ:AAPL'
         assert ui.custom_panel.parent is None
         capture('03-parameters')
         ui.custom_toggle.dispatch('on_release')
@@ -1057,8 +1057,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert self._on_keyboard(Window,27)
         assert ui.manager.current=="results"
         assert self._on_keyboard(Window,27)
-        assert ui.manager.current=="parameters"
-        assert self._on_keyboard(Window,27) and ui.manager.current=="search"
+        assert ui.manager.current=="search"
         assert self._on_keyboard(Window,27) and ui.manager.current=="library"
         assert not self._on_keyboard(Window,27)
         self.check("Android regression: native Back traverses full table/settings/results/parameters/search to Library; exit only there")
@@ -1171,7 +1170,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.backtest_heading.text == "If you invested $100 per buy for the past:"
         assert ui.backtest_heading.parent is ui.backtest_period.parent
         assert ui.backtest_heading.right <= ui.backtest_period.x
-        assert ui.backtest_details.text.count("\n") == 1
+        assert ui.backtest_details.text == ""
         assert "sessions" not in ui.backtest_details.text and "Warm-up" not in ui.backtest_details.text
         assert not hasattr(ui, "crossing_count_label")
         assert len(ui.backtest_report.random_average_prices) == 500
@@ -1373,7 +1372,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             ui.security_match_buttons[0].dispatch("on_release")
             yield from settle()
             assert ui.model.dataset is previous and "unchanged" in ui.search_status.text
-            assert not ui.optimize_button.disabled
+            assert ui.controls.parent is None and ui.optimize_button.disabled
             spy.historical_data.side_effect = None
             spy.search.side_effect = RuntimeError("simulated unavailable service")
             ui.security_search.text = "unknown"

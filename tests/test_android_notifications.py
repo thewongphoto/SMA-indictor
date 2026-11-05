@@ -79,6 +79,12 @@ class AndroidNotificationTests(TestCase):
         with self.assertRaisesRegex(RuntimeError,'Allow notifications'): AndroidNotifier().send(self.alert)
         self.manager.notify.assert_not_called()
 
+    def test_headless_service_context_posts_without_a_live_activity(self):
+        self.classes['org.kivy.android.PythonActivity'].mActivity=None
+        AndroidNotifier(context=self.activity).send(self.alert)
+        self.manager.notify.assert_called_once()
+        self.classes['android.app.Notification$Builder'].assert_called_once_with(self.activity,'sma_research_alerts')
+
     def test_disabled_notifications_and_icon_fallback(self):
         self.manager.areNotificationsEnabled.return_value = False
         with self.assertRaisesRegex(RuntimeError,'disabled'): AndroidNotifier().send(self.alert)

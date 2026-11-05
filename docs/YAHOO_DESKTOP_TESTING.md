@@ -1,6 +1,6 @@
 # Private Yahoo desktop test
 
-**Android 0.9.1 is a separate private data/UI test.** Use
+**Android 0.10.0 adds private data/UI and daily alert checks.** Use
 [the Android/request-log guide](YAHOO_ANDROID_TESTING.md) for its mobile HTTPS
 adapter, artifact and copyable HTTP diagnostics. Desktop continues using the
 isolated Python yfinance transport described here.
@@ -25,7 +25,7 @@ Python 3.12. The launcher installs requirements-desktop.txt, including yfinance
 | Start a new app process | One small SPY five-day history check; successful startup stays quiet. Failure adds a nonblocking Library warning. |
 | Type Apple, AAPL, DBS or D05.SI | No request until Enter or Submit. |
 | Submit a new query | One Search operation. US/SG stocks and ETFs only. Company logos use packaged assets or initials. |
-| Submit that query again | Cached results, zero calls. Refresh search results explicitly repeats the search. |
+| Submit that query again | Cached results, zero calls. The separate Refresh search results button has been removed. |
 | Select a security for the first time | One full available daily-history operation, period=max. Yahoo can add cookie/crumb/timezone requests internally. |
 | Select/View it again while fresh | Read persisted history, zero history calls. Saved View opens its exact SMA period. |
 | Open a stale security after its update target | One incremental history operation, normally overlapping ten calendar days. Cached saved charts can open while the request waits. |
@@ -44,7 +44,7 @@ not additional network operations.
 ## Search, charts and comparisons
 
 1. New analysis → search → Enter/Submit → select a matching company.
-2. On Parameters select a crossing frequency; Custom retains the numeric custom
+2. After selection the same screen reveals preferences; select a crossing frequency. Custom retains the numeric custom
    frequency. Fictional Trending/Oscillating/Sideways controls are absent for
    Yahoo securities.
 3. Optimize. The calculation examines all available history; it does not limit
@@ -160,25 +160,27 @@ tests therefore use synthetic transport fixtures. **Successful live price
 retrieval must still be confirmed on the owner's Mac/network.** A cloud policy
 denial is not evidence that the Mac's Wi-Fi or Yahoo itself is offline.
 
-## Deferred mobile work and schedules
+## Desktop freshness and Android schedules
 
 The portable definitions in schedule.py record the requested Singapore times:
 
-| Listing market | Future target, Asia/Singapore | Intended weekday close |
+| Listing market | Target, Asia/Singapore | Intended weekday close |
 | --- | --- | --- |
-| US stocks/ETFs | Tuesday–Saturday, 06:00 | Previous US weekday |
-| Singapore stocks/ETFs | Monday–Friday, 17:30 | Same Singapore weekday |
+| US stocks/ETFs | Tuesday–Saturday, 06:30 | Previous US weekday |
+| Singapore stocks/ETFs | Monday–Friday, 18:30 | Same Singapore weekday |
 
-For now these targets determine when an on-screen cached history is due for a
-refresh. They do not trigger network work while the app is closed.
+On desktop these targets determine when an on-screen cached history is due for
+a refresh; they do not start closed-window work. Android 0.10.0 also invokes
+native daily checks for enabled saved SMAs. See the
+[Android notification guide](ANDROID_DAILY_NOTIFICATIONS.md).
 
 yfinance does not provide a dependable forward exchange-holiday calendar for
 arbitrary markets/dates. A missing bar is not proof of a holiday. The current
 app retains the last supplied completed close; future work can add maintained
 exchange schedules and handling of exceptional closures.
 
-At the APK stage, implement native background scheduling/notification permission
-and test Doze/sleep, background suspension, delayed execution and catch-up.
+On the installed Android APK, test Doze/sleep, background suspension, delayed
+execution and missed-slot behavior. The iOS native adapter remains separate.
 Android and iOS can delay or deny background work even if an app was not explicitly
 force-stopped. An iOS UI cannot be assumed to keep executing Python indefinitely
 after backgrounding. Target cross-platform data/job contracts now; validate each

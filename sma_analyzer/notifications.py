@@ -95,6 +95,9 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
             body = f"Monitor: {line.counter} has closed below SMA {line.period}, target {line.target_frequency} /year"
         else:
             continue
+        if line.custom_name:
+            subject=f"{line.display_name} · {subject}"
+            body=f"{line.display_name} · {body}"
         result.append(Alert(channel, kind, line.counter, line.scenario, line.period,
                             line.target_frequency, session, subject,
                             body + f"\nSIMULATED DATA · {line.scenario} · Session {session}. Research alert only."))
@@ -107,12 +110,17 @@ def evaluate_dataset_eod(dataset, line, settings, session=None):
     alerts = evaluate_eod(dataset.prices, line, settings, session)
     if getattr(dataset, "is_simulated", True):
         return alerts
-    return tuple(replace(alert, source=dataset.source,
-                         session_date=dataset.dates[alert.session - 1],
-                         body=alert.body.splitlines()[0] +
-                         f"\nYAHOO EOD · {dataset.dates[alert.session - 1]} · {dataset.currency}. "
-                         "Daily-close research signal; not an observed intraday execution.")
-                 for alert in alerts)
+    symbol=dataset.counter.split(":",1)[-1]
+    result=[]
+    for alert in alerts:
+        title="Buy signal" if alert.kind=="buy" else "Impending buy signal"
+        movement="crossed above" if alert.kind=="buy" else "closed below"
+        result.append(replace(alert,source=dataset.source,session_date=dataset.dates[alert.session-1],
+            subject=f"{line.display_name} · {title} for {symbol}",
+            body=f"{line.display_name} · {symbol} has {movement} SMA {line.period}, target {line.target_frequency}/year."
+                 f"\nAdjusted daily close · {dataset.dates[alert.session-1]} · {dataset.currency}. "
+                 "Research signal; not an observed intraday execution."))
+    return tuple(result)
 
 
 class AndroidNotifier:
@@ -122,6 +130,8 @@ class AndroidNotifier:
     Android 13+, granted via request_permission(), and a future development build.
     This is local OS delivery, not remote push or a background EOD scheduler.
     """
+    def __init__(self,context=None):
+        self.context=context
     @staticmethod
     def request_permission(callback=None):
         """Request Android 13+ permission, then call callback once with its result."""
@@ -151,7 +161,11 @@ class AndroidNotifier:
             Activity = autoclass("org.kivy.android.PythonActivity")
             Version = autoclass("android.os.Build$VERSION")
             Context = autoclass("android.content.Context")
-            activity = Activity.mActivity
+            activity = self.context or Activity.mActivity
+            if activity is None:
+                activity=autoclass("org.kivy.android.PythonService").mService
+            if activity is None:
+                raise RuntimeError("Android notification context is unavailable.")
             manager = cast("android.app.NotificationManager", activity.getSystemService(Context.NOTIFICATION_SERVICE))
             if Version.SDK_INT >= 33 and activity.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != 0:
                 raise RuntimeError("Allow notifications in Android settings, then retry the test.")

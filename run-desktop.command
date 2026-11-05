@@ -13,7 +13,16 @@ if [ ! -x .venv/bin/python ]; then
 fi
 export KIVY_HOME="${KIVY_HOME:-$PWD/.local/kivy}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$PWD/.local/cache}"
-export SMA_DATA_SOURCE="${SMA_DATA_SOURCE:-yahoo}"
+# Normal desktop launches always use Yahoo, even if an older shell exported
+# SMA_DATA_SOURCE=preview. Simulation now requires the explicit --demo flag.
+desktop_source=yahoo
+if [ "${1:-}" = "--demo" ]; then
+    desktop_source=preview
+    shift
+elif [ "${1:-}" = "--smoke-test" ]; then
+    desktop_source=preview
+fi
+export SMA_DATA_SOURCE="$desktop_source"
 if [ "$SMA_DATA_SOURCE" = "preview" ]; then
     export SMA_ANALYZER_DATA_DIR="${SMA_ANALYZER_DATA_DIR:-$PWD/.local/preview-data}"
 else
@@ -31,6 +40,11 @@ if old.is_dir() and not destination.exists():
     print("Copied earlier preview saves into persistent application storage.")
 PY
 mkdir -p "$KIVY_HOME" "$XDG_CACHE_HOME" "$SMA_ANALYZER_DATA_DIR" .local/cache/pip
+if [ "$SMA_DATA_SOURCE" = "yahoo" ]; then
+    echo "Yahoo Finance mode: search a real company and select it to load daily history."
+else
+    echo "Explicit demo/test mode: simulated prices."
+fi
 PIP_CACHE_DIR="$PWD/.local/cache/pip" PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/python -m pip install -r requirements-desktop.txt
 
 if [ "${1:-}" = "--smoke-test" ]; then

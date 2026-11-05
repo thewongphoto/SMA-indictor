@@ -22,6 +22,8 @@ class MarketDataError(RuntimeError):
 
 
 def public_error(error):
+    if isinstance(error, MarketDataError):
+        return str(error)
     text = str(error).lower()
     if "429" in text or "rate" in text and "limit" in text:
         return "Yahoo is limiting requests. Saved data is retained; try again later."
@@ -153,8 +155,9 @@ class YahooMarketDataProvider:
     is_simulated = False
     scenario = SCENARIO
 
-    def __init__(self, cache: MarketCache, client=None, now=None):
+    def __init__(self, cache: MarketCache, client=None, now=None, client_factory=None):
         self.cache, self._client = cache, client
+        self.client_factory = client_factory or YFinanceClient
         self.now = now or (lambda: datetime.now(UTC))
         self._lock = threading.RLock()
         self.last_warning = ""
@@ -162,6 +165,10 @@ class YahooMarketDataProvider:
         self._health_result = None
         for security in cache.securities():
             register_security(security)
+
+    def initial_dataset(self):
+        # Live mode starts without a selected company or any fabricated prices.
+        return HistoricalDataset("UNSELECTED", (), (), "", "", 0, 0)
 
     def _request(self, operation, symbol, function):
         now = self.now().timestamp()
@@ -177,7 +184,7 @@ class YahooMarketDataProvider:
             time.sleep(.15)
         try:
             if self._client is None:
-                self._client = YFinanceClient(self.cache.path.parent / "yfinance-state")
+                self._client = self.client_factory(self.cache.path.parent / "yfinance-state")
             value = function(self._client)
             self.cache.operation(operation, symbol, "ok")
             return value

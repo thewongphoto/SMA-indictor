@@ -16,7 +16,13 @@
 
 - The current desktop iteration tests API retrieval through user interaction:
   one startup check, submitted search, selection/View when needed and explicit
-  refreshes. Do not add desktop background workers or notification delivery tests.
+  refreshes. Do not add persistent desktop background services, periodic fetches
+  or notification delivery tests. A short-lived request-isolation process is
+  allowed to keep a blocked/crashing native dependency from closing Kivy.
+- Normal launcher use must select Yahoo mode and start without synthetic prices.
+  Explicit --demo is the only launcher route into the local simulation.
+- Treat security alerts as unresolved until the exact file and wording have
+  been investigated; do not disable protection or presume a false positive.
 - Background API/notification testing is deferred to a user-authorized APK stage.
   Preserve the future schedule definitions: US listings Tue–Sat 06:00
   Asia/Singapore; Singapore listings Mon–Fri 17:30 Asia/Singapore.

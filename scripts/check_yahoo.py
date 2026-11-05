@@ -5,6 +5,7 @@ import json
 from sma_analyzer.market_cache import MarketCache
 from sma_analyzer.paths import data_directory
 from sma_analyzer.yahoo import YahooMarketDataProvider, MarketDataError
+from sma_analyzer.desktop_yahoo import DesktopYahooClient
 
 
 def main():
@@ -14,7 +15,7 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Refresh cached query/history explicitly.")
     args = parser.parse_args()
     cache = MarketCache(data_directory()/"market_data.sqlite3")
-    provider = YahooMarketDataProvider(cache)
+    provider = YahooMarketDataProvider(cache,client_factory=DesktopYahooClient)
     ok, warning = provider.health_check()
     report = {"health_ok":ok, "warning":warning, "data_directory":str(cache.path.parent)}
     try:

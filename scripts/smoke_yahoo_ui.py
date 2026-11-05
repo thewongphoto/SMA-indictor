@@ -5,6 +5,8 @@ from pathlib import Path
 import tempfile
 import time
 import traceback
+import subprocess
+from unittest.mock import patch
 
 temporary = tempfile.TemporaryDirectory(prefix="sma-yahoo-ui-")
 os.environ["SMA_ANALYZER_DATA_DIR"] = temporary.name
@@ -21,6 +23,7 @@ from sma_analyzer.market_cache import MarketCache
 from sma_analyzer.model import AnalyzerModel
 from sma_analyzer.storage import LineStore
 from sma_analyzer.yahoo import YahooMarketDataProvider
+from sma_analyzer.desktop_yahoo import DesktopYahooClient
 
 
 class YahooSmoke(App):
@@ -32,7 +35,9 @@ class YahooSmoke(App):
         self.client = FakeYahooClient()
         self.cache = MarketCache(root/"market_data.sqlite3")
         self.provider = YahooMarketDataProvider(self.cache,self.client,now=lambda:NOW)
-        self.screen = AnalyzerScreen(AnalyzerModel(LineStore(root/"saved_lines.sqlite3"),self.provider))
+        store = LineStore(root/"saved_lines.sqlite3")
+        store.save("DEMO-SGX","Oscillating",20,12)
+        self.screen = AnalyzerScreen(AnalyzerModel(store,self.provider))
         self.checks = []
         return self.screen
 
@@ -64,6 +69,12 @@ class YahooSmoke(App):
 
     def steps(self):
         ui = self.screen
+        assert ui.model.dataset.counter=="UNSELECTED"
+        assert ui.model.dataset.prices==()
+        assert ui.counter.security.name=="Choose a company"
+        assert ui.library_state=="empty"
+        assert ui.saved_rows=={} and ui.landing_saved_rows=={}
+        self.checked("live start has no demo selection or imported synthetic library rows")
         yield lambda:not ui._source_check_busy
         assert self.client.calls == [("history","SPY",{"period":"5d"})]
         assert ui.source_warning.text == ""
@@ -127,8 +138,29 @@ class YahooSmoke(App):
         assert len(ui.model.dataset.prices)==1700
         assert "Saved data" in ui.plot_subtitle.text
         self.checked("failed request retains chart and marks stale")
+        previous = self.provider._client
+        self.provider._client = DesktopYahooClient(Path(temporary.name)/"yfinance-state")
+        with patch("sma_analyzer.desktop_yahoo.subprocess.run",
+                   return_value=subprocess.CompletedProcess([],-9,"","private OS diagnostic")):
+            ui.check_yahoo_source(force=True)
+            yield lambda:not ui._source_check_busy
+            assert "process was stopped" in ui.source_warning.text
+            assert ui.model.dataset.counter=="YAHOO:AAPL"
+            assert len(ui.model.dataset.prices)==1700
+            assert not ui.closed
+        self.provider._client = previous
+        self.checked("OS-killed Yahoo support process leaves live Kivy chart open")
         assert not any(name.startswith("desktop-worker") for name in os.listdir(temporary.name))
         self.checked("no desktop background worker")
+        ui.confirm_clear_market_data()
+        clear = next(widget for widget in ui.clear_data_popup.content.children
+                     if getattr(widget,"text","")=="Clear downloaded data")
+        clear.dispatch("on_release")
+        assert ui.model.dataset.counter=="UNSELECTED"
+        assert ui.model.dataset.prices==()
+        assert len(ui.model.library_lines())==1
+        assert len(ui.model.store.list_all_lines())==2
+        self.checked("clear cache keeps real saved parameters and resets to unselected live state")
 
     def on_stop(self):
         self.screen.close()

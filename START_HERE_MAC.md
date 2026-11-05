@@ -53,6 +53,8 @@ requirements, then opens a window titled **SMA Stock Analyzer**. The first launc
 needs internet access to download dependencies. It makes a small Yahoo
 availability check; search and selecting a match download market data as needed.
 No Yahoo account/API key is normally required. Leave Terminal open while you use the app.
+The normal command always selects Yahoo mode. Simulation requires the separate
+`bash run-desktop.command --demo` command.
 
 Saved SMAs and downloaded data now persist in
 `~/Library/Application Support/SMAStockAnalyzer`. Closing the app and downloading
@@ -62,9 +64,11 @@ overwrites an existing destination. Close older app copies first.
 
 ## 5. Try the desktop preview
 
-1. The app opens on **My SMA library**. If you have saved SMAs, their company
-   groups appear immediately. Otherwise the first card offers the guided
-   example. Click **New analysis**, enter a partial ticker/company name in
+1. The app opens on **My SMA library**. If you have saved Yahoo SMAs, their company
+   groups appear immediately. Otherwise **New analysis** comes first.
+   No DEMO SGX security or fictional prices are selected in live mode.
+   Older simulated saves remain stored separately and do not appear in the
+   Yahoo library. Click **New analysis**, enter a partial ticker/company name in
    **Search security** (for example `Apple` or `DBS`),
    then press Enter or **Submit**. Click a logo/ticker/name match to load its
    Yahoo daily history. Typing alone never searches or changes the security.
@@ -175,6 +179,14 @@ application data directory; those files are not deleted or automatically moved
 by this launcher.
 
 ## If something goes wrong
+
+- **Malware/security alert:** keep the named file blocked. Paste the exact alert
+  wording, filename and your OS/version so the blocked component can be identified.
+  This update isolates the Yahoo libraries from the Kivy window, so a support
+  process failure is shown in the app instead of closing its window. Isolation
+  does not establish that an alert is a false positive or repair the blocked file.
+  Do not disable antivirus, Gatekeeper or certificate checks, or remove quarantine
+  flags as a workaround.
 
 - **Certificate/SSL error during installation:** in Finder, open
   **Applications > Python 3.12**, double-click **Install Certificates.command**,

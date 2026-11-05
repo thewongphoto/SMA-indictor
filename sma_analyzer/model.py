@@ -21,7 +21,8 @@ class AnalyzerModel:
     def __init__(self, store: LineStore, data_provider=None):
         self.store = store
         self.data_provider = data_provider or PreviewMarketDataProvider()
-        self.dataset = self.data_provider.historical_data(security_by_key("DEMO-SGX"), "Oscillating")
+        self.dataset = (self.data_provider.initial_dataset() if hasattr(self.data_provider, "initial_dataset")
+                        else self.data_provider.historical_data(security_by_key("DEMO-SGX"), "Oscillating"))
         self.target_frequency = 12
         self.result: OptimizationResult | None = None
         self.active_visible = True
@@ -42,6 +43,18 @@ class AnalyzerModel:
                 from .securities import register_security
                 return register_security(found)
         return security_by_key(key)
+
+    def library_lines(self):
+        lines = self.store.list_all_lines()
+        if not getattr(self.data_provider, "is_simulated", True):
+            return [line for line in lines if line.counter.startswith("YAHOO:")]
+        return lines
+
+    def archive_lines(self):
+        lines = self.store.recent_unsaved()
+        if not getattr(self.data_provider, "is_simulated", True):
+            return [line for line in lines if line.counter.startswith("YAHOO:")]
+        return lines
 
     def apply_dataset(self, dataset):
         self.dataset = dataset

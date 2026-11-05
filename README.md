@@ -94,9 +94,11 @@ includes GitHub-previewable navigation maps and captures of every screen. The
 
 ## Screen navigation
 
-The app opens on **My SMA library**. If any saved SMA exists, its company group
-appears immediately; otherwise the first card introduces moving averages and
-upward crossing buy signals. **See the guided example** opens a three-year
+The app opens on **My SMA library**. Yahoo mode shows saved real-company SMAs
+and puts **New analysis** first when none exist. It starts with no selected
+company or prices; old synthetic saves remain separate. The offline demo's
+first card introduces moving averages and upward crossing buy signals.
+**See the guided example** opens a three-year
 simulation with frequency choices and investment comparisons. The guide explains
 possible recovery signals, SMA lag, false crossings and the risk of subsequent falls.
 
@@ -143,7 +145,7 @@ flow use [the Mac walkthrough](START_HERE_MAC.md). To open the old offline demo
 on macOS/Linux with separate folder-local saves:
 
 ```sh
-SMA_DATA_SOURCE=preview bash run-desktop.command
+bash run-desktop.command --demo
 ```
 
 1. Choose New analysis, search a partial ticker/company name,

@@ -4,6 +4,11 @@ This iteration adds Yahoo EOD retrieval to the approved Kivy screens. It makes
 requests on launch or user interaction only. It does **not** run a background
 worker, deliver desktop notifications or start an APK build.
 
+Live mode starts with **Choose a company**, not DEMO SGX. Its library and archive
+list only Yahoo saved parameters; older synthetic saves are preserved separately.
+The launcher always selects Yahoo unless --demo or --smoke-test is passed
+explicitly. A failed Yahoo download does not generate substitute sample prices.
+
 Use [START_HERE_MAC.md](../START_HERE_MAC.md) to download main and launch with
 Python 3.12. The launcher installs requirements-desktop.txt, including yfinance
 1.8.0. No Yahoo account/API key is normally needed for these public-data calls.
@@ -56,6 +61,7 @@ not additional network operations.
 The guided example and old preview saves remain synthetic, separate from Yahoo
 identities. They do not use the live API. The local-demo screenshots and prior
 preview guide describe that simulation mode rather than historical Yahoo prices.
+Use `bash run-desktop.command --demo` to open the separate offline demo.
 
 ## Persistence and offline checks
 
@@ -92,6 +98,20 @@ app files; copy the persistent folder while the app is closed for a manual priva
 backup. Do not upload that private cache to this repository.
 
 ## Error diagnosis and the cloud test limit
+
+The desktop Yahoo transport now runs in a short-lived support process for each
+operation. If a native dependency is blocked or crashes, the app keeps its window
+open and reports that failure. The support process receives JSON parameters and
+returns dated observations; no background daemon is created. Mobile builds use
+their own transport adapters.
+This contains a failure of the Yahoo support process. It cannot keep the GUI
+running if the OS blocks the Python interpreter or Kivy itself.
+
+If an OS/antivirus alert appears, its exact wording and named file are needed to
+identify the cause. Do not assume a false positive or disable protection.
+Process isolation is crash containment, not a cure for a quarantined/detected file.
+The reported malware alert remains unconfirmed until its exact filename, wording
+and OS/version are supplied; this update does not declare it a false positive.
 
 Use the data request log first. The app distinguishes access blocking, rate
 limiting, secure-connection failure and timeouts where possible. A failed request
@@ -156,9 +176,13 @@ The second command opens a temporary Kivy test window, uses synthetic transport
 fixtures and exits. It does not contact Yahoo or use your personal cache. The
 existing smoke_ui script retains coverage of the previous demo/Android UI.
 
-Verified on 5 November 2026: **135 unit tests**, **46 existing UI groups**,
-**6 library-flow groups** and **10 Yahoo UI groups** passed. Yahoo adapter/UI
+Verified for the startup follow-up on 5 November 2026: **142 unit tests**,
+**6 library-flow groups** and **13 Yahoo UI groups** passed. The previous desktop
+iteration also passed **46 existing UI groups**. Yahoo adapter/UI
 validation uses controlled transport fixtures; the live probe exercised the
 installed client and reported the cloud network access block described above.
+The isolated dependency-import check loaded the installed yfinance 1.8.0.
+The OS-kill UI check simulates a stopped helper; it does not diagnose the owner's
+security product or verify a fix for its specific alert.
 No successful live Yahoo retrieval, physical-phone background execution or
 notification delivery is claimed by these results.

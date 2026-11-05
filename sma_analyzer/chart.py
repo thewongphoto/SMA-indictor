@@ -220,7 +220,7 @@ class PriceChart(Widget):
         self.canvas.clear()
         with self.canvas:
             if not self.prices or not any(p is not None for p in self.prices):
-                self._text("No simulated prices. Choose a scenario to begin.",
+                self._text("No prices loaded. Choose a security to begin.",
                            self.center_x, self.center_y, center=True)
                 return
             left, bottom, width, height = self.plot_rect

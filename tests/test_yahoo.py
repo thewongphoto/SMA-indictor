@@ -29,6 +29,29 @@ class YahooTests(unittest.TestCase):
     def apple(self):
         return self.provider.search("apple")[0]
 
+    def test_live_startup_has_no_selected_company_or_synthetic_prices(self):
+        store = LineStore(self.root/"saved_lines.sqlite3")
+        store.save("DEMO-SGX","Oscillating",20,12)
+        model = AnalyzerModel(store,self.provider)
+        self.assertEqual(model.dataset.counter,"UNSELECTED")
+        self.assertEqual(model.dataset.prices,())
+        self.assertEqual(model.dataset.dates,())
+        self.assertEqual(self.client.calls,[])
+        self.assertEqual(model.library_lines(),[])
+        self.assertEqual(len(store.list_all_lines()),1)  # preserved, never re-labelled as Yahoo
+
+    def test_live_library_and_archive_only_list_yahoo_parameters_without_deleting_demo(self):
+        store = LineStore(self.root/"saved_lines.sqlite3")
+        store.save("DEMO-SGX","Oscillating",20,12)
+        security = self.apple()
+        store.save(security.key,"Yahoo EOD",20,12)
+        model = AnalyzerModel(store,self.provider)
+        self.assertEqual([line.counter for line in model.library_lines()],[security.key])
+        for line in store.list_all_lines():
+            store.delete(line.id)
+        self.assertEqual([line.counter for line in model.archive_lines()],[security.key])
+        self.assertEqual(len(store.recent_unsaved()),2)
+
     def test_submitted_search_persists_across_new_provider_and_normalizes_queries(self):
         first = self.provider.search("  APPLE  ")
         self.assertEqual(first[0].name, "Apple Inc.")

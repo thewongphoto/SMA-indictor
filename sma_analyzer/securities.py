@@ -44,6 +44,7 @@ SECURITIES = (
 
 
 _DYNAMIC = {}
+UNSELECTED_SECURITY = Security("UNSELECTED", "", "Choose a company", "", "?")
 
 
 def register_security(security):
@@ -53,6 +54,8 @@ def register_security(security):
 
 
 def security_by_key(key):
+    if key == UNSELECTED_SECURITY.key:
+        return UNSELECTED_SECURITY
     if key in _DYNAMIC:
         return _DYNAMIC[key]
     security = next((item for item in SECURITIES if item.key == key), None)

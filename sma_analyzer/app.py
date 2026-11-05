@@ -169,7 +169,7 @@ class AnalyzerScreen(FloatLayout):
         self._syncing_controls = False
         self._page_stack = ["library"]
         self._result_origin = "parameters"
-        saved = model.store.list_all_lines()
+        saved = model.library_lines()
         self.expanded_saved_securities = {saved[0].counter} if saved else set()
         self._guide_job = 0
         self.guide_busy = False
@@ -562,6 +562,9 @@ class AnalyzerScreen(FloatLayout):
             self.guide_status.text = "Could not load the example. Open it again to retry."
 
     def show_parameters(self, *_):
+        if self.yahoo_enabled and not self.model.dataset.prices:
+            self.show_search()
+            return
         self._navigate("parameters")
         self._refresh_saved()
         # Stop residual momentum from a previous visit before restoring the top.
@@ -913,6 +916,8 @@ class AnalyzerScreen(FloatLayout):
         self.optimize_button.text = "Calculating…" if busy else "Optimize SMA"
         for widget in [self.optimize_button, self.counter, self.scenario, self.target, self.custom_target]:
             widget.disabled = busy or self.history_loading
+        if self.yahoo_enabled and not self.model.dataset.prices:
+            self.optimize_button.disabled = True
         for button in self.security_match_buttons:
             button.disabled = busy
         self.save_button.disabled = busy or self.model.result is None
@@ -920,6 +925,10 @@ class AnalyzerScreen(FloatLayout):
 
     def on_optimize(self, *_):
         if self.busy or self.history_loading:
+            return
+        if self.yahoo_enabled and not self.model.dataset.prices:
+            self.show_search()
+            self.search_status.text = "Choose a real company and load its daily history before optimizing."
             return
         self.show_parameters()
         self._result_origin = "parameters"
@@ -1099,7 +1108,7 @@ class AnalyzerScreen(FloatLayout):
                           calendar_dates=live)
         self._refresh_chart_header()
         self.legend.clear_widgets()
-        close_label = f"close ({data.currency})" if live else "simulated close"
+        close_label = f"close ({data.currency})" if live and data.prices else "close" if live else "simulated close"
         self.legend_labels = [close_label, "upward crossings"]
         def add_legend(text, color, plus=False):
             item = LegendItem(text, color, plus=plus)
@@ -1147,7 +1156,7 @@ class AnalyzerScreen(FloatLayout):
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
         self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units\nCrossing markers estimate daily-line intersections."
-        if not getattr(data, "is_simulated", True):
+        if not getattr(data, "is_simulated", True) and data.prices:
             from .schedule import SGT
             fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
             self.plot_subtitle.text = (f"YAHOO EOD · {data.currency} Close · {len(data.prices)} sessions\n"
@@ -1155,18 +1164,22 @@ class AnalyzerScreen(FloatLayout):
                                       "Crossing fills are daily-line estimates; cash dividends excluded.")
             if data.stale:
                 self.plot_subtitle.text += "\nSaved data · refresh pending or unavailable."
+        elif not getattr(data, "is_simulated", True):
+            self.plot_subtitle.text = "Choose a real company to download Yahoo daily history."
         if data.prices:
             start, end = self.chart.view_range
             self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
 
     def _refresh_saved(self):
-        self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.store.list_all_lines())
+        self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.library_lines())
         self.landing_saved_rows = self._populate_saved_panel(
-            self.landing_saved_panel, self.model.store.list_all_lines(), landing=True)
+            self.landing_saved_panel, self.model.library_lines(), landing=True)
         self.library_content.clear_widgets()
-        self.library_state = "populated" if self.model.store.list_all_lines() else "empty"
+        self.library_state = "populated" if self.model.library_lines() else "empty"
         widgets = ([self.new_analysis_button,self.landing_saved_panel,self.library_intro] if self.library_state == "populated"
                    else [self.library_intro,self.new_analysis_button,self.library_archive_button])
+        if self.yahoo_enabled and self.library_state == "empty":
+            widgets = [self.new_analysis_button, self.library_intro, self.library_archive_button]
         if self.source_warning.text:
             widgets.insert(0, self.source_warning)
         for widget in widgets:
@@ -1289,7 +1302,7 @@ class AnalyzerScreen(FloatLayout):
         entries.bind(minimum_height=entries.setter("height"))
         self.history_restore_buttons = {}
         self.history_identities = {}
-        for line in self.model.store.recent_unsaved():
+        for line in self.model.archive_lines():
             entry = SavedSecurityGroup()
             identity = SecurityIdentity(security_by_key(line.counter), logo_size=dp(20),
                                          height=dp(32), font_size=sp(12))
@@ -1450,7 +1463,7 @@ class AnalyzerScreen(FloatLayout):
         if self.closed or self.history_loading or self.busy:
             return
         data, result = self.model.dataset, self.model.result
-        if getattr(data, "is_simulated", True):
+        if getattr(data, "is_simulated", True) or not data.prices:
             self.api_status.text = "Select a Yahoo security first. The guided example and older demo saves stay simulated."
             return
         self._history_token += 1
@@ -1517,14 +1530,15 @@ class AnalyzerScreen(FloatLayout):
         content.add_widget(cancel)
         content.add_widget(clear)
         popup = Popup(title="Clear downloaded data?", content=content, size_hint=(.94,None), height=dp(300))
+        self.clear_data_popup = popup
         cancel.bind(on_release=popup.dismiss)
         def confirmed(*_):
             self.model.data_provider.cache.clear_downloads()
-            self.model.select_dataset("DEMO-SGX", "Oscillating")
+            self.model.apply_dataset(self.model.data_provider.initial_dataset())
             self._syncing_controls = True
             try:
                 self.counter.text = self.model.dataset.counter
-                self.scenario.values = SCENARIOS
+                self.scenario.values = (self.model.dataset.scenario,)
                 self.scenario.text = self.model.dataset.scenario
             finally:
                 self._syncing_controls = False
@@ -1840,7 +1854,10 @@ class SMAStockAnalyzerApp(App):
             if source == "yahoo":
                 from .market_cache import MarketCache
                 from .yahoo import YahooMarketDataProvider
-                provider = YahooMarketDataProvider(MarketCache(directory / "market_data.sqlite3"))
+                from .desktop_yahoo import DesktopYahooClient
+                factory = DesktopYahooClient if platform not in ("android","ios") else None
+                provider = YahooMarketDataProvider(MarketCache(directory / "market_data.sqlite3"),
+                                                   client_factory=factory)
             self.screen = AnalyzerScreen(AnalyzerModel(LineStore(directory / "saved_lines.sqlite3"), provider))
         except (sqlite3.Error, OSError) as error:
             return WrappedLabel(text=f"Local storage could not be opened: {error}\n"

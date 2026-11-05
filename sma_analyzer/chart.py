@@ -83,13 +83,14 @@ class PriceChart(Widget):
         # Stable across hiding/showing other periods; shared with saved-row swatches.
         return ACTIVE_COLOR if active else SAVED_COLORS[(period - 2) % len(SAVED_COLORS)]
 
-    def update(self, prices, series, dates=(), inspection_sma=None):
+    def update(self, prices, series, dates=(), inspection_sma=None, calendar_dates=False):
         # Keep exact engine output; never recalculate an approximation for plotting.
         prices = tuple(prices)
-        changed = prices != self.prices
+        changed = prices != self.prices or tuple(dates) != self.dates
         self.prices = prices
         self.series = list(series)
         self.dates = tuple(dates)
+        self.viewport.dates = self.dates if calendar_dates else ()
         self.inspection_sma = inspection_sma
         self.marker_events = {line.key: crossover_events(self.prices, line.sma) for line in self.series}
         if changed:

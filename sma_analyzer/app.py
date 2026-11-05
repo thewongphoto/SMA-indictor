@@ -1,10 +1,12 @@
 """Portrait-first, offline Kivy application. Worker calculations never touch widgets."""
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 import logging
 import os
 from pathlib import Path
 import sqlite3
 from dataclasses import replace
+from datetime import datetime
+from threading import Event
 
 from kivy.config import Config
 from kivy.utils import platform
@@ -45,7 +47,7 @@ from .viewport import available_timelines
 from .widgets import (TimelineSelector, RoundedSelector, LegendItem, LegendSymbol,
                       IconButton, IconSymbol, RuleSwitch, SecurityMatchButton,
                       SecurityIdentity, SecurityIdentityButton, SavedSecurityGroup)
-from .notifications import evaluate_eod, deliver_alerts, AndroidNotifier, Alert
+from .notifications import evaluate_eod, evaluate_dataset_eod, deliver_alerts, AndroidNotifier, Alert
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
 from .securities import security_by_key, normalize_query
@@ -147,7 +149,11 @@ class AnalyzerScreen(FloatLayout):
         self.bind(pos=self._paint_background, size=self._paint_background)
         self.model = model
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sma")
-        self.market_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="security")
+        self.market_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="security")
+        self._cancel_optimization = Event()
+        self.yahoo_enabled = hasattr(model.data_provider, "cache")
+        self.source_warning = WrappedLabel(text="", color=ERROR, font_size=sp(12))
+        self._source_check_busy = False
         self.search_busy = False
         self.history_loading = False
         self._search_token = 0
@@ -192,7 +198,7 @@ class AnalyzerScreen(FloatLayout):
         self.header = header
         header.bind(minimum_height=header.setter("height"))
         self.parameter_content.add_widget(header)
-        header.add_widget(WrappedLabel(text="OFFLINE LAB / SIMULATED DATA", color=MUTED,
+        header.add_widget(WrappedLabel(text="PRIVATE YAHOO EOD PREVIEW" if self.yahoo_enabled else "OFFLINE LAB / SIMULATED DATA", color=MUTED,
                                             font_size=sp(11), bold=True))
         self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
         header.add_widget(self.heading)
@@ -215,6 +221,11 @@ class AnalyzerScreen(FloatLayout):
         self.search_status = WrappedLabel(text="Search the preview catalogue by ticker or company name. All prices are simulated.",
                                           color=MUTED, font_size=sp(11))
         self.search_panel.add_widget(self.search_status)
+        if self.yahoo_enabled:
+            self.search_status.text = "Search US/SG stocks and ETFs. Enter or Submit searches; selecting a match loads daily history."
+            self.refresh_search_button = LabButton(text="Refresh search results")
+            self.refresh_search_button.bind(on_release=lambda _: self.submit_security_search(force=True))
+            self.search_panel.add_widget(self.refresh_search_button)
         self.search_matches = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
         self.search_matches.bind(minimum_height=self.search_matches.setter("height"))
         self.search_results_scroll = ScrollView(size_hint_y=None, height=0, do_scroll_x=False)
@@ -367,11 +378,13 @@ class AnalyzerScreen(FloatLayout):
         self.library_archive_button.bind(on_release=self.open_unsaved_history)
         self.table_panel = Panel()
         self.content.add_widget(self.table_panel)
-        self.settings_back_button = self._page_heading("settings","Notification settings")
+        self.settings_back_button = self._page_heading("settings","Settings" if self.yahoo_enabled else "Notification settings")
         self.crossovers_back_button = self._page_heading("crossovers","All upward crossings")
         self.full_table_panel = Panel()
         self.full_crossovers_content.add_widget(self.full_table_panel)
         self._build_notification_settings()
+        if self.yahoo_enabled:
+            self._build_api_settings()
         self.library_settings_button = self._page_heading("library", "My SMA library")
         self.library_settings_button.unbind(on_release=self.go_back)
         self.library_settings_button.kind = "settings"
@@ -386,7 +399,9 @@ class AnalyzerScreen(FloatLayout):
         self.settings_scroll.bind(size=self.keep_editor_visible)
         self.content.add_widget(WrappedLabel(
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
-                 "All prices are simulated; 252 sessions represent one trading year.",
+                 + ("Yahoo EOD comparisons use estimated crossing fills and exclude cash dividends, fees and taxes. "
+                  "The guided example is simulated." if self.yahoo_enabled else
+                  "All prices are simulated; 252 sessions represent one trading year."),
             color=MUTED, font_size=sp(11)))
 
         self.security_search.bind(text=self.on_security_query_edited, on_text_validate=self.submit_security_search)
@@ -398,6 +413,8 @@ class AnalyzerScreen(FloatLayout):
         self._layout_for_width()
         self.refresh()
         self.manager.current = "library"
+        if self.yahoo_enabled:
+            Clock.schedule_once(lambda _: self.check_yahoo_source(), 0)
 
     def _scrolling_page(self, name, chart=False, footer=False):
         """Each page keeps its own scroll offset; only Results routes plot gestures."""
@@ -734,10 +751,11 @@ class AnalyzerScreen(FloatLayout):
         self.search_busy = self.history_loading = False
         self.search_submit.disabled = False
         self._clear_security_matches()
-        self.search_status.text = "Press Enter or Submit to search. Preview prices are simulated."
+        self.search_status.text = ("Press Enter or Submit to search Yahoo Finance." if self.yahoo_enabled else
+                                   "Press Enter or Submit to search. Preview prices are simulated.")
         self._set_busy(self.busy)
 
-    def submit_security_search(self, *_):
+    def submit_security_search(self, *_, force=False):
         if self.manager.current != "search":
             self.show_search()
         try:
@@ -757,8 +775,9 @@ class AnalyzerScreen(FloatLayout):
         self.search_busy = True
         self.search_submit.disabled = True
         self._clear_security_matches()
-        self.search_status.text = "Searching preview securities…"
-        future = self.market_executor.submit(self.model.data_provider.search, query)
+        self.search_status.text = "Searching Yahoo Finance…" if self.yahoo_enabled else "Searching preview securities…"
+        future = (self.market_executor.submit(self.model.data_provider.search, query, force=force)
+                  if self.yahoo_enabled else self.market_executor.submit(self.model.data_provider.search, query))
         future.add_done_callback(lambda done: Clock.schedule_once(lambda _: self._security_search_complete(done, token), 0))
 
     def _security_search_complete(self, future, token):
@@ -775,11 +794,16 @@ class AnalyzerScreen(FloatLayout):
                 button.bind(on_release=lambda _, item=security: self.select_security_match(item))
                 self.security_match_buttons.append(button)
                 self.search_matches.add_widget(button)
-            self.search_status.text = (f"{len(matches)} preview matches. Select one to load simulated history."
-                                       if matches else "No preview matches. Try a partial ticker or company name, such as Apple or DBS.")
-        except Exception:
+            self.search_status.text = ((f"{len(matches)} matches. Select one to load Yahoo daily history."
+                                       if matches else "No US/SG stock or ETF matches. Try the Yahoo ticker (e.g. AAPL or D05.SI), or refresh results.")
+                                      if self.yahoo_enabled else
+                                      (f"{len(matches)} preview matches. Select one to load simulated history."
+                                       if matches else "No preview matches. Try a partial ticker or company name, such as Apple or DBS."))
+        except Exception as error:
             self._clear_security_matches()
-            self.search_status.text = "Search could not be completed. Press Submit to try again."
+            self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError)
+                                       else "Search could not be completed. Press Submit to try again.")
+        self._update_api_status()
 
     def select_security_match(self, security):
         if self.busy or security not in self.search_results:
@@ -791,9 +815,10 @@ class AnalyzerScreen(FloatLayout):
         token = self._history_token
         self._pending_security_key = security.key
         self.history_loading = True
-        scenario = self.scenario.text
+        scenario = self.model.data_provider.scenario if self.yahoo_enabled else self.scenario.text
         self._set_busy(False)
-        self.search_status.text = f"Loading simulated history for {security.ticker}…"
+        self.search_status.text = (f"Loading all available Yahoo daily history for {security.ticker}…"
+                                   if self.yahoo_enabled else f"Loading simulated history for {security.ticker}…")
         future = self.market_executor.submit(self.model.data_provider.historical_data, security, scenario)
         future.add_done_callback(lambda done: Clock.schedule_once(
             lambda _: self._security_history_complete(done, token, security, scenario), 0))
@@ -812,14 +837,21 @@ class AnalyzerScreen(FloatLayout):
             self._syncing_controls = True
             try:
                 self.counter.text = security.key
+                self.scenario.values = (dataset.scenario,) if self.yahoo_enabled else SCENARIOS
+                self.scenario.text = dataset.scenario
             finally:
                 self._syncing_controls = False
             self._show_selected_security(security)
             self.show_parameters()
             self.refresh()
-            self.message("Simulated history loaded. Press Optimize SMA to calculate a result.", quiet=True)
-        except Exception:
-            self.search_status.text = "Could not load history. Your previous security is unchanged; select a match to retry."
+            warning = getattr(self.model.data_provider, "last_warning", "")
+            self.message(warning or ("Yahoo history ready. Press Optimize SMA; MAX includes all downloaded history."
+                                    if self.yahoo_enabled else "Simulated history loaded. Press Optimize SMA to calculate a result."),
+                         error=bool(warning), quiet=not warning)
+        except Exception as error:
+            self.search_status.text = (str(error) if self.yahoo_enabled and isinstance(error, RuntimeError) else
+                                      "Could not load history. Your previous security is unchanged; select a match to retry.")
+        self._update_api_status()
 
     def _show_selected_security(self, security):
         self._search_token += 1
@@ -831,7 +863,9 @@ class AnalyzerScreen(FloatLayout):
         finally:
             self._syncing_search = False
         self._clear_security_matches()
-        self.search_status.text = f"Selected {security.ticker} · {security.name}. Simulated history ready."
+        self.search_status.text = (f"Selected {security.ticker} · {security.name}. Yahoo EOD history ready."
+                                   if security.provider == "yahoo" else
+                                   f"Selected {security.ticker} · {security.name}. Simulated history ready.")
 
     def on_dataset_change(self, *_):
         if self._syncing_controls:
@@ -898,8 +932,11 @@ class AnalyzerScreen(FloatLayout):
         token = self._job
         self._calculation_job = token
         self._set_busy(True)
-        self.message("Calculating all candidate periods across the full simulated history…")
-        future = self.executor.submit(optimize_sma, self.model.dataset.prices, self.model.target_frequency)
+        self.message("Calculating all candidate periods across the full history…")
+        self._cancel_optimization.set()
+        self._cancel_optimization = Event()
+        future = self.executor.submit(optimize_sma, self.model.dataset.prices, self.model.target_frequency,
+                                      cancel=self._cancel_optimization)
         future.add_done_callback(lambda completed: Clock.schedule_once(
             lambda _dt: self._complete(completed, token), 0))
 
@@ -966,11 +1003,33 @@ class AnalyzerScreen(FloatLayout):
             self._result_origin = "library" if self.manager.current == "library" else "parameters"
         if self.busy:
             return
+        if line.counter.startswith("YAHOO:") and self.yahoo_enabled:
+            self._job += 1
+            self._history_token += 1
+            token = self._history_token
+            # Cached View should open even while the startup network probe is pending.
+            if self.model.data_provider.cache.history(line.counter)[0]:
+                try:
+                    cached = self.model.data_provider.cached_data(self.model.security(line.counter))
+                    completed = Future()
+                    completed.set_result((line, cached, self.model.result_for_dataset(
+                        cached, line.period, line.target_frequency)))
+                    self._saved_history_complete(completed, token)
+                    if not cached.stale:
+                        return
+                except (ValueError, RuntimeError):
+                    pass
+            self.history_loading = True
+            self._set_busy(False)
+            future = self.market_executor.submit(self.model.prepare_saved_line, line.id)
+            future.add_done_callback(lambda done: self._on_ui(lambda: self._saved_history_complete(done, token)))
+            return
         try:
             self._job += 1
             selected = self.model.view_saved_line(line.id)
             self._syncing_controls = True
             try:
+                self.scenario.values = SCENARIOS
                 self.counter.text, self.scenario.text = selected.counter, selected.scenario
                 self.custom_target.text = str(selected.target_frequency)
                 self.target.text = (f"{selected.target_frequency} / year"
@@ -988,24 +1047,66 @@ class AnalyzerScreen(FloatLayout):
         except (ValueError, sqlite3.Error, OSError) as error:
             self.message(f"Could not open saved SMA: {error}", True)
 
+    def _saved_history_complete(self, future, token):
+        if token != self._history_token:
+            return
+        self.history_loading = False
+        self._set_busy(False)
+        try:
+            prepared = future.result()
+            # Revalidate: the user may have unsaved the line during its fetch.
+            self.model.store.get_line(prepared[0].id)
+            self.model.apply_saved_line(prepared)
+            selected = prepared[0]
+            self._syncing_controls = True
+            try:
+                self.counter.text = selected.counter
+                self.scenario.values = (selected.scenario,)
+                self.scenario.text = selected.scenario
+                self.custom_target.text = str(selected.target_frequency)
+                self.target.text = (f"{selected.target_frequency} / year"
+                                    if selected.target_frequency in TARGET_FREQUENCIES else "Custom")
+            finally:
+                self._syncing_controls = False
+            self._show_selected_security(self.model.security(selected.counter))
+            self.refresh()
+            self.chart.set_timeline("1Y")
+            self.show_results()
+            warning = getattr(self.model.data_provider, "last_warning", "")
+            self.message(warning or f"Viewing exact saved SMA {selected.period}.", bool(warning), quiet=not warning)
+        except (ValueError, RuntimeError, sqlite3.Error, OSError) as error:
+            self.message(f"Could not open saved SMA: {error}", True)
+            self.source_warning.text = str(error)
+            self._refresh_saved()
+        self._update_api_status()
+
     def refresh(self):
         self.last_alerts = ()
         self.alert_preview.text = "No current preview. Choose a session and press Preview EOD alerts."
         data = self.model.dataset
+        live = not getattr(data, "is_simulated", True)
         self.alert_session_label.text = f"Test an end-of-day session (1–{len(data.prices)})"
-        self.plot_title.set_security(security_by_key(data.counter))
+        if live:
+            self.alert_session.text = str(len(data.prices))
+        if live and self.scenario_cell.parent is not None:
+            self.scenario_cell.parent.remove_widget(self.scenario_cell)
+        elif not live and self.scenario_cell.parent is None:
+            self.custom_panel.add_widget(self.scenario_cell)
+        self.plot_title.set_security(self.model.security(data.counter))
         lines = self.model.plot_lines()
         self.chart.update(data.prices, lines, data.dates,
-                          (self.model.result.period, self.model.result.sma) if self.model.result else None)
+                          (self.model.result.period, self.model.result.sma) if self.model.result else None,
+                          calendar_dates=live)
         self._refresh_chart_header()
         self.legend.clear_widgets()
-        self.legend_labels = ["simulated close", "upward crossings"]
+        close_label = f"close ({data.currency})" if live else "simulated close"
+        self.legend_labels = [close_label, "upward crossings"]
         def add_legend(text, color, plus=False):
             item = LegendItem(text, color, plus=plus)
             item.bind(width=self._center_legend)
             self.legend.add_widget(item)
 
-        add_legend("simulated close", PRICE_COLOR)
+        add_legend(close_label, PRICE_COLOR)
         add_legend("upward crossings", ACTIVE_COLOR, plus=True)
         for index, line in enumerate(lines):
             label = f"SMA {line.period}"
@@ -1016,17 +1117,18 @@ class AnalyzerScreen(FloatLayout):
                 self.card_values[key].text = value
         self._set_busy(self.busy)
         self.save_button.selected = self.model.current_saved_line() is not None
-        self.optimal_caption.text = "SAVED SMA" if self.model.viewing_saved else "OPTIMAL SMA"
+        self.optimal_caption.text = ("SAVED SMA" if self.model.viewing_saved else
+                                     "SELECTED SMA" if self.model.period_preserved else "OPTIMAL SMA")
         self.hide_button.text = "Hide SMA" if self.model.active_visible else "Show SMA"
         result = self.model.result
         self.explanation.text = (
             f"Based on {result.comparisons} usable comparisons "
             f"({result.usable_years:.2f} trading years) from {result.history_sessions} sessions. "
             f"Target difference: {float(result.frequency_error):.2f}/yr. " +
-            ("Viewing the exact saved period. " if self.model.viewing_saved else
+            ("Viewing the exact selected period. " if self.model.viewing_saved or self.model.period_preserved else
              f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. ") +
             "Warm-up and gaps are excluded. "
-            + ("Saved parameters have not been re-optimized." if self.model.viewing_saved else
+            + ("Parameters have not been re-optimized." if self.model.viewing_saved or self.model.period_preserved else
                "Ties choose the shorter SMA. " +
                ("Closest eligible result; target not matched exactly." if result.frequency_error else "Target matched."))
             if result else "Optimize across all observable history. Warm-up and gaps are excluded from annual frequency.")
@@ -1040,10 +1142,19 @@ class AnalyzerScreen(FloatLayout):
         elif self.zoom_out_button.parent is not None:
             self.plot_header.remove_widget(self.zoom_out_button)
         data = self.model.dataset
-        self.timeline_selector.values = available_timelines(len(data.prices))
+        self.timeline_selector.values = available_timelines(len(data.prices),
+                                    data.dates if not getattr(data, "is_simulated", True) else ())
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
         self.plot_subtitle.text = f"SIMULATED DATA · {len(data.prices)} sessions · fictional price units\nCrossing markers estimate daily-line intersections."
+        if not getattr(data, "is_simulated", True):
+            from .schedule import SGT
+            fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
+            self.plot_subtitle.text = (f"YAHOO EOD · {data.currency} Close · {len(data.prices)} sessions\n"
+                                      f"Last close {data.dates[-1]} · fetched {fetched}\n"
+                                      "Crossing fills are daily-line estimates; cash dividends excluded.")
+            if data.stale:
+                self.plot_subtitle.text += "\nSaved data · refresh pending or unavailable."
         if data.prices:
             start, end = self.chart.view_range
             self.plot_subtitle.text += f"\n{self.chart.timeline} view · sessions {start + 1}–{end + 1}"
@@ -1056,6 +1167,8 @@ class AnalyzerScreen(FloatLayout):
         self.library_state = "populated" if self.model.store.list_all_lines() else "empty"
         widgets = ([self.new_analysis_button,self.landing_saved_panel,self.library_intro] if self.library_state == "populated"
                    else [self.library_intro,self.new_analysis_button,self.library_archive_button])
+        if self.source_warning.text:
+            widgets.insert(0, self.source_warning)
         for widget in widgets:
             self.library_content.add_widget(widget)
 
@@ -1214,7 +1327,12 @@ class AnalyzerScreen(FloatLayout):
         self.settings_panel = Panel()
         self.settings_content.add_widget(self.settings_panel)
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
-        self.settings_panel.add_widget(WrappedLabel(text="SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications.",color=MUTED,font_size=sp(11)))
+        self.settings_panel.add_widget(WrappedLabel(
+            text=("Notification preferences are retained for the future mobile build. Desktop tests cover API retrieval only; "
+                  "background and notification delivery testing are deferred."
+                  if self.yahoo_enabled else
+                  "SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications."),
+            color=MUTED,font_size=sp(11)))
         settings = self.model.store.notification_settings()
         self.notification_switches = {}
         descriptions = {
@@ -1265,6 +1383,157 @@ class AnalyzerScreen(FloatLayout):
         self.alert_preview = WrappedLabel(text="No alert preview yet.",color=MUTED,font_size=sp(12))
         self.settings_panel.add_widget(self.alert_preview)
         self.last_alerts = ()
+        if self.yahoo_enabled and platform not in ("android", "ios"):
+            self.preview_alert_button.disabled = True
+            self.phone_test_button.disabled = True
+            self.eod_deliver_button.disabled = True
+            self.notification_status.text = "Notification testing is deferred to the APK stage."
+
+    def _build_api_settings(self):
+        panel = Panel()
+        self.settings_content.add_widget(panel)
+        panel.add_widget(WrappedLabel(text="YAHOO FINANCE · PRIVATE DESKTOP TEST", bold=True))
+        panel.add_widget(WrappedLabel(
+            text="Requests run on launch or your actions. Downloaded history survives closing the app. "
+                 "Background fetching and notification delivery tests are deferred to the APK stage.",
+            color=MUTED, font_size=sp(12)))
+        self.api_status = WrappedLabel(text="No data request completed yet.", color=MUTED, font_size=sp(12))
+        panel.add_widget(self.api_status)
+        for title, name, callback in (
+            ("Check Yahoo connection", "api_check_button", lambda _: self.check_yahoo_source(force=True)),
+            ("Refresh selected prices", "api_refresh_button", lambda _: self.refresh_current_prices()),
+            ("Refresh all selected history", "api_full_button", lambda _: self.refresh_current_prices(full=True)),
+            ("View data request log", "api_log_button", self.show_api_log),
+            ("Clear downloaded prices and search results", "api_clear_button", self.confirm_clear_market_data),
+        ):
+            button = LabButton(text=title)
+            setattr(self, name, button)
+            button.bind(on_release=callback)
+            panel.add_widget(button)
+
+    def _update_api_status(self):
+        if not hasattr(self, "api_status"):
+            return
+        from .schedule import SGT
+        operations = self.model.data_provider.cache.operations(1)
+        if operations:
+            at, operation, symbol, status, detail = operations[0]
+            self.api_status.text = (f"Last request: {operation} · {symbol} · {status}\n"
+                                    f"{datetime.fromtimestamp(at, SGT):%Y-%m-%d %H:%M:%S} SGT"
+                                    + (f"\n{detail}" if detail else ""))
+        blocked = self._source_check_busy or self.history_loading or self.search_busy or self.busy
+        for name in ("api_check_button", "api_refresh_button", "api_full_button", "api_clear_button"):
+            getattr(self, name).disabled = blocked
+
+    def check_yahoo_source(self, *_, force=False):
+        if self.closed or not self.yahoo_enabled or self._source_check_busy:
+            return
+        self._source_check_busy = True
+        self._update_api_status()
+        future = self.market_executor.submit(self.model.data_provider.health_check, force=force)
+        future.add_done_callback(lambda done: self._on_ui(lambda: self._source_check_complete(done, force)))
+
+    def _source_check_complete(self, future, explicit):
+        self._source_check_busy = False
+        try:
+            success, warning = future.result()
+        except Exception:
+            success, warning = False, "Unable to check Yahoo from this device. Saved data remains available."
+        self.source_warning.text = "" if success else warning
+        self._refresh_saved()
+        # Startup success stays quiet. Explicit tests have a result in Settings.
+        if explicit and success:
+            self.api_status.text = "Yahoo price-data check succeeded."
+        self._update_api_status()
+
+    def refresh_current_prices(self, *_, full=False):
+        if self.closed or self.history_loading or self.busy:
+            return
+        data, result = self.model.dataset, self.model.result
+        if getattr(data, "is_simulated", True):
+            self.api_status.text = "Select a Yahoo security first. The guided example and older demo saves stay simulated."
+            return
+        self._history_token += 1
+        token = self._history_token
+        self.history_loading = True
+        self._set_busy(False)
+        was_saved = self.model.viewing_saved
+        security = self.model.security(data.counter)
+        def work():
+            updated = self.model.data_provider.historical_data(security, force=True, full=full)
+            updated_result = (self.model.result_for_dataset(updated, result.period, result.target_frequency)
+                              if result else None)
+            return updated, updated_result
+        future = self.market_executor.submit(work)
+        future.add_done_callback(lambda done: self._on_ui(
+            lambda: self._refresh_history_complete(done, token, was_saved)))
+        self._update_api_status()
+
+    def _refresh_history_complete(self, future, token, was_saved):
+        if token != self._history_token:
+            return
+        self.history_loading = False
+        self._set_busy(False)
+        try:
+            data, result = future.result()
+            self.model.apply_dataset(data)
+            if result:
+                self.model.apply_result(result)
+                self.model.viewing_saved = was_saved
+                self.model.period_preserved = True
+            self.refresh()
+            warning = getattr(self.model.data_provider, "last_warning", "")
+            self.api_status.text = warning or f"History refreshed through {data.dates[-1]}. Selected SMA period is unchanged."
+            self.message(self.api_status.text, bool(warning), quiet=not warning)
+        except (ValueError, RuntimeError, OSError, sqlite3.Error) as error:
+            self.api_status.text = str(error)
+        self._update_api_status()
+
+    def show_api_log(self, *_):
+        from .schedule import SGT
+        content = BoxLayout(orientation="vertical", spacing=dp(8), padding=dp(12))
+        scroll = ScrollView(do_scroll_x=False)
+        label = WrappedLabel(text="\n\n".join(
+            f"{datetime.fromtimestamp(at, SGT):%Y-%m-%d %H:%M:%S} SGT\n"
+            f"{operation} · {symbol} · {status}" + (f"\n{detail}" if detail else "")
+            for at, operation, symbol, status, detail in self.model.data_provider.cache.operations(30))
+            or "No API operations yet.", color=MUTED, font_size=sp(12))
+        scroll.add_widget(label)
+        content.add_widget(scroll)
+        button = LabButton(text="Close")
+        content.add_widget(button)
+        popup = Popup(title="Data requests · newest first", content=content, size_hint=(.94,.8))
+        button.bind(on_release=popup.dismiss)
+        popup.open()
+
+    def confirm_clear_market_data(self, *_):
+        if self.history_loading or self.search_busy or self._source_check_busy:
+            return
+        content = BoxLayout(orientation="vertical", spacing=dp(8), padding=dp(12))
+        content.add_widget(WrappedLabel(
+            text="Clear downloaded prices and cached search results? Saved SMA parameters, company identities "
+                 "and preferences will remain. Opening a Yahoo saved line afterwards needs a download."))
+        cancel, clear = LabButton(text="Cancel"), LabButton(text="Clear downloaded data")
+        content.add_widget(cancel)
+        content.add_widget(clear)
+        popup = Popup(title="Clear downloaded data?", content=content, size_hint=(.94,None), height=dp(300))
+        cancel.bind(on_release=popup.dismiss)
+        def confirmed(*_):
+            self.model.data_provider.cache.clear_downloads()
+            self.model.select_dataset("DEMO-SGX", "Oscillating")
+            self._syncing_controls = True
+            try:
+                self.counter.text = self.model.dataset.counter
+                self.scenario.values = SCENARIOS
+                self.scenario.text = self.model.dataset.scenario
+            finally:
+                self._syncing_controls = False
+            popup.dismiss()
+            self.refresh()
+            self.show_library()
+            self.api_status.text = "Downloaded data cleared; saved SMA parameters are retained."
+        clear.bind(on_release=confirmed)
+        popup.open()
 
     def on_notification_rule(self, key, active):
         if getattr(self,"_reverting_rule",False):
@@ -1292,7 +1561,7 @@ class AnalyzerScreen(FloatLayout):
             # their email channel in this phone-only application.
             settings = replace(self.model.store.notification_settings(), email_buy=False, email_monitor=False)
             self.last_alerts = tuple(alert for line in self.model.saved_lines()
-                                    for alert in evaluate_eod(self.model.dataset.prices,line,settings,session)
+                                    for alert in evaluate_dataset_eod(self.model.dataset,line,settings,session)
                                     if alert.channel == "phone")
             self.alert_preview.text = ("\n\n".join(
                 f"{alert.channel.upper()} PREVIEW · {alert.subject}\n{alert.body}" for alert in self.last_alerts)
@@ -1464,8 +1733,11 @@ class AnalyzerScreen(FloatLayout):
             return
         try:
             data, result = self.model.dataset, self.model.result
-            sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices))
-            report = compare_investments(data.prices, result.sma, result.events, sessions)
+            dates = data.dates if not getattr(data, "is_simulated", True) else None
+            self.backtest_heading.text = (f"If you invested {data.currency} 100 for the past:"
+                                          if dates else "If you invested $100 for the past:")
+            sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices), dates)
+            report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
             self.backtest_report = report
             count = len(report.crossings.indices)
             self._set_backtest_captions(count)
@@ -1477,7 +1749,8 @@ class AnalyzerScreen(FloatLayout):
                 "Scenario a's moving average strategy outperformance is N/A: no upward crossings in this period.")
             for key, value in self.backtest_values.items():
                 scenario = getattr(report, key)
-                value.text = f"${scenario.ending_value:,.2f}"
+                prefix = f"{data.currency} " if dates else "$"
+                value.text = f"{prefix}{scenario.ending_value:,.2f}"
                 if key in self.backtest_differences:
                     percent = scenario.difference_percent(report.crossings)
                     self.backtest_differences[key].text = ("(N/A vs a)" if percent is None
@@ -1535,6 +1808,7 @@ class AnalyzerScreen(FloatLayout):
 
     def close(self):
         self.closed = True
+        self._cancel_optimization.set()
         self._editor_scroll_trigger.cancel()
         self.finish_editing()
         self._search_token += 1
@@ -1554,8 +1828,20 @@ class SMAStockAnalyzerApp(App):
         try:
             # Avoid evaluating user_data_dir when an explicit writable path is supplied.
             configured = os.environ.get("SMA_ANALYZER_DATA_DIR")
-            directory = Path(configured if configured else self.user_data_dir)
-            self.screen = AnalyzerScreen(AnalyzerModel(LineStore(directory / "saved_lines.sqlite3")))
+            if configured:
+                directory = Path(configured)
+            elif platform not in ("android", "ios"):
+                from .paths import data_directory
+                directory = data_directory()
+            else:
+                directory = Path(self.user_data_dir)
+            source = os.environ.get("SMA_DATA_SOURCE", "preview" if platform in ("android","ios") else "yahoo")
+            provider = None
+            if source == "yahoo":
+                from .market_cache import MarketCache
+                from .yahoo import YahooMarketDataProvider
+                provider = YahooMarketDataProvider(MarketCache(directory / "market_data.sqlite3"))
+            self.screen = AnalyzerScreen(AnalyzerModel(LineStore(directory / "saved_lines.sqlite3"), provider))
         except (sqlite3.Error, OSError) as error:
             return WrappedLabel(text=f"Local storage could not be opened: {error}\n"
                                 "Choose a writable SMA_ANALYZER_DATA_DIR and restart.", color=ERROR)

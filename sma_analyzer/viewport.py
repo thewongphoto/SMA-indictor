@@ -1,11 +1,23 @@
 """Chart range math, independent of Kivy and the SMA optimization objective."""
 from dataclasses import dataclass
 import math
+from datetime import date
+from bisect import bisect_left
 from .settings import TRADING_SESSIONS_PER_YEAR
 
 
-def available_timelines(session_count):
+def available_timelines(session_count, dates=()):
     """1Y clamps to shorter histories; unavailable longer ranges are omitted."""
+    if dates:
+        last = date.fromisoformat(dates[-1])
+        def covered(years):
+            try:
+                cutoff = last.replace(year=last.year-years)
+            except ValueError:
+                cutoff = last.replace(year=last.year-years, day=28)
+            return dates[0] <= cutoff.isoformat()
+        return tuple(label for label, years in (("1Y",1),("3Y",3),("5Y",5))
+                     if years == 1 or covered(years)) + ("Max",)
     return tuple(label for label, years in (("1Y", 1), ("3Y", 3), ("5Y", 5))
                  if years == 1 or session_count >= years * TRADING_SESSIONS_PER_YEAR) + ("Max",)
 
@@ -27,6 +39,7 @@ class RangeSelection:
 class ChartViewport:
     """Inclusive global session indices; selecting again zooms within this range."""
     def __init__(self, session_count=0):
+        self.dates = ()
         self.reset(session_count)
 
     @property
@@ -44,10 +57,17 @@ class ChartViewport:
         self.start, self.end = self.base_range
 
     def show_timeline(self, label):
-        if label not in available_timelines(self.session_count):
+        if label not in available_timelines(self.session_count, self.dates):
             raise ValueError(f"{label} is not available for this price history.")
         sessions = self.session_count if label == "Max" else int(label[:-1]) * TRADING_SESSIONS_PER_YEAR
         self.base_range = (max(0, self.session_count - sessions), max(0, self.session_count - 1))
+        if self.dates and label != "Max":
+            last = date.fromisoformat(self.dates[-1])
+            try:
+                cutoff = last.replace(year=last.year-int(label[:-1]))
+            except ValueError:
+                cutoff = last.replace(year=last.year-int(label[:-1]), day=28)
+            self.base_range = (bisect_left(self.dates, cutoff.isoformat()), self.session_count-1)
         self.reset()
 
     def index_at(self, fraction: float) -> float:

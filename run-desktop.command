@@ -13,9 +13,25 @@ if [ ! -x .venv/bin/python ]; then
 fi
 export KIVY_HOME="${KIVY_HOME:-$PWD/.local/kivy}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$PWD/.local/cache}"
-export SMA_ANALYZER_DATA_DIR="${SMA_ANALYZER_DATA_DIR:-$PWD/.local/preview-data}"
+export SMA_DATA_SOURCE="${SMA_DATA_SOURCE:-yahoo}"
+if [ "$SMA_DATA_SOURCE" = "preview" ]; then
+    export SMA_ANALYZER_DATA_DIR="${SMA_ANALYZER_DATA_DIR:-$PWD/.local/preview-data}"
+else
+    export SMA_ANALYZER_DATA_DIR="${SMA_ANALYZER_DATA_DIR:-$(.venv/bin/python -m sma_analyzer.paths)}"
+fi
+# Preserve the previous folder-local preview saves on the first persistent launch.
+.venv/bin/python - <<'PY'
+from pathlib import Path
+import os
+import shutil
+old = Path(".local/preview-data")
+destination = Path(os.environ["SMA_ANALYZER_DATA_DIR"])
+if old.is_dir() and not destination.exists():
+    shutil.copytree(old, destination)
+    print("Copied earlier preview saves into persistent application storage.")
+PY
 mkdir -p "$KIVY_HOME" "$XDG_CACHE_HOME" "$SMA_ANALYZER_DATA_DIR" .local/cache/pip
-PIP_CACHE_DIR="$PWD/.local/cache/pip" PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/python -m pip install -r requirements.txt
+PIP_CACHE_DIR="$PWD/.local/cache/pip" PIP_DISABLE_PIP_VERSION_CHECK=1 .venv/bin/python -m pip install -r requirements-desktop.txt
 
 if [ "${1:-}" = "--smoke-test" ]; then
     shift

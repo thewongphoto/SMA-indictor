@@ -24,6 +24,7 @@ Path("artifacts").mkdir(exist_ok=True)
 # Test storage never touches the user's saved lines.
 temporary = tempfile.TemporaryDirectory(prefix="sma-ui-")
 os.environ["SMA_ANALYZER_DATA_DIR"] = temporary.name
+os.environ["SMA_DATA_SOURCE"] = "preview"
 
 from sma_analyzer.app import SMAStockAnalyzerApp, AnalyzerScreen
 from sma_analyzer.android_window import WindowMetrics

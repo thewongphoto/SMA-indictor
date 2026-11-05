@@ -26,17 +26,29 @@ class AnalyzerModel:
         self.result: OptimizationResult | None = None
         self.active_visible = True
         self.viewing_saved = False
+        self.period_preserved = False
 
     def select_dataset(self, counter: str, scenario: str) -> None:
         # Generate before replacing state so invalid choices leave the current data intact.
         dataset = self.data_provider.historical_data(security_by_key(counter), scenario)
         self.apply_dataset(dataset)
 
+    def security(self, key):
+        """Persisted dynamic Yahoo identities and legacy preview identities coexist."""
+        cache = getattr(self.data_provider, "cache", None)
+        if cache:
+            found = cache.security(key)
+            if found:
+                from .securities import register_security
+                return register_security(found)
+        return security_by_key(key)
+
     def apply_dataset(self, dataset):
         self.dataset = dataset
         self.result = None
         self.active_visible = True
         self.viewing_saved = False
+        self.period_preserved = False
 
     def set_target(self, text: str) -> None:
         try:
@@ -63,6 +75,7 @@ class AnalyzerModel:
         self.result = result
         self.active_visible = True
         self.viewing_saved = False
+        self.period_preserved = False
 
     def view_saved_line(self, line_id: int) -> SavedLine:
         """Open exact saved parameters; never rerun or silently retune the optimizer.
@@ -71,20 +84,33 @@ class AnalyzerModel:
         Other lines' visibility and the saved settings themselves are unchanged.
         Validate before replacing the existing analysis so errors are recoverable.
         """
-        line = self.store.get_line(line_id)
-        data = self.data_provider.historical_data(security_by_key(line.counter), line.scenario)
-        average = tuple(simple_moving_average(data.prices, line.period))
+        prepared = self.prepare_saved_line(line_id)
+        self.apply_saved_line(prepared)
+        return prepared[0]
+
+    @staticmethod
+    def result_for_dataset(data, period, target):
+        average = tuple(simple_moving_average(data.prices, period))
         comparisons = observable_comparisons(data.prices, average)
         if not comparisons:
             raise ValueError("Not enough observable history to display this saved SMA.")
-        result = OptimizationResult(line.period, line.target_frequency, len(data.prices),
-                                    comparisons, average, crossover_events(data.prices, average))
+        return OptimizationResult(period, target, len(data.prices), comparisons,
+                                  average, crossover_events(data.prices, average))
+
+    def prepare_saved_line(self, line_id):
+        line = self.store.get_line(line_id)
+        data = self.data_provider.historical_data(self.security(line.counter), line.scenario)
+        result = self.result_for_dataset(data, line.period, line.target_frequency)
+        return line, data, result
+
+    def apply_saved_line(self, prepared):
+        line, data, result = prepared
         self.dataset = data
         self.target_frequency = line.target_frequency
         self.result = result
         self.active_visible = True
         self.viewing_saved = True
-        return line
+        self.period_preserved = False
 
     def saved_lines(self) -> list[SavedLine]:
         return self.store.list_lines(self.dataset.counter, self.dataset.scenario)

@@ -14,6 +14,11 @@ class Security:
     logo: str = ""
     preview_template: str = "DEMO-US"
     preview_scale: float = 1.0
+    provider: str = "preview"
+    symbol: str = ""
+    currency: str = ""
+    timezone: str = ""
+    region: str = ""
 
     @property
     def logo_path(self):
@@ -38,7 +43,18 @@ SECURITIES = (
 )
 
 
+_DYNAMIC = {}
+
+
+def register_security(security):
+    if security.provider == "yahoo":
+        _DYNAMIC[security.key] = security
+    return security
+
+
 def security_by_key(key):
+    if key in _DYNAMIC:
+        return _DYNAMIC[key]
     security = next((item for item in SECURITIES if item.key == key), None)
     if security is None:
         raise ValueError("Choose a security from the search results.")

@@ -1,8 +1,9 @@
 # Open the app on your Mac
 
 The latest Kivy desktop preview is available on GitHub's **main** branch.
-These instructions download and run that version. No Android APK build is needed.
-For the exact simulation rules, see [Desktop preview](docs/DESKTOP_PREVIEW.md).
+It now retrieves **Yahoo Finance EOD data for private testing**. These instructions
+download and run that version; no Android APK build is needed.
+See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for the API/cache checks.
 
 These instructions assume you have never used Python or Kivy. Python runs the
 program; Kivy draws the app's screen. You do not need to edit any code.
@@ -47,14 +48,17 @@ Copy this line into Terminal and press Return:
 bash run-desktop.command
 ```
 
-The launcher creates `.venv` if needed, installs Kivy and the other desktop
+The launcher creates `.venv` if needed, installs Kivy, yfinance and the other desktop
 requirements, then opens a window titled **SMA Stock Analyzer**. The first launch
-needs internet access to download dependencies. It does not download stock prices
-or ask for financial accounts. Leave Terminal open while you use the app.
+needs internet access to download dependencies. It makes a small Yahoo
+availability check; search and selecting a match download market data as needed.
+No Yahoo account/API key is normally required. Leave Terminal open while you use the app.
 
-The launcher puts this preview's saved SMA data in `.local/preview-data` inside
-the downloaded project folder. It leaves data from your phone or an earlier
-manually launched desktop app untouched.
+Saved SMAs and downloaded data now persist in
+`~/Library/Application Support/SMAStockAnalyzer`. Closing the app and downloading
+a newer ZIP do not clear them. The launcher copies older folder-local preview
+saves only if that persistent destination does not already exist; it never
+overwrites an existing destination. Close older app copies first.
 
 ## 5. Try the desktop preview
 
@@ -63,22 +67,23 @@ manually launched desktop app untouched.
    example. Click **New analysis**, enter a partial ticker/company name in
    **Search security** (for example `Apple` or `DBS`),
    then press Enter or **Submit**. Click a logo/ticker/name match to load its
-   simulated history. Typing alone never searches or changes the security.
-2. On Parameters choose **12** crossings per year. Expand **Custom** to choose
-   **Oscillating** if needed, then click **Optimize SMA**. The app moves to
-   Results. All price histories remain
-   simulated, including results with real company names. See
-   [Security search](docs/SECURITY_SEARCH.md) for the preview catalogue.
+   Yahoo daily history. Typing alone never searches or changes the security.
+   Try `AAPL`, `SPY`, or `D05.SI`; search supports US/SG stocks and ETFs.
+2. On Parameters choose **12** crossings per year, then click **Optimize SMA**.
+   Custom supports another numeric frequency. Fictional patterns are not offered
+   for Yahoo prices. The app moves to Results; MAX includes all available
+   completed daily history, which can take longer to analyze.
 3. Plus markers show estimated price/SMA intersections. Drag the mouse across
    the chart to inspect the nearest EOD date, price, and SMA value; this does
    not zoom. Use **1Y**, **3Y**, **5Y**, or **Max** for quick views. Two-finger
    zoom requires an input device/provider that supplies two touches to Kivy;
    a normal laptop mouse supplies one pointer. **Zoom out** restores a preset.
 4. Scroll to section **03 / Backtesting**. Its independent period dropdown sits
-   beside **If you invested $100 for the past:**. Each scenario buys N times:
+   beside **If you invested USD/SGD 100 for the past:**. Each scenario buys N times:
    a at upward crossings, b at equal-period starts (DCA), and c using the most
    common whole-dollar average-price group among 500 random samples. Each
-   purchase invests $100. Only ending dollar values are displayed, with b/c
+   purchase invests 100 units of the stock's quotation currency (USD or SGD).
+   Only ending values are displayed, with b/c
    percentage differences relative to a. Click either circled **i** for help.
 5. Click the outline heart in the Optimal SMA card to save a line. Try another
    target or security, optimize, and save again.
@@ -93,22 +98,31 @@ manually launched desktop app untouched.
    returns to the form. The backtesting panel's **View all upward crossings**
    button opens the full event list; its Back arrow returns to Results.
 
-The app has 1,260 mock sessions. Every price and date is simulated. Crossing prices
+Yahoo results use actual dates and show their currency, last close and fetch time.
+The optional guided example and older demo saves remain simulated. Crossing prices
 are interpolated from daily line segments, not observed intraday trades. The SMA
 optimizer matches a chosen crossing frequency rather than maximizing returns.
-See the desktop guide for the DCA schedule, random mode and price-rank definition.
+The comparisons exclude cash dividends, fees and taxes. See the Yahoo testing
+guide for cache behavior and API limits.
 
 Close the window when finished. On later visits, repeat step 3 and run
 `bash run-desktop.command` again. That reuses this copy's environment and saves.
 
-## Try notification previews
+## Test the API and persistent cache
 
-Use the gear on Library or the top Results toolbar to open **Notification Settings**. Enable
-Phone Buy or Impending buy, return to Results, expand the security in Saved SMAs,
-and turn on that line's phone notification control. In Settings, enter a session
-number and press **Preview EOD alerts** to see simulated phone text. Preview
-sends nothing. Real phone delivery requires the Android build. Email/Gmail
-controls and sending remain removed in version 0.7.0.
+Use the gear to open **Settings**. Check Yahoo connection explicitly retries the
+startup check. Refresh selected prices updates the current security; Refresh all
+selected history reloads its full history. View data request log shows the
+requests and outcomes. Reusing a cached query/security should not add requests.
+
+Save a Yahoo SMA, close and reopen the app, then temporarily disconnect Wi-Fi
+and View that saved SMA. A connection warning must not erase its chart. Reconnect
+and refresh. Clear downloaded prices and search results asks for confirmation
+and keeps the saved SMA parameters.
+
+Desktop background fetching and notification delivery tests are **deferred**.
+Notification preferences are retained for the mobile stage. This version does
+not call Yahoo on a schedule after you close the window or start an APK build.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;
@@ -122,7 +136,20 @@ After closing the app, run this in the same Terminal folder:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-The current suite has **102 tests**. Successful output ends with `OK`.
+Successful output ends with `OK`. For the Yahoo adapter's running-widget test:
+
+```sh
+.venv/bin/python -m scripts.smoke_yahoo_ui
+```
+
+That uses synthetic transport fixtures and a temporary database; it never calls
+Yahoo. To explicitly test live connectivity in Terminal:
+
+```sh
+.venv/bin/python -m scripts.check_yahoo --query Apple --symbol AAPL
+```
+
+The result distinguishes a failed check from a successful data download.
 For the focused running-widget desktop checks, use:
 
 ```sh
@@ -137,13 +164,11 @@ That uses a temporary test database and exits when the checks finish.
 Download the ZIP again using step 2 and extract it to a new folder. Keep the old
 folder until the new version opens successfully, then repeat steps 3–4.
 
-The launcher keeps preview saves **inside each downloaded folder**, so a new
-folder starts with a fresh preview database. To carry saves forward, close both
-copies and copy the old `.local/preview-data` directory to the same location in
-the new folder before its first launch. Keep the old directory as a backup.
-In Finder, **Command + Shift + .** shows hidden folders such as `.local`.
-If you already launched the new copy and saved lines there, keep both databases
-and ask for help combining them rather than overwriting either one.
+The Yahoo launcher reuses the persistent Application Support directory across
+downloads. Keep a private backup of that folder while the app is closed.
+Do not overwrite an existing database with an older one. Older
+`.local/preview-data` folders remain available as backups; automatic migration
+only runs when the new destination does not exist.
 
 Older desktop copies launched directly with `python main.py` used Kivy's per-user
 application data directory; those files are not deleted or automatically moved

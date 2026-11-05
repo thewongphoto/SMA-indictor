@@ -1,5 +1,8 @@
 # Submit-only security search — 0.5.0 preview
 
+The default desktop now uses [Yahoo search and persistent history](YAHOO_DESKTOP_TESTING.md).
+This document records the earlier local preview catalogue and its UI tests.
+
 This release prepares the search and selection UI **before** Twelve Data is
 connected. It makes no Twelve Data calls and needs no API key. The local
 catalogue contains 12 examples: the original two fictional counters plus Apple,

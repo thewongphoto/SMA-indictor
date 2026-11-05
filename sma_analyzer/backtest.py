@@ -5,13 +5,14 @@ import math
 import random
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from statistics import median
+from datetime import date, timedelta
 
 from .settings import TRADING_SESSIONS_PER_YEAR
 
 RANDOM_SCENARIOS = 500
 
 
-def period_sessions(label, custom_years, history_length):
+def period_sessions(label, custom_years, history_length, dates=None):
     if label == "Max":
         return history_length
     text = custom_years if label == "Custom" else label.removesuffix("Y")
@@ -24,6 +25,15 @@ def period_sessions(label, custom_years, history_length):
             raise ValueError
     except (InvalidOperation, TypeError, ValueError):
         raise ValueError("Enter a positive number of years (up to 100, at least 2 sessions).") from None
+    if dates:
+        end = date.fromisoformat(dates[-1])
+        whole = int(years)
+        try:
+            cutoff = end.replace(year=end.year-whole)
+        except ValueError:
+            cutoff = end.replace(year=end.year-whole, day=28)
+        cutoff -= timedelta(days=float(years-whole) * 365.2425)
+        return max(1, history_length-bisect_left(dates, cutoff.isoformat()))
     return min(history_length, sessions)
 
 
@@ -71,7 +81,7 @@ class BacktestReport:
     outperformance_percent: float | None
 
 
-def equal_period_indices(start, end, count, eligible):
+def equal_period_indices(start, end, count, eligible, dates=None):
     """Buy at the start of each equal interval, including N=1.
 
     Equal periods use trading-session time, independently of SMA warm-up. If a
@@ -82,6 +92,11 @@ def equal_period_indices(start, end, count, eligible):
         return ()
     length = end - start + 1
     targets = [start + j * length // count for j in range(count)]
+    if dates:
+        first = date.fromisoformat(dates[start])
+        span = (date.fromisoformat(dates[end])-first).days + 1
+        targets = [bisect_left(dates, (first + timedelta(days=j*span//count)).isoformat())
+                   for j in range(count)]
     result, previous = [], -1
     for j, target in enumerate(targets):
         slot = max(previous + 1, min(bisect_left(eligible, target), len(eligible) - (count-j)))
@@ -109,7 +124,7 @@ def modal_random_sample(averages):
     return RandomMode(seed, winner, len(members))
 
 
-def compare_investments(prices, sma, events, sessions):
+def compare_investments(prices, sma, events, sessions, dates=None):
     """$100 per buy, held to final close; arithmetic prices define mode/rank.
 
     Scenario a buys at interpolated crossing prices, attributed to the confirming
@@ -137,7 +152,7 @@ def compare_investments(prices, sma, events, sessions):
         return InvestmentScenario(tuple(indices), math.fsum(100 * prices[end] / p for p in entries), entries)
 
     crossings = investment([event.index for event in selected], [event.price for event in selected])
-    dca = investment(equal_period_indices(start, end, count, eligible))
+    dca = investment(equal_period_indices(start, end, count, eligible, dates))
     if not count:
         return BacktestReport(start, end, len(eligible), crossings, dca, investment(()), (), None, None)
     samples = [investment(sorted(random.Random(seed).sample(eligible, count))) for seed in range(RANDOM_SCENARIOS)]

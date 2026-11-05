@@ -1,0 +1,4 @@
+-r requirements.txt
+# Desktop integration first; native Android/iOS recipes require separate validation.
+yfinance==1.8.0
+tzdata>=2025.2

@@ -1,17 +1,23 @@
 # SMA Stock Analyzer
 
-The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Desktop preview](docs/DESKTOP_PREVIEW.md) for its calculation rules.
+The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for its data and calculation rules.
 
-**Version 0.7.0** releases the approved library-first UI, three-year guided
+**The current desktop main branch adds private Yahoo EOD retrieval** with
+persistent caches and full-history MAX. Follow the
+[Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update does
+not trigger an APK build or enable background/notification delivery tests.
+
+**Android version 0.7.0** released the approved library-first UI, three-year guided
 example and company logo/name chart heading. See the [release notes](docs/RELEASE_0_7_0.md).
 
 **New to Python and using a Mac? Start with [the step-by-step Mac guide](START_HERE_MAC.md).**
 
-A personal, **offline Python/Kivy prototype** for finding a simple moving average
-whose upward-crossing frequency is closest to a chosen target. Every price is
-synthetic. `DEMO-SGX` and `DEMO-US` are **fictional counters**, not exchange feeds.
-Stock analysis stays local and needs no account or backend. Notification controls
-are phone-only in version 0.4.0; prices remain simulated.
+A personal Python/Kivy app for finding a simple moving average whose
+upward-crossing frequency is closest to a chosen target. The desktop Yahoo
+preview downloads US/SG stock and ETF daily history for private use; analysis
+stays local. The guided example and `DEMO-SGX`/`DEMO-US` remain fictional.
+Android/iOS packaging of the Yahoo dependencies and native background adapters
+are separate future work. No Yahoo account/API key is normally required.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.
 
@@ -28,8 +34,9 @@ these rules were chosen; the production code is in `engine.py` and `policy.py`.
 ## Install and launch
 
 Use Python **3.12** (tested with 3.12.14) and a desktop with graphics support.
-Desktop requirements install Kivy and the retained legacy TLS dependency certifi; charts use
-Kivy's native canvas. Android adds Pyjnius and a Google Identity Gradle dependency.
+Desktop requirements install Kivy and the Yahoo dependencies; charts use
+Kivy's native canvas. Base/mobile requirements remain separate. Android adds
+Pyjnius and a Google Identity Gradle dependency.
 SQLite and the test runner are part of Python's standard library.
 
 From this repository directory on Linux/macOS:
@@ -37,7 +44,7 @@ From this repository directory on Linux/macOS:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-desktop.txt
 python main.py
 ```
 
@@ -46,13 +53,15 @@ Windows PowerShell:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-desktop.txt
 python main.py
 ```
 
 If PowerShell activation is restricted, run `.\.venv\Scripts\python.exe` in place
-of `python`. Installation downloads dependencies; stock prices remain mock data only.
-Desktop analysis needs no Android SDK. For a phone test APK, use the
+of `python`. Installation downloads dependencies; the desktop app retrieves
+Yahoo prices when needed and retains them locally.
+Desktop analysis needs no Android SDK. Live data requests require network access;
+previously downloaded data remains available offline. For the existing phone test APK, use the
 [beginner Android APK guide](docs/ANDROID_APK_GUIDE.md).
 
 ## Security search
@@ -60,15 +69,17 @@ Desktop analysis needs no Android SDK. For a phone test APK, use the
 Type part of a ticker or company name, then press **Enter** or **Submit**. Search
 results show packaged logos/initials, tickers, company names and exchanges. Only
 selecting a result loads its history; keystrokes make no requests. This release
-uses a **12-security local preview catalogue and simulated history**,
-with no Twelve Data calls. See [Security search](docs/SECURITY_SEARCH.md) for the
-catalogue, request boundaries and focused UI checks.
+uses **Yahoo search for US/SG stocks and ETFs** on desktop, with persistent
+submitted-query results and daily history. No Twelve Data calls are made.
+The earlier [security search guide](docs/SECURITY_SEARCH.md) records the original
+12-security simulation mode.
 
-The proposed private-use Yahoo feed is documented in the
+The original design for the private-use Yahoo feed is documented in the
 [Yahoo Finance integration plan](docs/YAHOO_FINANCE_INTEGRATION_PLAN.md),
 including endpoint/request budgets, persistent caching, full-history MAX and
 owner preparation. See also [private iPhone installation](docs/PRIVATE_IPHONE_INSTALLATION.md).
-These are planning documents; this release still uses simulated prices.
+The [desktop implementation/test guide](docs/YAHOO_DESKTOP_TESTING.md) records
+what is implemented, live-connectivity limits and the deferred mobile work.
 
 Version **0.6.0** uses a company logo and name in **Selected security**. Both saved
 SMA menus show logo, company name and ticker; names shorten at whole-word
@@ -125,7 +136,15 @@ traversing pages; only Library exits. There is no Home/Saved/Learn bottom bar.
 
 [View screenshots of every screen](docs/UI_PREVIEW.md).
 
-## Try the prototype
+## Try the offline demo
+
+The details below describe the retained simulation mode. For the Yahoo desktop
+flow use [the Mac walkthrough](START_HERE_MAC.md). To open the old offline demo
+on macOS/Linux with separate folder-local saves:
+
+```sh
+SMA_DATA_SOURCE=preview bash run-desktop.command
+```
 
 1. Choose New analysis, search a partial ticker/company name,
    press Enter/Submit, and select a match. Expand **Custom** on Parameters to
@@ -181,8 +200,9 @@ Use **Zoom out**, or reselect a timeline preset, to restore the preset's range.
 history; chart gestures do not change crossing statistics or the backtest period.
 Page scrolling remains available outside the plot.
 
-Dates are **synthetic weekday labels** starting on 2021-01-04, not historical
-exchange dates. No SGX/US holiday calendar or actual market feed is implied.
+In this offline demo, dates are **synthetic weekday labels** starting on
+2021-01-04. Yahoo results instead use actual dates, currency and full downloaded
+history; no exchange-holiday calendar is inferred from missing observations.
 
 The window starts at 440 × 920 and supports narrower portrait sizes down to
 320 pixels wide. Content scrolls vertically. On wider desktops the portrait
@@ -196,7 +216,7 @@ At 620 dp and above the Optimal SMA value sits beside its save/hide buttons;
 on smaller screens the buttons sit below it. Header spacing, typography, chart
 grid/axis labels and centered symbol legend follow the mockup. Completed
 optimization hides the routine status paragraph, while loading and errors remain
-visible. No additional dependency is required.
+visible. The Yahoo desktop dependencies are separate from these native chart widgets.
 
 To configure the target choices, edit `sma_analyzer/settings.py`:
 
@@ -210,6 +230,10 @@ be mathematically unreachable: the app still displays the closest candidate
 and its actual count instead of claiming an exact match.
 
 ## Hearts, history and notification previews
+
+The manual delivery descriptions here apply to the retained demo/Android
+features. Yahoo desktop notification/background testing is deferred; its delivery
+test buttons are disabled.
 
 Saved rows now show chart-matched colour dashes, separate **Push notifications
 On/Off** controls, View, compact Hide/Show and a red
@@ -409,7 +433,8 @@ its own schema and migrations.
 
 ```text
 main.py                    # Launches the Kivy application
-requirements.txt           # Desktop Kivy + certifi; unittest/SQLite are built in
+requirements.txt           # Base/mobile Kivy + certifi; unittest/SQLite are built in
+requirements-desktop.txt   # Base plus desktop Yahoo dependencies
 sma_analyzer/
   settings.py              # Frequency presets, mock choices, version
   engine.py                # SMA, events, capped annual-frequency optimizer
@@ -460,7 +485,8 @@ warm-up exposure with you before changing the objective. Then validate native
 Android touch, keyboard, safe areas, pause/resume and persistence using the
 authorized debug-build guide. Buildozer configuration is now included; Google
 account setup is described in that guide. Release-store packaging remains later work.
-No live market-data API, background EOD scheduler or Play Store release is included.
+The desktop branch now integrates Yahoo EOD retrieval for private testing.
+No background EOD scheduler or Play Store release is included.
 Phone notifications and the debug-APK build configuration are implemented.
 Version 0.4.0 removes email/Gmail functionality from the application UI and delivery flow;
 new APK/device validation remains required.

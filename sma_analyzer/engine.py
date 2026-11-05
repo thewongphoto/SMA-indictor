@@ -146,6 +146,7 @@ class OptimizationResult:
 
 def optimize_sma(
     prices: Sequence[Price], target_frequency: int, candidates: Iterable[int] | None = None,
+    *, cancel=None, use_fast=True,
 ) -> OptimizationResult:
     """Minimize annual-frequency error across all observable history.
 
@@ -168,8 +169,14 @@ def optimize_sma(
         _positive_integer(period, "Candidate period")
         if not 2 <= period <= cap:
             raise ValueError(f"Candidate periods must be between 2 and {cap} for this history.")
+    if use_fast and len(values) > 1600:
+        result = _fast_optimization(values, periods, minimum, target_frequency, cancel)
+        if result is not None:
+            return result
     best = None
     for period in sorted(set(periods)):
+        if cancel is not None and cancel.is_set():
+            raise ValueError("Optimization cancelled.")
         average = simple_moving_average(values, period)
         comparisons = observable_comparisons(values, average)
         if comparisons < minimum:
@@ -182,3 +189,57 @@ def optimize_sma(
         raise ValueError(f"Insufficient valid history: need at least {minimum} observable "
                          "price/SMA comparisons after warm-up and gaps.")
     return best
+
+
+def _fast_optimization(values, periods, minimum, target, cancel):
+    """Vectorized exhaustive scoring; exact reference output for the winner.
+
+    Prefix arithmetic can differ from rolling arithmetic near equality. Such
+    candidates use the reference engine, with a conservative accumulated-error
+    bound. No candidate pruning, history truncation or approximate period grid.
+    NumPy is optional (available with the desktop Yahoo dependency).
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+    array = np.array([np.nan if x is None else x for x in values], dtype=float)
+    finite = np.isfinite(array)
+    clean = np.where(finite, array, 0)
+    prefix = np.concatenate(([0.0], np.cumsum(clean)))
+    missing = np.concatenate(([0], np.cumsum(~finite)))
+    sum_abs = float(np.sum(np.abs(clean)))
+    peak = float(np.max(np.abs(clean), initial=0)) + 1
+    accumulated_error = 64 * np.finfo(float).eps * len(values)
+    best_key, best_period = None, None
+    for period in sorted(set(periods)):
+        if cancel is not None and cancel.is_set():
+            raise ValueError("Optimization cancelled.")
+        average = np.full(len(values), np.nan)
+        rolling = (prefix[period:] - prefix[:-period]) / period
+        rolling[missing[period:] != missing[:-period]] = np.nan
+        average[period-1:] = rolling
+        valid = finite & np.isfinite(average)
+        comparisons = int(np.count_nonzero(valid[1:] & valid[:-1]))
+        if comparisons < minimum:
+            continue
+        delta = array - average
+        bound = accumulated_error * (sum_abs / period + peak)
+        if np.any(np.abs(delta[valid]) <= bound):
+            exact = simple_moving_average(values, period)
+            comparisons = observable_comparisons(values, exact)
+            count = len(crossover_events(values, exact))
+        else:
+            tokens = np.where(valid, np.sign(delta), 0)[np.flatnonzero(~valid | (delta != 0))]
+            count = int(np.count_nonzero((tokens[:-1] == -1) & (tokens[1:] == 1)))
+        key = (abs(annual_frequency(count, comparisons) - target), period)
+        if best_key is None or key < best_key:
+            best_key, best_period = key, period
+    if best_period is None:
+        return None
+    average = tuple(simple_moving_average(values, best_period))
+    result = OptimizationResult(best_period, target, len(values),
+                                observable_comparisons(values, average), average,
+                                crossover_events(values, average))
+    # Retain the reference route as a safety fallback for an unexpected numeric discrepancy.
+    return result if (result.frequency_error, result.period) == best_key else None

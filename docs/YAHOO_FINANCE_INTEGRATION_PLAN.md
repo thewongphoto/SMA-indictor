@@ -1,5 +1,14 @@
 # Yahoo Finance integration plan
 
+**Implementation update, 5 November 2026:** interactive desktop search/history,
+persistent cache, full-history MAX, real dates/currency and startup diagnostics
+are implemented. See [the desktop testing guide](YAHOO_DESKTOP_TESTING.md) for
+the current scope and validation limits. Android/iOS packaging, background
+fetching and notification delivery testing remain deferred. The plan below
+records the original design and includes work beyond this desktop iteration.
+
+## Original planning snapshot (4 November 2026)
+
 Reviewed 4 November 2026 against the current 0.7.0 app, the official yfinance
 documentation sources, and the published yfinance **1.8.0** source distribution
 (released 3 November 2026). **This is a plan, not an implemented data feed.**

@@ -48,9 +48,14 @@ class Alert:
     session: int  # one based, identifies one simulated EOD observation
     subject: str
     body: str
+    session_date: str = ""
+    source: str = "preview"
 
     @property
     def key(self) -> str:
+        if self.source != "preview":
+            return repr((self.source, self.channel, self.kind, self.counter,
+                         self.scenario, self.period, self.target, self.session_date))
         return repr((DATA_VERSION, self.channel, self.kind, self.counter, self.scenario,
                      self.period, self.target, self.session))
 
@@ -94,6 +99,20 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
                             line.target_frequency, session, subject,
                             body + f"\nSIMULATED DATA · {line.scenario} · Session {session}. Research alert only."))
     return tuple(result)
+
+
+def evaluate_dataset_eod(dataset, line, settings, session=None):
+    """Use real session dates for live delivery identity, never shifting indices."""
+    from dataclasses import replace
+    alerts = evaluate_eod(dataset.prices, line, settings, session)
+    if getattr(dataset, "is_simulated", True):
+        return alerts
+    return tuple(replace(alert, source=dataset.source,
+                         session_date=dataset.dates[alert.session - 1],
+                         body=alert.body.splitlines()[0] +
+                         f"\nYAHOO EOD · {dataset.dates[alert.session - 1]} · {dataset.currency}. "
+                         "Daily-close research signal; not an observed intraday execution.")
+                 for alert in alerts)
 
 
 class AndroidNotifier:

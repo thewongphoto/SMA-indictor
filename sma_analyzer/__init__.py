@@ -1,1 +1,1 @@
-"""Offline, simulated SMA analysis. Importing the engine never starts a UI."""
+"""SMA analysis with isolated demo and Yahoo providers. No UI/network on import."""

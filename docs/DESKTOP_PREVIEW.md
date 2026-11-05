@@ -1,5 +1,11 @@
 # Review the Kivy desktop preview
 
+**Simulation guide / earlier UI review.** The default desktop launcher now uses
+Yahoo EOD data. Follow [Yahoo desktop testing](YAHOO_DESKTOP_TESTING.md) for the
+current feed, storage location and tests. The fictional scenarios and session
+rules below remain available through `SMA_DATA_SOURCE=preview bash run-desktop.command`.
+Background and notification delivery testing are deferred for the Yahoo preview.
+
 The desktop preview and Mac launcher are available on GitHub's **main** branch.
 Version **0.7.0** releases the approved library-first flow and company chart
 heading. Library opens in the saved or empty state according to its stored SMAs.

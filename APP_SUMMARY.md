@@ -1,5 +1,11 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
+**Desktop update, 5 November 2026:** the main branch adds private Yahoo EOD
+retrieval, persistent prices/searches, actual dates/currency and full-history
+MAX. Follow [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md).
+The 0.7.0 APK and the simulation rules recorded below remain separate;
+background fetching and notification delivery testing are deferred.
+
 **Current release: 0.7.0.** The approved library-first UI, three-year guide,
 Parameters/Custom and logo/name chart heading are documented in the
 [release notes](docs/RELEASE_0_7_0.md). The current app is phone-notification-only;

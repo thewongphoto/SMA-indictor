@@ -2,7 +2,7 @@
 import json
 from dataclasses import replace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock,patch
 from kivy.core.window import Window
 from kivy.uix.label import Label
 from scripts.smoke_mobile_yahoo_ui import MobileYahooSmoke,temporary
@@ -65,6 +65,10 @@ class FlowSmoke(MobileYahooSmoke):
         yield from self.frames()
         self.tap(ui.save_button)
         assert ui.model.current_saved_line() is not None
+        assert ui.model.current_saved_line().push_enabled
+        assert all(switch.active for switch in ui.notification_switches.values())
+        assert ui.saved_rows[ui.model.current_saved_line().id]["push"].text.endswith("On")
+        self.checked("new saved SMA and both visible phone signal switches default to On")
         ui.saved_sheet.dismiss(animate=False)
         yield from self.frames()
         assert ui.rename_button.parent is ui.line_name_row
@@ -143,6 +147,30 @@ class FlowSmoke(MobileYahooSmoke):
         assert any("6:30am" in w.text and "6:30pm" in w.text for w in ui.settings_panel.walk() if isinstance(w,Label))
         self.capture("notification-settings")
         self.checked("settings explains Singapore-time market schedules and desktop/native delivery scope")
+        calls=len(self.client.calls)
+        phone=Mock()
+        with patch("sma_analyzer.app.AndroidNotifier",return_value=phone) as notifier:
+            notifier.request_permission.side_effect=lambda callback:callback(True)
+            ui.test_phone_notification()
+            yield lambda:"test notification posted" in ui.notification_status.text
+            phone.send.assert_called_once()
+            notifier.request_permission.side_effect=lambda callback:callback(False)
+            ui.test_phone_notification()
+            yield lambda:"permission denied" in ui.notification_status.text
+            phone.send.assert_called_once()
+            phone.send.side_effect=RuntimeError("Notification channel disabled")
+            notifier.request_permission.side_effect=lambda callback:callback(True)
+            ui.test_phone_notification()
+            yield lambda:"channel disabled" in ui.notification_status.text
+        ui.show_api_log()
+        yield from self.frames()
+        assert "notification-test" in ui.api_log_report
+        assert "permission_denied" in ui.api_log_report and "failed" in ui.api_log_report
+        assert "Test phone notification posted; OS accepted it" in ui.api_log_report
+        assert "Test phone notification not confirmed" in ui.api_log_report
+        assert len(self.client.calls)==calls
+        ui.api_log_popup.dismiss()
+        self.checked("test notification success, permission denial and delivery failure appear in the visible/copyable request log without API calls")
         calls=len(self.client.calls)
         data=ui.model.dataset
         ui.model.active_visible=False

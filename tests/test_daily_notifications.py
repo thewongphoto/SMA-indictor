@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from scripts.yahoo_test_data import FakeYahooClient,NOW
 from sma_analyzer.daily_notifications import run_daily_notifications,enabled_lines
+from sma_analyzer.diagnostics import diagnostic_report
 from sma_analyzer.market_cache import MarketCache
 from sma_analyzer.native_schedule import configuration
 from sma_analyzer.notifications import NotificationSettings,evaluate_dataset_eod
@@ -41,7 +42,7 @@ class DailyNotificationsTests(TestCase):
         self.assertEqual((config["schedules"]["US"]["hour"],config["schedules"]["US"]["minute"]),(6,30))
         self.assertEqual((config["schedules"]["SG"]["hour"],config["schedules"]["SG"]["minute"]),(18,30))
         self.assertEqual(config["schedules"]["US"]["timezone"],"Asia/Singapore")
-        self.store.save_notification_settings(NotificationSettings())
+        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
         self.assertEqual(configuration(self.store,self.provider,self.root)["regions"],[])
 
     def test_off_lines_and_disabled_signal_types_make_no_history_requests(self):
@@ -50,7 +51,7 @@ class DailyNotificationsTests(TestCase):
         self.assertEqual(self.run_job()["status"],"disabled")
         self.assertEqual(len(self.client.calls),before)
         self.store.set_notifications(self.line.id,"phone",True)
-        self.store.save_notification_settings(NotificationSettings())
+        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
         self.assertEqual(self.run_job()["status"],"disabled")
         self.assertEqual(len(self.client.calls),before)
 
@@ -103,7 +104,7 @@ class DailyNotificationsTests(TestCase):
         original=self.provider.historical_data
         def stop_types(*args,**kwargs):
             data=original(*args,**kwargs)
-            self.store.save_notification_settings(NotificationSettings())
+            self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
             return data
         with patch.object(self.provider,"historical_data",side_effect=stop_types):
             self.assertEqual(self.run_job()["checked"],0)
@@ -132,6 +133,71 @@ class DailyNotificationsTests(TestCase):
             report=self.run_job()
         self.assertEqual(report["posted"],1)
         self.phone.send.assert_called_once()
+
+    def signal_data(self, prices):
+        data=self.provider.historical_data(self.us)
+        return replace(data,prices=tuple(prices),dates=data.dates[-len(prices):])
+
+    def assert_signal_log(self, prices, title):
+        self.store.rename(self.line.id,"Recovery watch")
+        data=self.signal_data(prices)
+        with patch.object(self.provider,"historical_data",return_value=data):
+            self.assertEqual(self.run_job()["posted"],1)
+        events=self.provider.cache.diagnostic_events()
+        for operation,status in (("notification-check","signal_match"),
+                                 ("notification-trigger","triggered"),("notification-delivery","ok")):
+            event=next(e for e in events if e["operation"]==operation and e["status"]==status)
+            self.assertEqual(event["symbol"],"AAPL")
+            for text in (title,"Recovery watch","SMA 2","target 12/year",data.dates[-1]):
+                self.assertIn(text,event["detail"])
+        report=diagnostic_report(self.provider.cache,"android","Market data HTTPS",public_view=True)
+        self.assertIn(title,report)
+        self.assertIn("OS accepted the notification",report)
+        self.assertNotIn("yahoo",report.lower())
+
+    def test_buy_trigger_and_delivery_log_identify_saved_line_and_date(self):
+        self.assert_signal_log((10,12,10,12),"Buy signal")
+
+    def test_impending_trigger_and_delivery_log_identify_saved_line_and_date(self):
+        self.assert_signal_log((14,12,10,8),"Impending buy signal")
+
+    def test_duplicate_signal_logs_suppression_without_new_trigger_or_post(self):
+        data=self.signal_data((14,12,10,8))
+        alert,=evaluate_dataset_eod(data,self.store.get_line(self.line.id),self.store.notification_settings())
+        self.store.record_delivery(alert.key)
+        with patch.object(self.provider,"historical_data",return_value=data):
+            self.assertEqual(self.run_job()["posted"],0)
+        self.phone.send.assert_not_called()
+        events=self.provider.cache.diagnostic_events()
+        duplicate=next(e for e in events if e["operation"]=="notification-delivery")
+        self.assertEqual(duplicate["status"],"already_delivered")
+        self.assertIn("Impending buy signal",duplicate["detail"])
+        self.assertIn("Duplicate suppressed",duplicate["detail"])
+        self.assertFalse(any(e["operation"]=="notification-trigger" for e in events))
+
+    def test_nonmatching_check_lists_types_without_claiming_a_trigger(self):
+        data=self.signal_data((10,12,14,16))
+        with patch.object(self.provider,"historical_data",return_value=data):
+            self.assertEqual(self.run_job()["posted"],0)
+        event=next(e for e in self.provider.cache.diagnostic_events() if e["operation"]=="notification-check")
+        self.assertEqual(event["status"],"no_signal")
+        self.assertIn("Buy signal On; Impending buy signal On",event["detail"])
+        self.phone.send.assert_not_called()
+
+    def test_delivery_failure_keeps_signal_context_and_excludes_raw_errors(self):
+        data=self.signal_data((14,12,10,8))
+        raw_error="private device details not for logs"
+        self.phone.send.side_effect=RuntimeError(raw_error)
+        with patch.object(self.provider,"historical_data",return_value=data):
+            self.assertEqual(self.run_job()["status"],"failed")
+        event=next(e for e in self.provider.cache.diagnostic_events() if e["operation"]=="notification-delivery")
+        self.assertEqual(event["status"],"failed")
+        self.assertIn("Impending buy signal",event["detail"])
+        self.assertIn(data.dates[-1],event["detail"])
+        self.assertNotIn(raw_error,diagnostic_report(self.provider.cache,"android","Market data HTTPS"))
+        self.provider.cache.clear_downloads()
+        reopened=MarketCache(self.provider.cache.path)
+        self.assertTrue(any(e["operation"]=="notification-delivery" for e in reopened.diagnostic_events()))
 
     def test_disabled_email_and_preview_lines_never_schedule_delivery(self):
         self.store.save("DEMO-SGX","Trending",2,12)

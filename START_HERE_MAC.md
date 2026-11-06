@@ -142,6 +142,9 @@ Desktop has no background fetcher or notification delivery. Android 0.10.0 adds
 native daily checks; use [the phone guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
 Notification preferences are retained for the mobile stage. This version does
 not call Yahoo on a schedule after you close the window or start an APK build.
+New saved SMAs and both phone signal types default to On; existing stored Off
+choices remain Off. Notification delivery remains an Android test, with triggers
+and results available in Settings → View data request log on the phone.
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;

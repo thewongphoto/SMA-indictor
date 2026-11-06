@@ -30,7 +30,8 @@ class AlertTests(unittest.TestCase):
         self.assertIn('Monitor: DEMO-SGX has closed below SMA 2, target 12 /year', monitor[1].body)
         self.assertIn('SIMULATED DATA', monitor[1].body)
         self.assertEqual(evaluate_eod([10,12,10,12], replace(self.line,push_enabled=False), self.settings)[0].channel, 'email')
-        self.assertEqual(evaluate_eod([10,12,10,12], self.line, NotificationSettings()), ())
+        self.assertEqual(evaluate_eod([10,12,10,12], self.line,
+                                     NotificationSettings(phone_buy=False,phone_monitor=False)), ())
 
     def test_equality_gaps_warmup_and_latest_session_only(self):
         # SMA 2: below -> equal -> equal -> above counts once, at session 6.
@@ -119,7 +120,8 @@ class AlertTests(unittest.TestCase):
         migrated = LineStore(old)
         line, = migrated.list_lines('DEMO-SGX','Sideways')
         self.assertEqual((line.id,line.period,line.target_frequency,line.visible),(7,18,1,False))
-        self.assertFalse(line.push_enabled or line.email_enabled)
+        self.assertTrue(line.push_enabled)
+        self.assertFalse(line.email_enabled)
         self.assertEqual(LineStore(old).list_lines('DEMO-SGX','Sideways'),[line])
 
     def test_android_desktop_failure_is_helpful(self):

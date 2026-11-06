@@ -1,19 +1,23 @@
 # SMA Stock Analyzer
 
-**Android 0.10.0:** security selection and preferences share one animated screen;
-saved SMAs can be named; enabled alerts have daily Singapore-time checks.
-Charts/signals/comparisons continue using dividend/split-adjusted closes. Read the
+**Android 0.10.1:** new saved SMA phone alerts and both signal types default to On,
+preserving stored Off choices. The request log identifies the SMA, signal and
+closing date for each trigger, delivery outcome and notification test. Read the
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_10_0.md). See the
+[release notes](docs/RELEASE_0_10_1.md). See the
 [updated flow and screenshots](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
+
+Included from 0.10.0: security selection and preferences share one animated screen;
+saved SMAs can be named; enabled alerts have daily Singapore-time checks.
+Charts/signals/comparisons continue using dividend/split-adjusted closes.
 
 The current **Kivy desktop preview** is available from this repository’s main branch. Follow [the Mac guide](START_HERE_MAC.md) or run `bash run-desktop.command`. See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for its data and calculation rules.
 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.10.0 is
+keeps desktop fetching interactive. Android 0.10.1 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

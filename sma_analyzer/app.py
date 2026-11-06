@@ -1513,7 +1513,7 @@ class AnalyzerScreen(FloatLayout):
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
         self.settings_panel.add_widget(WrappedLabel(
             text=("Only saved SMAs with notifications switched on are checked. US: Tuesday–Saturday at 6:30am; "
-                  "SGX: Monday–Friday at 6:30pm, Singapore time. Choose the signal types below. "
+                  "SGX: Monday–Friday at 6:30pm, Singapore time. New saved SMAs and both signal types default to On. "
                   "Android may delay a background check while sleeping or offline."
                   if self.yahoo_enabled else
                   "SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications."),
@@ -1810,26 +1810,35 @@ class AnalyzerScreen(FloatLayout):
         Clock.schedule_once(lambda _: callback() if not self.closed else None, 0)
 
     def test_phone_notification(self, *_):
+        self._record_notification_test("requested", "Test phone notification requested; no market signal or API request.")
         def permitted(allowed):
             self._on_ui(lambda: self._post_test_phone(allowed))
         try:
             AndroidNotifier.request_permission(permitted)
         except RuntimeError as error:
             self.notification_status.text = str(error)
+            self._record_notification_test("failed", "Test could not start. Check Android notification setup.")
+
+    def _record_notification_test(self, status, detail):
+        if self.yahoo_enabled:
+            self.model.data_provider.cache.operation("notification-test", "Android", status, detail)
 
     def _post_test_phone(self, allowed):
         if not allowed:
             self.notification_status.text = "Notification permission denied. Enable it in Android Settings to test again."
+            self._record_notification_test("permission_denied", "Test phone notification not posted; Android notification permission denied.")
             return
         try:
             alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
                           "SMA Stock Analyzer · Test", "Notification test · Phone notifications are working."
                           if self.yahoo_enabled else "SIMULATED TEST · Phone notifications are working.")
             AndroidNotifier().send(alert)
-            self.notification_status.text = "Android test notification posted. Check the notification shade."
+            self._record_notification_test("ok", "Test phone notification posted; OS accepted it. No market signal or API request.")
             self.sync_notification_schedule()
+            self.notification_status.text = "Android test notification posted. Check the notification shade."
         except RuntimeError as error:
             self.notification_status.text = str(error)
+            self._record_notification_test("failed", "Test phone notification not confirmed. Check Android notification permission/channel and device setup.")
 
     def _delivery_controls(self, busy):
         self.delivery_busy = busy
@@ -1857,7 +1866,8 @@ class AnalyzerScreen(FloatLayout):
     def _run_delivery(self, alerts):
         # Keep this boundary phone-only even if called with legacy alert objects.
         phone_alerts = tuple(alert for alert in alerts if alert.channel == "phone")
-        future = self.executor.submit(lambda: deliver_alerts(self.model.store, phone_alerts))
+        cache = self.model.data_provider.cache if self.yahoo_enabled else None
+        future = self.executor.submit(lambda: deliver_alerts(self.model.store, phone_alerts, cache=cache))
         future.add_done_callback(lambda completed: self._on_ui(lambda: self._finish_alert_delivery(completed)))
 
     def _finish_alert_delivery(self, future):

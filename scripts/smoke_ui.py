@@ -387,9 +387,19 @@ class SmokeApp(SMAStockAnalyzerApp):
             for _ in range(14): yield
             assert switch.active == expected
             assert ui.model.store.notification_settings().phone_buy == expected
+        assert ui.model.current_saved_line().push_enabled
+        ui.saved_rows[saved.id]["push"].dispatch("on_release")
+        assert not ui.model.current_saved_line().push_enabled
         ui.saved_rows[saved.id]["push"].dispatch("on_release")
         assert ui.model.current_saved_line().push_enabled
         assert ui.saved_rows[saved.id]["push"].text.endswith("On")
+        # New saves are all On. Explicitly opt the other line out so the next
+        # preview also verifies that its per-line switch suppresses delivery.
+        for other in ui.model.saved_lines():
+            if other.id != saved.id:
+                assert other.push_enabled
+                ui.saved_rows[other.id]["push"].dispatch("on_release")
+                assert not ui.model.store.get_line(other.id).push_enabled
         self.check("phone-only settings and saved controls; legacy email flags remain stored but inaccessible")
 
         session = ui.model.result.events[-1].index + 1
@@ -442,7 +452,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             while ui.delivery_busy:
                 assert time.monotonic()<deadline
                 yield
-            dispatch.assert_called_once_with(ui.model.store, ())
+            dispatch.assert_called_once_with(ui.model.store, (), cache=None)
         self.check("phone permission denial recovers controls; legacy email alerts cannot reach delivery")
 
         ui.show_results()

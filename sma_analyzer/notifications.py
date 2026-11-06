@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class NotificationSettings:
     email: str = ""
-    phone_buy: bool = False
-    phone_monitor: bool = False
+    phone_buy: bool = True
+    phone_monitor: bool = True
     email_buy: bool = False
     email_monitor: bool = False
 
@@ -204,7 +204,15 @@ class AndroidNotifier:
             raise RuntimeError("Android notification failed. Check device permission and notification setup.") from None
 
 
-def deliver_alerts(store, alerts, phone=None, mailer=None) -> list[str]:
+def alert_log_detail(alert):
+    """Controlled signal identity shared by native and foreground delivery logs."""
+    title = {"buy": "Buy signal", "monitor": "Impending buy signal", "test": "Test notification"}[alert.kind]
+    session = alert.session_date or f"preview session {alert.session}"
+    return (f"{title} · {alert.subject} · {alert.channel} · SMA {alert.period} · "
+            f"target {alert.target}/year · close {session}.")
+
+
+def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> list[str]:
     """Explicit dispatch with persistent successful-delivery deduplication.
 
     A failed channel remains retryable. Preview never invokes this function.
@@ -213,21 +221,32 @@ def deliver_alerts(store, alerts, phone=None, mailer=None) -> list[str]:
     """
     report = []
     for alert in alerts:
+        detail = alert_log_detail(alert)
+        symbol = alert.counter.removeprefix("YAHOO:")
+        def record(operation, status, message):
+            if cache is not None:
+                cache.operation(operation, symbol, status, detail + " " + message)
         if store.was_delivered(alert.key):
+            record("notification-delivery", "already_delivered", "Duplicate suppressed; no notification posted.")
             report.append(f"Already delivered: {alert.channel}, session {alert.session}.")
             continue
+        record("notification-trigger", "triggered", "Signal matched; attempting delivery.")
         try:
             if alert.channel == "phone":
                 (phone or AndroidNotifier()).send(alert)
             else:
                 if mailer is None:
+                    record("notification-delivery", "not_sent", "Email delivery is unavailable.")
                     report.append("Email not sent. Connect Gmail and press Send enabled alerts.")
                     continue
                 mailer.send(alert, store.notification_settings().email)
             store.record_delivery(alert.key)
             status = "Accepted by Gmail" if alert.channel == "email" else "Posted to Android"
+            record("notification-delivery", "ok", status + "; OS accepted the notification.")
             report.append(f"{status}: {alert.channel}, session {alert.session}.")
         except (OSError, ValueError, RuntimeError) as error:
+            record("notification-delivery", "failed",
+                   "Notification was not confirmed. Check OS notification permission/channel and device setup.")
             # Do not expose account details, server replies or secrets in UI logs.
             report.append(f"Delivery failed ({alert.channel}). " + (str(error) if isinstance(error,RuntimeError)
                           else "Check permission, connection and sender setup. Preview remains available."))

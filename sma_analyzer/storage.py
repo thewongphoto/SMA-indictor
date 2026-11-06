@@ -19,7 +19,7 @@ class SavedLine:
     period: int
     target_frequency: int
     visible: bool
-    push_enabled: bool = False
+    push_enabled: bool = True
     email_enabled: bool = False
     custom_name: str = ""
 
@@ -50,7 +50,8 @@ class LineStore:
             columns = {row[1] for row in connection.execute("PRAGMA table_info(saved_lines)")}
             for name in ("push_enabled", "email_enabled"):
                 if name not in columns:
-                    connection.execute(f"ALTER TABLE saved_lines ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0 CHECK({name} IN (0,1))")
+                    default = 1 if name == "push_enabled" else 0
+                    connection.execute(f"ALTER TABLE saved_lines ADD COLUMN {name} INTEGER NOT NULL DEFAULT {default} CHECK({name} IN (0,1))")
             connection.execute("""CREATE TABLE IF NOT EXISTS unsaved_lines (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, counter TEXT NOT NULL,
                 scenario TEXT NOT NULL, period INTEGER NOT NULL, target_frequency INTEGER NOT NULL,
@@ -113,13 +114,14 @@ class LineStore:
     def save(self, counter: str, scenario: str, period: int, target: int) -> None:
         with self._connect() as connection:
             self._allocate_color(connection,counter,scenario,period)
-            archived = connection.execute("SELECT custom_name FROM unsaved_lines WHERE counter=? AND scenario=? "
+            archived = connection.execute("SELECT custom_name,push_enabled FROM unsaved_lines WHERE counter=? AND scenario=? "
                 "AND period=? AND target_frequency=? AND data_version=?",(counter,scenario,period,target,DATA_VERSION)).fetchone()
             connection.execute(
-                "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version,custom_name) "
-                "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
+                "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version,custom_name,push_enabled) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
                 "data_version) DO NOTHING",
-                (counter, scenario, period, target, DATA_VERSION,archived[0] if archived else ""),
+                (counter, scenario, period, target, DATA_VERSION,archived[0] if archived else "",
+                 archived[1] if archived else 1),
             )
 
             connection.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? "

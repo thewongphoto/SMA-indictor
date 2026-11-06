@@ -10,6 +10,7 @@ from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner, SpinnerOption
+from kivy.uix.dropdown import DropDown
 from kivy.uix.widget import Widget
 from kivy.uix.stencilview import StencilView
 from kivy.animation import Animation
@@ -22,10 +23,12 @@ class PreferenceReveal(StencilView):
     """Clipped, measured disclosure; hidden controls cannot receive touches."""
     progress=NumericProperty(0)
 
-    def __init__(self,body,**kwargs):
+    def __init__(self,body,detach_when_hidden=False,**kwargs):
         super().__init__(size_hint_y=None,height=0,**kwargs)
         self.body=body
-        self.add_widget(body)
+        self.detach_when_hidden=detach_when_hidden
+        if not detach_when_hidden:
+            self.add_widget(body)
         self.bind(pos=self._arrange,width=self._arrange,progress=self._arrange)
         body.bind(minimum_height=self._arrange)
         self._arrange()
@@ -39,10 +42,22 @@ class PreferenceReveal(StencilView):
 
     def show(self,visible,animate=False):
         Animation.cancel_all(self,"progress")
-        if visible and animate and self.progress<1:
-            Animation(progress=1,duration=.28,t="out_cubic").start(self)
+        if visible and self.body.parent is None:
+            self.add_widget(self.body)
+        target=1 if visible else 0
+        if animate and self.progress!=target:
+            animation=Animation(progress=target,duration=.22,t="out_cubic")
+            if not visible:
+                animation.bind(on_complete=lambda *_:self._detach())
+            animation.start(self)
         else:
-            self.progress=1 if visible else 0
+            self.progress=target
+            if not visible:
+                self._detach()
+
+    def _detach(self):
+        if self.detach_when_hidden and self.progress==0 and self.body.parent is self:
+            self.remove_widget(self.body)
 
 
 class WordEllipsisLabel(Label):
@@ -148,11 +163,13 @@ class SecurityIdentityButton(ButtonBehavior, SecurityIdentity):
 
 class SavedSecurityGroup(BoxLayout):
     """One continuous, lightly tinted enclosure for a company and its SMAs."""
+    expanded=BooleanProperty(False)
     def __init__(self, expanded=False, **kwargs):
         super().__init__(orientation="vertical", size_hint_y=None, spacing=dp(8),
                          padding=(dp(10),dp(6)), **kwargs)
         self.expanded = expanded
-        self.bind(minimum_height=self.setter("height"), pos=self._paint_group, size=self._paint_group)
+        self.bind(minimum_height=self.setter("height"), pos=self._paint_group, size=self._paint_group,
+                  expanded=self._paint_group)
         self._paint_group()
 
     def _paint_group(self, *_):
@@ -174,12 +191,47 @@ class TimelineOption(SpinnerOption):
         self.height = dp(44)
 
 
+class AnimatedDropDown(DropDown):
+    """Brief fade for selectors; attachment and selection still belong to Kivy."""
+    def open(self,widget):
+        if self.attach_to is widget and self.parent is not None:
+            # A quick reopen during fade-out must not dispatch on_dismiss and
+            # reset the spinner's newly reopened state.
+            Animation.cancel_all(self,"opacity")
+            self._closing=False
+            Animation(opacity=1,duration=.14,t="out_cubic").start(self)
+            return
+        if self.attach_to is not None:
+            self.dismiss(animate=False)
+        Animation.cancel_all(self,"opacity")
+        self.opacity=0
+        self._closing=False
+        super().open(widget)
+        Animation(opacity=1,duration=.14,t="out_cubic").start(self)
+
+    def dismiss(self,*args,animate=True):
+        if not animate:
+            Animation.cancel_all(self,"opacity")
+            self._closing=False
+            self._real_dismiss()
+        elif not getattr(self,"_closing",False) and self.attach_to is not None:
+            self._closing=True
+            Animation.cancel_all(self,"opacity")
+            animation=Animation(opacity=0,duration=.10,t="out_cubic")
+            animation.bind(on_complete=lambda *_:self._real_dismiss())
+            animation.start(self)
+
+    def _real_dismiss(self,*args):
+        self._closing=False
+        super()._real_dismiss(*args)
+
+
 class RoundedSelector(Spinner):
     """One rounded hit target, including the label and drawn downward arrow."""
     __events__ = ("on_select",)
 
     def __init__(self, **kwargs):
-        defaults = dict(option_cls=TimelineOption, size_hint_y=None,
+        defaults = dict(option_cls=TimelineOption, dropdown_cls=AnimatedDropDown, size_hint_y=None,
                         height=dp(44), font_size=sp(13), color=(0.92, 0.95, 0.98, 1),
                         background_normal="", background_down="", background_color=(0, 0, 0, 0),
                         halign="left", valign="middle", padding=(dp(12), 0),

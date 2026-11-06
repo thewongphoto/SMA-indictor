@@ -1,4 +1,4 @@
-# Daily checks on Android 0.10.1
+# Daily checks on Android 0.10.2
 
 New saved SMAs default to **Push notifications On**. Both **Buy signal** and
 **Impending buy signal** default to On for users without stored type preferences.
@@ -13,6 +13,10 @@ Android notification permission when prompted; existing enabled preferences
 also trigger one permission request after upgrading. Test notification can
 request it again if necessary. A disabled app/channel must be enabled in Android
 Settings. Email is not used.
+
+Android 0.10.2 requests pop-up banners and sound before retaining alerts in
+the drawer. The [banner/channel guide](UI_MOTION_AND_ALERTS.md#android-pop-up-banners)
+explains the upgrade from the old quiet default and preserved OS settings.
 
 | Listing | Singapore-time target | Closing session checked |
 | --- | --- | --- |
@@ -42,7 +46,7 @@ that the date was an exchange holiday.
 
 ## Test on the phone
 
-1. Install the **apk-v0.10.1** APK over the existing app, open it and
+1. Install the **apk-v0.10.2** APK over the existing app, open it and
    allow notifications. Keep saved SMAs and price caches in place.
 2. Confirm one saved SMA and a signal type are On. In Settings, use **Test Android phone
    notification** to verify OS permission/channel delivery. This test does not

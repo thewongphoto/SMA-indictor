@@ -9,6 +9,7 @@ from .market_data import PreviewMarketDataProvider
 from .securities import security_by_key
 from .policy import observable_comparisons
 from .storage import LineStore, SavedLine
+from .line_names import sma_label
 
 
 @dataclass(frozen=True)
@@ -214,7 +215,7 @@ class AnalyzerModel:
             return {"period": "—", "target": f"{self.target_frequency} / yr", "actual": "—", "count": "—"}
         saved = self.current_saved_line()
         return {
-            "period": saved.custom_name if saved and saved.custom_name else f"{self.result.period} sessions",
+            "period": saved.custom_name if saved and saved.custom_name else sma_label(self.result.period),
             "target": f"{self.result.target_frequency} / yr",
             "actual": f"{self.result.actual_annual_frequency:.2f} / yr",
             "count": str(self.result.crossing_count),
@@ -222,7 +223,7 @@ class AnalyzerModel:
 
     def current_line_name(self):
         saved = self.current_saved_line()
-        return saved.display_name if saved else f"SMA {self.result.period}" if self.result else "SMA"
+        return saved.display_name if saved else sma_label(self.result.period) if self.result else "SMA"
 
     def event_rows(self) -> list[tuple[str, str, str]]:
         if self.result is None:

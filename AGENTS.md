@@ -29,6 +29,14 @@
   Python service; do not replace it with a paused Kivy timer. Use per-slot unique
   native work and the durable region/due journal; never replay old session alerts.
   Native iOS delivery still requires its BGTaskScheduler/notification adapter.
+- Research notifications request a banner and sound, then stay in the system
+  notification drawer/Notification Center. Preserve explicit OS quiet/disabled
+  channel choices. The future iOS adapter must honor the shared alert
+  presentation contract and use foreground banner/list/sound presentation too.
+- SMA period labels use `SMA (X days)`; days mean trading observations. Custom
+  names and numeric saved identities are unchanged. Page transitions are brief;
+  archive/help sheets share the saved drawer. Native Back cancels optimization
+  in place; stale completions must never dismiss a newer calculation overlay.
 - These are target times, not a guarantee that Android or iOS will execute
   background work at an exact instant. iOS suspends background apps and native
   OS scheduling must be implemented and tested separately.
@@ -65,6 +73,7 @@
 - Mobile JSON/UI fixtures: .venv/bin/python -m scripts.smoke_mobile_yahoo_ui
 - Gesture/live-screen refinements: .venv/bin/python -m scripts.smoke_ui_refinements
 - Merged builder/name flows: .venv/bin/python -m scripts.smoke_ui_flow
+- Motion, drawers and cancel races: .venv/bin/python -m scripts.smoke_ui_motion
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

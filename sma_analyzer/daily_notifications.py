@@ -8,12 +8,13 @@ from datetime import datetime,timezone
 
 from .notifications import evaluate_dataset_eod,deliver_alerts
 from .schedule import latest_due,expected_session_date
+from .line_names import sma_label
 
 
 def check_detail(line, settings, expected):
     def state(enabled):
         return "On" if enabled else "Off"
-    return (f"Saved SMA #{line.id} · {line.display_name} · SMA {line.period} · "
+    return (f"Saved SMA #{line.id} · {line.display_name} · {sma_label(line.period)} · "
             f"target {line.target_frequency}/year · close {expected}. "
             f"Phone notifications {state(line.push_enabled)}; "
             f"Buy signal {state(settings.phone_buy)}; Impending buy signal {state(settings.phone_monitor)}.")

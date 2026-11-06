@@ -23,7 +23,7 @@ def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100, 
     if dataset is not None and dataset.prices:
         lines.append(f"Selected: {dataset.counter}; {dataset.currency}; "
                      f"cached {dataset.dates[0]} to {dataset.dates[-1]}; "
-                     f"{len(dataset.prices)} sessions; stale={dataset.stale}")
+                     f"{len(dataset.prices)} trading days; stale={dataset.stale}")
         lines.append(f"Price basis: {getattr(dataset,'price_basis','example-close')}")
     for event in cache.diagnostic_events(limit):
         kind = "HTTP" if event["operation"] == "http" else "CACHE" if event["status"] == "cache_hit" else "APP"

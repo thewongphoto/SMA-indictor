@@ -8,7 +8,7 @@ import json
 from .notifications import NotificationSettings, validate_email
 
 from .settings import DATA_VERSION
-from .line_names import normalize_name
+from .line_names import normalize_name, sma_label
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class SavedLine:
 
     @property
     def display_name(self):
-        return self.custom_name or f"SMA {self.period}"
+        return self.custom_name or sma_label(self.period)
 
 
 class LineStore:

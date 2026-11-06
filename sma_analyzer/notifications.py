@@ -7,6 +7,18 @@ from typing import TYPE_CHECKING
 
 from .engine import crossover_events, simple_moving_average
 from .settings import DATA_VERSION
+from .line_names import sma_label
+
+RESEARCH_CHANNEL_ID = "sma_research_alerts_banners_v1"
+LEGACY_RESEARCH_CHANNEL_ID = "sma_research_alerts"
+
+
+@dataclass(frozen=True)
+class NotificationPresentation:
+    """OS-neutral research-alert presentation, including the future iOS adapter."""
+    banner: bool = True
+    sound: bool = True
+    notification_center: bool = True
 
 if TYPE_CHECKING:
     from .storage import SavedLine
@@ -50,6 +62,7 @@ class Alert:
     body: str
     session_date: str = ""
     source: str = "preview"
+    presentation: NotificationPresentation = NotificationPresentation()
 
     @property
     def key(self) -> str:
@@ -89,10 +102,10 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
             continue
         if crossing and buy:
             kind, subject = "buy", f"Buy Signal for {line.counter}"
-            body = f"Buy Signal: {line.counter} has crossed above SMA {line.period}, target {line.target_frequency} /year"
+            body = f"Buy Signal: {line.counter} has crossed above {sma_label(line.period)}, target {line.target_frequency} /year"
         elif price < average and monitor:
             kind, subject = "monitor", f"Impending buy signal for {line.counter}"
-            body = f"Monitor: {line.counter} has closed below SMA {line.period}, target {line.target_frequency} /year"
+            body = f"Monitor: {line.counter} has closed below {sma_label(line.period)}, target {line.target_frequency} /year"
         else:
             continue
         if line.custom_name:
@@ -100,7 +113,7 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
             body=f"{line.display_name} · {body}"
         result.append(Alert(channel, kind, line.counter, line.scenario, line.period,
                             line.target_frequency, session, subject,
-                            body + f"\nSIMULATED DATA · {line.scenario} · Session {session}. Research alert only."))
+                            body + f"\nSIMULATED DATA · {line.scenario} · Trading day {session}. Research alert only."))
     return tuple(result)
 
 
@@ -117,21 +130,44 @@ def evaluate_dataset_eod(dataset, line, settings, session=None):
         movement="crossed above" if alert.kind=="buy" else "closed below"
         result.append(replace(alert,source=dataset.source,session_date=dataset.dates[alert.session-1],
             subject=f"{line.display_name} · {title} for {symbol}",
-            body=f"{line.display_name} · {symbol} has {movement} SMA {line.period}, target {line.target_frequency}/year."
+            body=f"{line.display_name} · {symbol} has {movement} {sma_label(line.period)}, target {line.target_frequency}/year."
                  f"\nAdjusted daily close · {dataset.dates[alert.session-1]} · {dataset.currency}. "
                  "Research signal; not an observed intraday execution."))
     return tuple(result)
 
 
 class AndroidNotifier:
-    """Foreground local Android notifications via python-for-android's Pyjnius.
+    """Local Android banners from the UI or a headless daily check.
 
-    Imports Android modules lazily. Requires POST_NOTIFICATIONS permission on
-    Android 13+, granted via request_permission(), and a future development build.
-    This is local OS delivery, not remote push or a background EOD scheduler.
+    Imports OS modules lazily. Android 13+ permission is requested by the UI;
+    native channel settings govern presentation. Scheduling belongs to the
+    separate native adapter, not this delivery boundary.
     """
     def __init__(self,context=None):
         self.context=context
+
+    @staticmethod
+    def _research_channel(manager,sdk,autoclass):
+        channel_id=RESEARCH_CHANNEL_ID
+        channel=manager.getNotificationChannel(channel_id)
+        if channel is None:
+            legacy=manager.getNotificationChannel(LEGACY_RESEARCH_CHANNEL_ID)
+            # Android cannot raise an existing channel's importance. Migrate
+            # the old app default, while preserving explicit disabled/quiet
+            # OS choices rather than routing around them with a new channel.
+            user_choice=legacy is not None and (legacy.getImportance()<3 or
+                sdk>=29 and legacy.hasUserSetImportance())
+            if user_choice:
+                channel_id,channel=LEGACY_RESEARCH_CHANNEL_ID,legacy
+            else:
+                Channel=autoclass("android.app.NotificationChannel")
+                channel=Channel(channel_id,"SMA signal alerts",4)  # IMPORTANCE_HIGH: heads-up banner
+                channel.enableVibration(True)
+                manager.createNotificationChannel(channel)
+        importance=channel.getImportance()
+        if importance==0:
+            raise RuntimeError("SMA alert channel is disabled. Enable it in Android notification settings.")
+        return channel_id,importance
     @staticmethod
     def request_permission(callback=None):
         """Request Android 13+ permission, then call callback once with its result."""
@@ -171,16 +207,14 @@ class AndroidNotifier:
                 raise RuntimeError("Allow notifications in Android settings, then retry the test.")
             if not manager.areNotificationsEnabled():
                 raise RuntimeError("Notifications are disabled for this app. Enable them in Android Settings.")
-            channel_id = "sma_research_alerts"
             if Version.SDK_INT >= 26:
-                Channel = autoclass("android.app.NotificationChannel")
-                manager.createNotificationChannel(Channel(channel_id, "SMA research alerts", 3))
-                channel = manager.getNotificationChannel(channel_id)
-                if channel is not None and channel.getImportance() == 0:
-                    raise RuntimeError("SMA alert channel is disabled. Enable it in Android notification settings.")
+                channel_id,importance=self._research_channel(manager,Version.SDK_INT,autoclass)
                 builder = autoclass("android.app.Notification$Builder")(activity, channel_id)
             else:
                 builder = autoclass("android.app.Notification$Builder")(activity)
+                importance=4
+                builder.setPriority(1)  # PRIORITY_HIGH before Android channels
+                builder.setDefaults(3)  # DEFAULT_SOUND | DEFAULT_VIBRATE
             icon = activity.getResources().getIdentifier("ic_stat_sma", "drawable", activity.getPackageName())
             if not icon:
                 icon = autoclass("android.R$drawable").stat_notify_more
@@ -196,6 +230,9 @@ class AndroidNotifier:
                 flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                 builder.setContentIntent(PendingIntent.getActivity(activity, identifier, intent, flags))
             manager.notify(identifier, builder.build())
+            return ("Banner and sound requested; alert remains in the notification drawer. Android settings and Do Not Disturb control presentation."
+                    if importance>=4 else
+                    "Posted using your existing quiet channel. Enable pop-up banners and sound for SMA alerts in Android Settings.")
         except ImportError:
             raise RuntimeError("Phone delivery needs an Android development build. Use Preview on desktop.") from None
         except RuntimeError:
@@ -208,7 +245,7 @@ def alert_log_detail(alert):
     """Controlled signal identity shared by native and foreground delivery logs."""
     title = {"buy": "Buy signal", "monitor": "Impending buy signal", "test": "Test notification"}[alert.kind]
     session = alert.session_date or f"preview session {alert.session}"
-    return (f"{title} · {alert.subject} · {alert.channel} · SMA {alert.period} · "
+    return (f"{title} · {alert.subject} · {alert.channel} · {sma_label(alert.period)} · "
             f"target {alert.target}/year · close {session}.")
 
 
@@ -233,16 +270,18 @@ def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> lis
         record("notification-trigger", "triggered", "Signal matched; attempting delivery.")
         try:
             if alert.channel == "phone":
-                (phone or AndroidNotifier()).send(alert)
+                receipt=(phone or AndroidNotifier()).send(alert)
             else:
                 if mailer is None:
                     record("notification-delivery", "not_sent", "Email delivery is unavailable.")
                     report.append("Email not sent. Connect Gmail and press Send enabled alerts.")
                     continue
                 mailer.send(alert, store.notification_settings().email)
+                receipt=None
             store.record_delivery(alert.key)
             status = "Accepted by Gmail" if alert.channel == "email" else "Posted to Android"
-            record("notification-delivery", "ok", status + "; OS accepted the notification.")
+            record("notification-delivery", "ok", status + "; OS accepted the notification. " +
+                   (receipt if isinstance(receipt,str) else ""))
             report.append(f"{status}: {alert.channel}, session {alert.session}.")
         except (OSError, ValueError, RuntimeError) as error:
             record("notification-delivery", "failed",

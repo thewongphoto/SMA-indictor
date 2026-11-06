@@ -2,6 +2,10 @@
 import unicodedata
 
 
+def sma_label(period):
+    return f"SMA ({period} days)"
+
+
 def normalize_name(value):
     value = unicodedata.normalize("NFC", str(value))
     if any(unicodedata.category(char).startswith("C") and not char.isspace() for char in value):

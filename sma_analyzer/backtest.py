@@ -24,7 +24,7 @@ def period_sessions(label, custom_years, history_length, dates=None):
         if sessions < 2:
             raise ValueError
     except (InvalidOperation, TypeError, ValueError):
-        raise ValueError("Enter a positive number of years (up to 100, at least 2 sessions).") from None
+        raise ValueError("Enter a positive number of years (up to 100, at least 2 trading days).") from None
     if dates:
         end = date.fromisoformat(dates[-1])
         whole = int(years)

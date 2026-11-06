@@ -44,7 +44,8 @@ public final class SmaAlertBridge {
                 "android.permission.POST_NOTIFICATIONS") != 0) return false;
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (!manager.areNotificationsEnabled()) return false;
-        android.app.NotificationChannel channel = manager.getNotificationChannel("sma_research_alerts");
+        android.app.NotificationChannel channel = manager.getNotificationChannel("sma_research_alerts_banners_v1");
+        if (channel == null) channel = manager.getNotificationChannel("sma_research_alerts");
         return channel == null || channel.getImportance() > 0;
     }
 

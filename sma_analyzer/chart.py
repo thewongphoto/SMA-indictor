@@ -14,6 +14,7 @@ from kivy.uix.widget import Widget
 from .engine import crossover_events
 from .viewport import ChartViewport
 from .axis import date_ticks
+from .line_names import sma_label
 from .palette import line_color as palette_color
 
 PRICE_COLOR = (0.30, 0.87, 0.77, 1)
@@ -377,7 +378,7 @@ class PriceChart(Widget):
                     Ellipse(pos=(x-dp(3), y-dp(3)), size=(dp(6), dp(6)))
                     sma = "Unavailable (warm-up/gap)" if info["sma"] is None else f'{info["sma"]:.4f}'
                     caption = f'Date: {info["date"]}\n{self.price_label}: {info["price"]:.4f}\n'
-                    caption += f'{self.inspection_name or "SMA "+str(info["period"])}: {sma}' if info["period"] else 'SMA: optimize first'
+                    caption += f'{self.inspection_name or sma_label(info["period"])}: {sma}' if info["period"] else 'SMA: optimize first'
                     label = CoreLabel(text=caption, font_size=sp(10), color=(0.94, 0.97, 1, 1),
                                       text_size=(min(dp(205), self.width-dp(20)), None))
                     label.refresh()

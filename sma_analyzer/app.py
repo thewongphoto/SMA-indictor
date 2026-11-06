@@ -22,7 +22,8 @@ if platform != "android":
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
+from kivy.graphics.instructions import InstructionGroup
 from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -34,8 +35,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition
-from .navigation import SavedLinesSheet
+from kivy.uix.screenmanager import Screen, ScreenManager
+from .navigation import SavedLinesSheet, BottomSheet, SoftPageTransition, OptimizationOverlay
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
@@ -55,6 +56,7 @@ from .backtest import compare_investments, period_sessions
 from .securities import security_by_key, normalize_query
 from .version import APP_VERSION
 from .presentation import display_text
+from .line_names import sma_label
 from .palette import line_color as saved_color
 
 BG = (0.075, 0.122, 0.192, 1)
@@ -137,6 +139,34 @@ class EditingField(TextInput):
         super().__init__(**kwargs)
 
 
+class CustomValueField(EditingField):
+    """The same dark, rounded numeric input for preferences and backtesting."""
+    def __init__(self,**kwargs):
+        defaults=dict(multiline=False,input_type="number",size_hint_y=None,height=dp(44),
+                      font_size=sp(16),padding=(dp(10),dp(12)),background_normal="",background_active="",
+                      background_color=(0,0,0,0),foreground_color=TEXT,cursor_color=PRICE_COLOR)
+        defaults.update(kwargs)
+        super().__init__(**defaults)
+        # TextInput keeps its text color in canvas.before. Put our surface
+        # behind those instructions so its border color cannot tint the text.
+        self.field_layer=InstructionGroup()
+        self.field_layer.add(Color(.12,.17,.23,1))
+        self.field_surface=RoundedRectangle(radius=[dp(10)])
+        self.field_layer.add(self.field_surface)
+        self.field_border_color=Color(.22,.29,.37,1)
+        self.field_layer.add(self.field_border_color)
+        self.field_border=Line(width=dp(.8))
+        self.field_layer.add(self.field_border)
+        self.canvas.before.insert(0,self.field_layer)
+        self.bind(pos=self._paint_field,size=self._paint_field,focus=self._paint_field)
+        self._paint_field()
+
+    def _paint_field(self,*_):
+        self.field_surface.pos,self.field_surface.size=self.pos,self.size
+        self.field_border.rounded_rectangle=(*self.pos,*self.size,dp(10))
+        self.field_border_color.rgba=PRICE_COLOR if self.focus else (.22,.29,.37,1)
+
+
 class DeviceFrame(FloatLayout):
     """All pages and the sheet share the same measured safe/keyboard viewport."""
     def __init__(self, screen, **kwargs):
@@ -197,7 +227,7 @@ class AnalyzerScreen(FloatLayout):
         self.guide_busy = False
         self.guide_lesson = None
         self.delivery_busy = False
-        self.manager = ScreenManager(transition=NoTransition(), pos_hint={"x": 0, "y": 0})
+        self.manager = ScreenManager(transition=SoftPageTransition(), pos_hint={"x": 0, "y": 0})
         self.add_widget(self.manager)
         self.pages = {}
         for name in ("library", "search", "results", "crossovers", "settings", "guide"):
@@ -291,11 +321,7 @@ class AnalyzerScreen(FloatLayout):
         target_values = tuple(f"{n} / year" for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
         self.target = choice(f"{model.target_frequency} / year", target_values)
         target_row.add_widget(self.target)
-        self.custom_target = EditingField(text="9", multiline=False, input_type="number",
-                                       size_hint_y=None, height=dp(44),
-                                       font_size=sp(16), padding=[dp(10), dp(12)],
-                                       background_normal="", background_active="", background_color=(0.12, 0.17, 0.23, 1),
-                                       foreground_color=TEXT, cursor_color=PRICE_COLOR)
+        self.custom_target = CustomValueField(text="9")
         self.target_row = target_row
         self.target_cell=field("TARGET CROSSINGS", target_row)
         self.optimize_button = LabButton(text="Optimize SMA", primary=True)
@@ -327,10 +353,9 @@ class AnalyzerScreen(FloatLayout):
         self.line_name_row.add_widget(self.card_values["period"])
         self.rename_button=IconButton(kind="edit",pos_hint={"center_y":.5})
         self.rename_button.bind(on_release=self.show_rename_line)
-        self.selected_target_badge=WrappedLabel(text="",size_hint_x=None,width=dp(104),
-                                              font_size=sp(12),color=MUTED,halign="right",pos_hint={"center_y":.5})
-        self.line_name_row.add_widget(self.selected_target_badge)
         self.optimal_value.add_widget(self.line_name_row)
+        self.selected_target_badge=WrappedLabel(text="",font_size=sp(12),color=MUTED)
+        self.optimal_value.add_widget(self.selected_target_badge)
         self.named_period_caption=WrappedLabel(text="",color=MUTED,font_size=sp(11))
         self.optimal_value.add_widget(self.named_period_caption)
         self.optimal_panel.add_widget(self.optimal_value)
@@ -408,6 +433,7 @@ class AnalyzerScreen(FloatLayout):
         self.content.add_widget(self.explanation)
         self.saved_panel = Panel()
         self.saved_sheet = SavedLinesSheet(self, self.saved_panel)
+        self.optimization_overlay=OptimizationOverlay(self)
         self.landing_saved_panel = Panel()
         self.library_intro = Panel()
         self.library_intro.add_widget(WrappedLabel(text=INTRODUCTION, bold=True, font_size=sp(20)))
@@ -442,7 +468,7 @@ class AnalyzerScreen(FloatLayout):
             text="Research tool only. Matching a crossing frequency does not establish profitability. "
                  + ("Comparisons use dividend/split-adjusted prices and estimated crossing fills. Fees, taxes and currency movements are excluded. "
                   "Displayed market prices are historical." if self.yahoo_enabled else
-                  "Educational example only; 252 sessions represent one trading year."),
+                  "Educational example only; 252 trading days represent one trading year."),
             color=MUTED, font_size=sp(11)))
 
         self.security_search.bind(text=self.on_security_query_edited, on_text_validate=self.submit_security_search)
@@ -624,7 +650,7 @@ class AnalyzerScreen(FloatLayout):
                 len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
             name = self.model.security(lesson.dataset.counter).name if self.yahoo_enabled else "Educational example"
             self.guide_status.text = (f"{name} · {lesson.dataset.dates[report.start]} – {lesson.dataset.dates[report.end]}\n"
-                f"SMA {result.period} · "
+                f"{sma_label(result.period)} · "
                 f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
                 f"{len(report.crossings.indices)} buys per comparison")
             prefix = "USD " if self.yahoo_enabled else "$"
@@ -668,6 +694,7 @@ class AnalyzerScreen(FloatLayout):
         self.sync_notification_schedule()
 
     def _navigate(self, name):
+        self.manager.transition.direction="right" if name in self._page_stack else "left"
         self._before_navigation(name)
         self.finish_editing()
         self.saved_sheet.dismiss(animate=False)
@@ -682,6 +709,10 @@ class AnalyzerScreen(FloatLayout):
 
     def _before_navigation(self, destination):
         """Back/Library must not be undone by an asynchronous completion."""
+        self._close_selectors(animate=False)
+        for child in list(self.children):
+            if isinstance(child,BottomSheet):
+                child.dismiss(animate=False)
         current = self.manager.current
         if current == "search" and destination != "search":
             pending = self.search_busy or self.history_loading
@@ -706,6 +737,7 @@ class AnalyzerScreen(FloatLayout):
         if len(self._page_stack) > 1:
             self._before_navigation(self._page_stack[-2])
             self._page_stack.pop()
+            self.manager.transition.direction="right"
             self.manager.current = self._page_stack[-1]
             if self.manager.current in ("search","library"):
                 self._refresh_saved()
@@ -720,9 +752,14 @@ class AnalyzerScreen(FloatLayout):
 
     def handle_back(self):
         """Consume overlays/editing first, then pages; only Library may exit."""
+        if self.busy:
+            self.cancel_optimization()
+            return True
+        if self._close_selectors():
+            return True
         for name in ("rename_popup","history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
             popup = getattr(self, name, None)
-            if popup is not None and popup._is_open:
+            if popup is not None and (popup._is_open or isinstance(popup,BottomSheet) and popup.parent is not None):
                 popup.dismiss()
                 return True
         if self.saved_sheet.is_open:
@@ -735,6 +772,21 @@ class AnalyzerScreen(FloatLayout):
             self.go_back()
             return True
         return False
+
+    def _close_selectors(self,animate=True):
+        opened=False
+        for widget in self.walk():
+            if isinstance(widget,RoundedSelector) and widget.is_open:
+                widget._dropdown.dismiss(animate=animate)
+                opened=True
+        return opened
+
+    def cancel_optimization(self):
+        self._job+=1
+        self._cancel_optimization.set()
+        self._set_busy(False)
+        self.show_parameters()
+        self.search_status.text="Optimization cancelled. Adjust the target and try again."
 
     def _editor_focus(self, editor, focused):
         if focused:
@@ -967,6 +1019,8 @@ class AnalyzerScreen(FloatLayout):
         if self._syncing_controls:
             return
         self._job += 1
+        self._cancel_optimization.set()
+        self._set_busy(False)
         self._history_token += 1
         self.history_loading = False
         try:
@@ -994,6 +1048,8 @@ class AnalyzerScreen(FloatLayout):
 
     def _target_edited(self):
         self._job += 1
+        self._cancel_optimization.set()
+        self._set_busy(False)
         self.model.viewing_saved = False
         # Never leave stale statistics visible for a newly entered target.
         self.model.result = None
@@ -1015,6 +1071,11 @@ class AnalyzerScreen(FloatLayout):
             button.disabled = busy
         self.save_button.disabled = busy or self.model.result is None
         self.hide_button.disabled = busy or self.model.result is None
+        if hasattr(self,"optimization_overlay"):
+            if busy:
+                self.optimization_overlay.show(self.model.target_frequency)
+            else:
+                self.optimization_overlay.dismiss()
 
     def on_optimize(self, *_):
         if self.busy or self.history_loading:
@@ -1039,7 +1100,6 @@ class AnalyzerScreen(FloatLayout):
             return
         self._job += 1
         token = self._job
-        self._calculation_job = token
         self._set_busy(True)
         self.message("Calculating all candidate periods across the full history…")
         self._cancel_optimization.set()
@@ -1053,8 +1113,6 @@ class AnalyzerScreen(FloatLayout):
         if self.closed:
             return
         if token != self._job:
-            if token == getattr(self, "_calculation_job", None):
-                self._set_busy(False)
             return
         self._set_busy(False)
         try:
@@ -1186,7 +1244,7 @@ class AnalyzerScreen(FloatLayout):
             self.chart.set_timeline("1Y")
             self.show_results()
             warning = getattr(self.model.data_provider, "last_warning", "")
-            self.message(warning or f"Viewing {selected.display_name} ({selected.period} sessions).", bool(warning), quiet=not warning)
+            self.message(warning or f"Viewing {selected.display_name} · {sma_label(selected.period)}.", bool(warning), quiet=not warning)
         except (ValueError, RuntimeError, sqlite3.Error, OSError) as error:
             self.message(f"Could not open saved SMA: {error}", True)
             self.source_warning.text = display_text(error)
@@ -1223,17 +1281,17 @@ class AnalyzerScreen(FloatLayout):
         add_legend(close_label, PRICE_COLOR)
         add_legend("upward crossings", MUTED, plus=True)
         for index, line in enumerate(lines):
-            label = line.name or f"SMA {line.period}"
+            label = line.name or sma_label(line.period)
             self.legend_labels.append(label)
             add_legend(label, self.chart.line_color(line, index))
         for key, value in self.model.summary().items():
             if key in self.card_values:
                 self.card_values[key].text = value
         saved=self.model.current_saved_line()
-        self.selected_target_badge.text=f"Target\n{self.model.result.target_frequency if self.model.result else self.model.target_frequency} / year"
-        self.named_period_caption.text=f"{self.model.result.period} sessions" if saved and saved.custom_name else ""
+        self.selected_target_badge.text=f"Target {self.model.result.target_frequency if self.model.result else self.model.target_frequency}/year"
+        self.named_period_caption.text=sma_label(self.model.result.period) if saved and saved.custom_name else ""
         if saved and self.rename_button.parent is None:
-            self.line_name_row.add_widget(self.rename_button,index=1)
+            self.line_name_row.add_widget(self.rename_button)
         elif not saved and self.rename_button.parent is not None:
             self.line_name_row.remove_widget(self.rename_button)
         self.card_values["period"].color = (saved_color(self.model.store.color_index(
@@ -1246,7 +1304,7 @@ class AnalyzerScreen(FloatLayout):
         result = self.model.result
         self.explanation.text = (
             f"Based on {result.comparisons} usable comparisons "
-            f"({result.usable_years:.2f} trading years) from {result.history_sessions} sessions. "
+            f"({result.usable_years:.2f} trading years) from {result.history_sessions} trading days. "
             f"Target difference: {float(result.frequency_error):.2f}/yr. " +
             ("Viewing the exact selected period. " if self.model.viewing_saved or self.model.period_preserved else
              f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. ") +
@@ -1269,11 +1327,11 @@ class AnalyzerScreen(FloatLayout):
                                     data.dates if not getattr(data, "is_simulated", True) else ())
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
-        self.plot_subtitle.text = f"EDUCATIONAL EXAMPLE · {len(data.prices)} sessions · example price units\nCrossing markers estimate daily-line intersections."
+        self.plot_subtitle.text = f"EDUCATIONAL EXAMPLE · {len(data.prices)} trading days · example price units\nCrossing markers estimate daily-line intersections."
         if not getattr(data, "is_simulated", True) and data.prices:
             from .schedule import SGT
             fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
-            self.plot_subtitle.text = (f"{data.currency} adjusted daily close · {len(data.prices)} sessions\n"
+            self.plot_subtitle.text = (f"{data.currency} adjusted daily close · {len(data.prices)} trading days\n"
                                       f"Last close {data.dates[-1]} · fetched {fetched}\n"
                                       "Dividends/splits included; crossing fills are daily-line estimates.")
             if data.stale:
@@ -1331,11 +1389,12 @@ class AnalyzerScreen(FloatLayout):
             body.bind(minimum_height=body.setter("height"))
             for line in entries:
                 rows[line.id] = self._add_saved_row(body, line)
-            if security in self.expanded_saved_securities:
-                group.add_widget(body)
+            reveal=PreferenceReveal(body,detach_when_hidden=True)
+            group.add_widget(reveal)
+            reveal.show(security in self.expanded_saved_securities)
             panel.add_widget(group)
             buttons[security] = arrow
-            groups[security] = dict(group=group, body=body, name=name)
+            groups[security] = dict(group=group, body=body, name=name, reveal=reveal)
         if landing:
             self.landing_security_buttons, self.landing_security_groups = buttons, groups
         else:
@@ -1347,10 +1406,16 @@ class AnalyzerScreen(FloatLayout):
             self.expanded_saved_securities.remove(security)
         else:
             self.expanded_saved_securities.add(security)
-        self._refresh_saved()
+        expanded=security in self.expanded_saved_securities
+        for groups,buttons in ((self.saved_security_groups,self.saved_security_buttons),
+                              (self.landing_security_groups,self.landing_security_buttons)):
+            if security in groups:
+                groups[security]["group"].expanded=expanded
+                groups[security]["reveal"].show(expanded,animate=True)
+                buttons[security].kind="up" if expanded else "down"
 
     def _add_saved_row(self, panel, line):
-        label = f"{line.display_name}" + (f" · SMA {line.period}" if line.custom_name else "") + f" · target {line.target_frequency}/yr"
+        label = f"{line.display_name}" + (f" · {sma_label(line.period)}" if line.custom_name else "") + f" · target {line.target_frequency}/yr"
         if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
             label += " · saved previously; outside current search limit"
         title = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
@@ -1477,7 +1542,7 @@ class AnalyzerScreen(FloatLayout):
             identity = SecurityIdentity(security_by_key(line.counter), logo_size=dp(20),
                                          height=dp(32), font_size=sp(12))
             entry.add_widget(identity)
-            entry.add_widget(WrappedLabel(text=f"{line.display_name}" + (f" · SMA {line.period}" if line.custom_name else "") + f" · target {line.target_frequency}/yr",
+            entry.add_widget(WrappedLabel(text=f"{line.display_name}" + (f" · {sma_label(line.period)}" if line.custom_name else "") + f" · target {line.target_frequency}/yr",
                                            color=MUTED, font_size=sp(12)))
             restore = LabButton(text="Restore saved line")
             restore.bind(on_release=lambda _, entry=line: self.restore_unsaved(entry))
@@ -1493,7 +1558,7 @@ class AnalyzerScreen(FloatLayout):
         content.add_widget(self.history_status)
         close = LabButton(text="Close")
         content.add_widget(close)
-        self.history_popup = Popup(title="Recently unsaved SMA lines",content=content,size_hint=(.94,.8))
+        self.history_popup = BottomSheet(self,content,title="Recently unsaved SMA lines",height_ratio=.8)
         close.bind(on_release=self.history_popup.dismiss)
         self.history_popup.open()
 
@@ -1832,10 +1897,13 @@ class AnalyzerScreen(FloatLayout):
             alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
                           "SMA Stock Analyzer · Test", "Notification test · Phone notifications are working."
                           if self.yahoo_enabled else "SIMULATED TEST · Phone notifications are working.")
-            AndroidNotifier().send(alert)
-            self._record_notification_test("ok", "Test phone notification posted; OS accepted it. No market signal or API request.")
+            receipt=AndroidNotifier().send(alert)
+            self._record_notification_test("ok", "Test phone notification posted; OS accepted it. No market signal or API request. " +
+                                           (receipt if isinstance(receipt,str) else ""))
             self.sync_notification_schedule()
             self.notification_status.text = "Android test notification posted. Check the notification shade."
+            if isinstance(receipt,str):
+                self.notification_status.text+="\n"+receipt
         except RuntimeError as error:
             self.notification_status.text = str(error)
             self._record_notification_test("failed", "Test phone notification not confirmed. Check Android notification permission/channel and device setup.")
@@ -1900,17 +1968,20 @@ class AnalyzerScreen(FloatLayout):
             self.backtest_heading.pos_hint = {"center_y": .5}
             self.backtest_header.add_widget(self.backtest_heading)
             self.backtest_period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
-            self.backtest_period.width = dp(90)
+            self.backtest_period.width = dp(112)
             self.backtest_period.pos_hint = {"center_y": .5}
             self.backtest_header.add_widget(self.backtest_period)
             self.backtest_heading.bind(height=lambda _, height: setattr(self.backtest_header, "height", max(dp(48), height)))
             self.table_panel.add_widget(self.backtest_header)
-            self.backtest_custom_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
-            self.backtest_custom_row.add_widget(WrappedLabel(text="Custom years"))
-            self.backtest_years = EditingField(text="2", multiline=False, input_type="number", size_hint_y=None, height=dp(44))
-            self.backtest_custom_row.add_widget(self.backtest_years)
-            self.backtest_custom_row.add_widget(LabButton(text="Apply", on_release=self._refresh_backtest))
-            self.backtest_custom_holder = BoxLayout(orientation="vertical", size_hint_y=None, height=0)
+            self.backtest_custom_row = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(6))
+            self.backtest_custom_row.bind(minimum_height=self.backtest_custom_row.setter("height"))
+            self.backtest_custom_row.add_widget(WrappedLabel(text="Custom period (years)",font_size=sp(11),color=MUTED))
+            custom_entry=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+            self.backtest_years = CustomValueField(text="2",hint_text="Years")
+            custom_entry.add_widget(self.backtest_years)
+            custom_entry.add_widget(LabButton(text="Apply",on_release=self._refresh_backtest,size_hint_x=None,width=dp(82)))
+            self.backtest_custom_row.add_widget(custom_entry)
+            self.backtest_custom_holder=PreferenceReveal(self.backtest_custom_row,detach_when_hidden=True)
             self.table_panel.add_widget(self.backtest_custom_holder)
             self.backtest_contribution = WrappedLabel(font_size=sp(13))
             self.table_panel.add_widget(self.backtest_contribution)
@@ -1976,7 +2047,7 @@ class AnalyzerScreen(FloatLayout):
         scroll=ScrollView(do_scroll_x=False)
         fields=BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(8))
         fields.bind(minimum_height=fields.setter("height"))
-        fields.add_widget(WrappedLabel(text=f"SMA {saved.period} · target {saved.target_frequency}/year. Leave blank to use the default name.",color=MUTED))
+        fields.add_widget(WrappedLabel(text=f"{sma_label(saved.period)} · target {saved.target_frequency}/year. Leave blank to use the default name.",color=MUTED))
         self.rename_editor=EditingField(text=saved.custom_name,hint_text="Name your saved SMA",multiline=False,
             size_hint_y=None,height=dp(48),font_size=sp(16),padding=dp(10),foreground_color=TEXT,
             background_normal="",background_active="",background_color=(.10,.15,.23,1))
@@ -2019,12 +2090,9 @@ class AnalyzerScreen(FloatLayout):
 
     def _refresh_backtest(self, *_):
         custom = self.backtest_period.text == "Custom"
-        if custom and self.backtest_custom_row.parent is None:
-            self.backtest_custom_holder.add_widget(self.backtest_custom_row)
-        elif not custom and self.backtest_custom_row.parent is not None:
-            self.backtest_custom_holder.remove_widget(self.backtest_custom_row)
+        if not custom:
             self.backtest_years.focus = False
-        self.backtest_custom_holder.height = dp(44) if custom else 0
+        self.backtest_custom_holder.show(custom,animate=True)
         self.backtest_report = None
         self.backtest_contribution.text = ""
         self.backtest_gain.text = ""
@@ -2110,8 +2178,8 @@ class AnalyzerScreen(FloatLayout):
         content.add_widget(scroll)
         close = LabButton(text="Close")
         content.add_widget(close)
-        self.backtest_help_popup = Popup(title="Dollar cost averaging" if scenario == "dca" else "Most common random scenario",
-                                         content=content, size_hint=(.92, .6))
+        self.backtest_help_popup = BottomSheet(self,content,
+            title="Dollar cost averaging" if scenario == "dca" else "Most common random scenario",height_ratio=.6)
         close.bind(on_release=self.backtest_help_popup.dismiss)
         self.backtest_help_popup.open()
 
@@ -2121,7 +2189,7 @@ class AnalyzerScreen(FloatLayout):
         self.full_table_panel.clear_widgets()
         data, result = self.model.dataset, self.model.result
         self.full_table_panel.add_widget(WrappedLabel(
-            text=f"{self.model.security(data.counter).name} · {self.model.current_line_name()} · {result.period} sessions · target {result.target_frequency}/yr · {result.crossing_count} upward crossings", bold=True))
+            text=f"{self.model.security(data.counter).name} · {self.model.current_line_name()} · {sma_label(result.period)} · target {result.target_frequency}/yr · {result.crossing_count} upward crossings", bold=True))
         self.full_crossover_table = self._crossing_table(self.model.event_rows())
         self.full_table_panel.add_widget(self.full_crossover_table)
         self._navigate("crossovers")
@@ -2130,6 +2198,12 @@ class AnalyzerScreen(FloatLayout):
     def close(self):
         self.closed = True
         self._cancel_optimization.set()
+        self.optimization_overlay.dismiss()
+        self.manager.transition.stop()
+        self._close_selectors(animate=False)
+        for child in list(self.children):
+            if isinstance(child,BottomSheet):
+                child.dismiss(animate=False)
         self._editor_scroll_trigger.cancel()
         self.finish_editing()
         self._search_token += 1

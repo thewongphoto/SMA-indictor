@@ -145,6 +145,9 @@ not call Yahoo on a schedule after you close the window or start an APK build.
 New saved SMAs and both phone signal types default to On; existing stored Off
 choices remain Off. Notification delivery remains an Android test, with triggers
 and results available in Settings → View data request log on the phone.
+This UI update adds a moving indicator during optimization. Press Escape
+to cancel and stay on the selected company/target. Saved or cached targets still
+open immediately. See [UI motion and banner behavior](docs/UI_MOTION_AND_ALERTS.md).
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;

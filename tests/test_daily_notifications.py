@@ -148,7 +148,7 @@ class DailyNotificationsTests(TestCase):
                                  ("notification-trigger","triggered"),("notification-delivery","ok")):
             event=next(e for e in events if e["operation"]==operation and e["status"]==status)
             self.assertEqual(event["symbol"],"AAPL")
-            for text in (title,"Recovery watch","SMA 2","target 12/year",data.dates[-1]):
+            for text in (title,"Recovery watch","SMA (2 days)","target 12/year",data.dates[-1]):
                 self.assertIn(text,event["detail"])
         report=diagnostic_report(self.provider.cache,"android","Market data HTTPS",public_view=True)
         self.assertIn(title,report)

@@ -77,6 +77,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.failure = None
         self.exit_code = 1
         self.steps = None
+        self._transition_wait_started = None
 
     def on_start(self):
         self.steps = self.exercise()
@@ -84,6 +85,16 @@ class SmokeApp(SMAStockAnalyzerApp):
 
     def advance(self, _dt):
         try:
+            # Kivy intentionally blocks page touches during a transition. The
+            # legacy action checks wait for the page; smoke_ui_motion separately
+            # exercises intermediate frames and rapid navigation/cancellation.
+            if self.screen.manager.transition.is_active:
+                self._transition_wait_started = self._transition_wait_started or time.monotonic()
+                if time.monotonic()-self._transition_wait_started>3:
+                    raise AssertionError("Page transition did not finish within 3 seconds")
+                Clock.schedule_once(self.advance,.02)
+                return
+            self._transition_wait_started = None
             next(self.steps)
             Clock.schedule_once(self.advance, 0.04)
         except StopIteration:
@@ -170,7 +181,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert "outlined plus signs" in ui.status.text
             assert result.target_frequency == target
             assert ui.card_values["target"].text == f"{target} / yr"
-            assert ui.card_values["period"].text == f"{result.period} sessions"
+            assert ui.card_values["period"].text == f"SMA ({result.period} days)"
             assert ui.card_values["actual"].text == f"{result.actual_annual_frequency:.2f} / yr"
             active, = [line for line in ui.chart.series if line.active]
             assert active.sma == tuple(simple_moving_average(ui.chart.prices, result.period))
@@ -254,7 +265,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.target.text = "12"
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
-        assert ui.card_values["period"].text == "254 sessions"
+        assert ui.card_values["period"].text == "SMA (254 days)"
         assert ui.card_values["actual"].text == "31.31 / yr"
         ui.backtest_period._dropdown.select("Max")
         assert "125 upward crossings" in ui.backtest_captions["crossings"].text
@@ -726,7 +737,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         while ui.busy:
             assert time.monotonic() < deadline
             yield
-        assert "At least 4 sessions" in ui.status.text
+        assert "At least 4 trading days" in ui.status.text
         assert ui.model.result is None
         self.check("remove line, empty chart, insufficient-data error without crash")
 
@@ -989,7 +1000,8 @@ class SmokeApp(SMAStockAnalyzerApp):
         for groups in (ui.landing_security_groups,ui.saved_security_groups):
             apple, microsoft,ocbc = (groups[key] for key in ("NASDAQ:AAPL","NASDAQ:MSFT","SGX:O39"))
             assert apple["group"].expanded and microsoft["group"].expanded
-            assert apple["body"].parent is apple["group"]
+            assert apple["body"].parent is apple["reveal"]
+            assert apple["reveal"].parent is apple["group"]
             assert ocbc["body"].parent is None and not ocbc["group"].expanded
             assert apple["group"].canvas.before.children
             assert apple["group"].top <= microsoft["group"].y or microsoft["group"].top <= apple["group"].y
@@ -1000,6 +1012,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.landing_security_groups["SGX:O39"]["name"].dispatch("on_release")
         assert ui.saved_security_groups["SGX:O39"]["group"].expanded
         ui.saved_security_buttons["SGX:O39"].dispatch("on_release")
+        for _ in range(6): yield
         assert ui.landing_security_groups["SGX:O39"]["body"].parent is None
         apple_line = ui.model.store.list_lines("NASDAQ:AAPL","Trending")[0]
         ui.on_view_saved(apple_line)

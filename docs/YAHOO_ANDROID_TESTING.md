@@ -1,4 +1,4 @@
-# Android 0.10.1: data, UI and scheduled notification test
+# Android 0.10.2: data, UI and scheduled notification test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
@@ -6,6 +6,9 @@ It includes native daily checks for enabled saved SMAs. New saved SMA phone
 alerts and both signal types default to On; stored Off choices are retained.
 The log identifies each SMA/signal trigger and delivery outcome. See
 [daily notification setup/testing](ANDROID_DAILY_NOTIFICATIONS.md).
+This version adds animated pages/drawers, an optimization overlay cancelled by
+native Back, updated SMA period labels and banner alerts. See
+[UI and banner testing](UI_MOTION_AND_ALERTS.md).
 The optional guided example uses the selected company's downloaded history, or
 loads SPY when no security has been selected. Visible app labels are provider-neutral.
 
@@ -13,13 +16,13 @@ loads SPY when no security has been selected. Visible app labels are provider-ne
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.10.1** / version **0.10.1**. A queued/running
+2. Open the run for tag **apk-v0.10.2** / version **0.10.2**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.10.1**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.10.2**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.

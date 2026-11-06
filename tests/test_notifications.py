@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock
 
-from sma_analyzer.notifications import NotificationSettings, evaluate_eod, deliver_alerts, validate_email, AndroidNotifier
+from sma_analyzer.notifications import NotificationSettings, NotificationPresentation, evaluate_eod, deliver_alerts, validate_email, AndroidNotifier
 from sma_analyzer.storage import LineStore, SavedLine
 
 
@@ -22,12 +22,12 @@ class AlertTests(unittest.TestCase):
     def test_buy_and_monitor_exact_content_and_channel_gates(self):
         alerts = evaluate_eod([10, 12, 10, 12], self.line, self.settings)
         self.assertEqual([a.kind for a in alerts], ['buy', 'buy'])
-        self.assertEqual(alerts[0].body.splitlines()[0], 'Buy Signal: DEMO-SGX has crossed above SMA 2, target 12 /year')
+        self.assertEqual(alerts[0].body.splitlines()[0], 'Buy Signal: DEMO-SGX has crossed above SMA (2 days), target 12 /year')
         self.assertEqual(alerts[1].subject, 'Buy Signal for DEMO-SGX')
         monitor = evaluate_eod([10, 12, 10], self.line, self.settings)
         self.assertEqual([a.kind for a in monitor], ['monitor', 'monitor'])
         self.assertEqual(monitor[1].subject, 'Impending buy signal for DEMO-SGX')
-        self.assertIn('Monitor: DEMO-SGX has closed below SMA 2, target 12 /year', monitor[1].body)
+        self.assertIn('Monitor: DEMO-SGX has closed below SMA (2 days), target 12 /year', monitor[1].body)
         self.assertIn('SIMULATED DATA', monitor[1].body)
         self.assertEqual(evaluate_eod([10,12,10,12], replace(self.line,push_enabled=False), self.settings)[0].channel, 'email')
         self.assertEqual(evaluate_eod([10,12,10,12], self.line,
@@ -127,3 +127,9 @@ class AlertTests(unittest.TestCase):
     def test_android_desktop_failure_is_helpful(self):
         with self.assertRaisesRegex(RuntimeError,'Android development build'):
             AndroidNotifier().send(evaluate_eod([10,12,10,12],self.line,self.settings)[0])
+
+    def test_cross_platform_banner_sound_and_center_policy_does_not_replay_existing_signals(self):
+        alert=evaluate_eod([10,12,10,12],self.line,self.settings)[0]
+        self.assertTrue(alert.presentation.banner and alert.presentation.sound and alert.presentation.notification_center)
+        old_quiet=replace(alert,presentation=NotificationPresentation(banner=False,sound=False))
+        self.assertEqual(alert.key,old_quiet.key)

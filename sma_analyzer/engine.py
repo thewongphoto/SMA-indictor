@@ -46,7 +46,7 @@ def simple_moving_average(prices: Sequence[Price], period: int) -> list[Price]:
     _positive_integer(period, "SMA period")
     values = _prices(prices)
     if period > len(values):
-        raise ValueError(f"SMA {period} needs at least {period} sessions; only {len(values)} available.")
+        raise ValueError(f"SMA ({period} days) needs at least {period} trading days; only {len(values)} available.")
     window: deque[float] = deque()
     total = 0.0
     result: list[Price] = []
@@ -159,7 +159,7 @@ def optimize_sma(
     _positive_integer(target_frequency, "Target frequency")
     values = _prices(prices)
     if len(values) < 4:
-        raise ValueError("At least 4 sessions are needed to optimize an SMA.")
+        raise ValueError("At least 4 trading days are needed to optimize an SMA.")
     cap = maximum_sma_period(len(values))
     minimum = len(values) - cap
     periods = list(range(2, cap + 1)) if candidates is None else list(candidates)

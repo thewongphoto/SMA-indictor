@@ -1,11 +1,12 @@
 # Yahoo Finance integration plan
 
-**Android 0.10.1 update (6 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
+**Android 0.10.2 update (6 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
 implements search/chart HTTPS requests, persistent caches and request reporting
 without embedding the desktop yfinance native stack. It now adds native daily
 checks at US 06:30 / SGX 18:30 Singapore time for enabled saved SMAs. New phone
 alerts and both signal types default On, preserving stored Off choices; logs
-identify each SMA/signal trigger and delivery outcome. See
+identify each SMA/signal trigger and delivery outcome. This version adds
+animated pages/drawers, cancelable optimization and requested banner alerts. See
 [phone notification testing](ANDROID_DAILY_NOTIFICATIONS.md). Physical-device
 sleep behavior still needs validation; native iOS delivery/packaging remain separate.
 

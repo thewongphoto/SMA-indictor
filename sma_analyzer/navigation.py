@@ -1,13 +1,35 @@
-"""Native saved-lines bottom sheet with a draggable dismissal handle."""
-from kivy.animation import Animation
-from kivy.graphics import Color, Line, RoundedRectangle
-from kivy.metrics import dp
+"""Shared page motion, modal bottom sheets and cancelable calculation feedback."""
+from kivy.animation import Animation, AnimationTransition
+from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
+from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
+
+
+class SoftPageTransition(SlideTransition):
+    """A short crossfade with a small directional offset, without shader FBOs."""
+    def __init__(self,**kwargs):
+        kwargs.setdefault("duration",.20)
+        super().__init__(**kwargs)
+
+    def on_progress(self,progression):
+        progress=AnimationTransition.out_cubic(progression)
+        x,y=self.manager.pos
+        direction=1 if self.direction=="left" else -1
+        self.screen_in.pos=(x+direction*dp(16)*(1-progress),y)
+        self.screen_out.pos=(x-direction*dp(8)*progress,y)
+        self.screen_in.opacity=progress
+        self.screen_out.opacity=1-progress
+
+    def on_complete(self):
+        self.screen_in.opacity=self.screen_out.opacity=1
+        super().on_complete()
 
 
 class SheetHandle(Widget):
@@ -54,16 +76,19 @@ class SheetHandle(Widget):
         return super().on_touch_up(touch)
 
 
-class SavedLinesSheet(FloatLayout):
+class BottomSheet(FloatLayout):
     """Modal lower sheet. Only attached while visible; chart state stays intact."""
     progress = NumericProperty(0)
     is_open = BooleanProperty(False)
 
-    def __init__(self, host, panel, **kwargs):
+    def __init__(self, host, panel, title="",height_ratio=.7,results_only=False,**kwargs):
         super().__init__(size_hint=(None,None), **kwargs)
         self.host = host
-        self.host.bind(pos=self._fit_host, size=self._fit_host)
-        self.host.results_footer.bind(height=self._fit_host)
+        self.content=panel
+        self.title=title
+        self.height_ratio=height_ratio
+        self.results_only=results_only
+        self._host_bound=False
         self.backdrop = Button(background_normal="", background_down="",
                                background_color=(0, 0, 0, .4))
         self.backdrop.bind(on_release=lambda *_: self.dismiss())
@@ -74,6 +99,11 @@ class SavedLinesSheet(FloatLayout):
             self._background = RoundedRectangle(radius=[dp(16)])
         self.handle = SheetHandle(self)
         self.body.add_widget(self.handle)
+        if title:
+            heading=Label(text=title,bold=True,font_size=sp(16),color=(.92,.95,.98,1),
+                          halign="left",valign="middle",size_hint_y=None,height=dp(44),padding=(dp(14),0))
+            heading.bind(size=lambda widget,size:setattr(widget,"text_size",size))
+            self.body.add_widget(heading)
         self.scroll = ScrollView(do_scroll_x=False, bar_width=dp(3))
         self.scroll.add_widget(panel)
         self.body.add_widget(self.scroll)
@@ -83,22 +113,31 @@ class SavedLinesSheet(FloatLayout):
 
     def _fit_host(self, *_):
         # Leave the fixed top result toolbar accessible above the overlay.
-        footer = self.host.results_footer.height
+        footer = self.host.results_footer.height if self.results_only else 0
         self.pos = (self.host.x, self.host.y)
         self.size = (self.host.width, max(dp(100), self.host.height-footer))
 
     def _layout(self, *_):
         self.backdrop.pos, self.backdrop.size = self.pos, self.size
         self.backdrop.background_color = (0, 0, 0, .4*self.progress)
-        self.body.size = (min(self.width-dp(16), dp(968)), min(self.height*.7, dp(600)))
+        self.body.size = (min(self.width-dp(16), dp(968)), min(self.height*self.height_ratio, dp(600)))
         self.body.pos = (self.center_x-self.body.width/2,
                          self.y-self.body.height*(1-self.progress))
         self._background.pos, self._background.size = self.body.pos, self.body.size
 
     def open(self, *_):
-        if self.host.manager.current != "results":
+        if self.results_only and self.host.manager.current != "results":
             return
+        self.host.finish_editing()
+        for child in list(self.host.children):
+            if isinstance(child,BottomSheet) and child is not self:
+                child.dismiss(animate=False)
         Animation.cancel_all(self, "progress")
+        if not self._host_bound:
+            self.host.bind(pos=self._fit_host,size=self._fit_host)
+            if self.results_only:
+                self.host.results_footer.bind(height=self._fit_host)
+            self._host_bound=True
         self._fit_host()
         self.is_open = True
         if self.parent is None:
@@ -119,6 +158,15 @@ class SavedLinesSheet(FloatLayout):
         self.progress = 0
         if self.parent is not None:
             self.parent.remove_widget(self)
+        if self._host_bound:
+            self.host.unbind(pos=self._fit_host,size=self._fit_host)
+            if self.results_only:
+                self.host.results_footer.unbind(height=self._fit_host)
+            self._host_bound=False
+
+    @property
+    def _is_open(self):
+        return self.is_open
 
     def on_touch_down(self, touch):
         # The dimmed area is modal: no gesture can reach the underlying plot.
@@ -126,3 +174,90 @@ class SavedLinesSheet(FloatLayout):
             super().on_touch_down(touch)
             return True
         return False
+
+
+class SavedLinesSheet(BottomSheet):
+    def __init__(self,host,panel,**kwargs):
+        super().__init__(host,panel,results_only=True,**kwargs)
+
+
+class LoadingSpinner(Widget):
+    angle=NumericProperty(0)
+
+    def __init__(self,**kwargs):
+        super().__init__(size_hint_y=None,height=dp(44),**kwargs)
+        with self.canvas:
+            Color(.22,.32,.40,1)
+            self.track=Line(width=dp(2))
+            Color(1,.74,.36,1)
+            self.arc=Line(width=dp(2.5),cap="round")
+        self.bind(pos=self._paint,size=self._paint,angle=self._paint)
+
+    def _paint(self,*_):
+        self.track.circle=(self.center_x,self.center_y,dp(15))
+        self.arc.circle=(self.center_x,self.center_y,dp(15),self.angle,self.angle+105)
+
+    def start(self):
+        self.stop()
+        animation=Animation(angle=360,duration=.85,t="linear")
+        animation.repeat=True
+        animation.start(self)
+
+    def stop(self):
+        Animation.cancel_all(self,"angle")
+        self.angle=0
+
+
+class OptimizationOverlay(FloatLayout):
+    """Modal progress feedback; cancellation is handled by native Back/Escape."""
+    def __init__(self,host,**kwargs):
+        super().__init__(size_hint=(None,None),**kwargs)
+        self.host=host
+        with self.canvas.before:
+            Color(0,0,0,.42)
+            self.scrim=Rectangle()
+        self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(160),
+                           padding=dp(16),spacing=dp(8))
+        with self.card.canvas.before:
+            Color(.10,.15,.23,1)
+            self.surface=RoundedRectangle(radius=[dp(16)])
+        self.spinner=LoadingSpinner()
+        self.card.add_widget(self.spinner)
+        self.card.add_widget(Label(text="Optimizing SMA…",bold=True,font_size=sp(18),color=(.92,.95,.98,1)))
+        self.caption=Label(font_size=sp(12),color=(.58,.66,.75,1),halign="center",valign="middle")
+        self.caption.bind(size=lambda widget,size:setattr(widget,"text_size",size))
+        self.card.add_widget(self.caption)
+        self.add_widget(self.card)
+        self.bind(pos=self._layout,size=self._layout)
+        self.card.bind(pos=self._paint_card,size=self._paint_card)
+
+    def _layout(self,*_):
+        self.scrim.pos,self.scrim.size=self.pos,self.size
+        self.card.width=min(dp(340),max(dp(100),self.width-dp(40)))
+        self.card.center=self.center
+
+    def _paint_card(self,*_):
+        self.surface.pos,self.surface.size=self.card.pos,self.card.size
+
+    def _fit_host(self,*_):
+        self.pos,self.size=self.host.pos,self.host.size
+
+    def show(self,target):
+        self.caption.text=f"Finding a line for {target} upward crossings/year"
+        self._fit_host()
+        if self.parent is None:
+            self.host.bind(pos=self._fit_host,size=self._fit_host)
+            self.host.add_widget(self)
+            self.opacity=0
+            Animation(opacity=1,duration=.12).start(self)
+            self.spinner.start()
+
+    def dismiss(self):
+        Animation.cancel_all(self)
+        self.spinner.stop()
+        self.host.unbind(pos=self._fit_host,size=self._fit_host)
+        if self.parent is not None:
+            self.parent.remove_widget(self)
+
+    def on_touch_down(self,touch):
+        return self.collide_point(*touch.pos)

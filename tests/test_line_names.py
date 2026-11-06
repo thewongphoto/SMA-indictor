@@ -35,7 +35,7 @@ class LineNameTests(TestCase):
         self.assertEqual((line.id,line.period,line.target_frequency),(self.line.id,9,12))
         self.assertEqual(self.store.color_index(line.counter,line.scenario,line.period),before)
         self.store.rename(line.id,"")
-        self.assertEqual(self.store.get_line(line.id).display_name,"SMA 9")
+        self.assertEqual(self.store.get_line(line.id).display_name,"SMA (9 days)")
 
     def test_invalid_names_do_not_overwrite_current_name(self):
         self.store.rename(self.line.id,"My line")

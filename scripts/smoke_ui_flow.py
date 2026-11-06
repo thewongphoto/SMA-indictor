@@ -83,7 +83,7 @@ class FlowSmoke(MobileYahooSmoke):
         assert saved.custom_name=="Recovery plan" and ui.model.result is result
         assert ui.card_values["period"].text=="Recovery plan"
         assert str(result.target_frequency) in ui.selected_target_badge.text
-        assert f"{result.period} sessions" in ui.named_period_caption.text
+        assert f"SMA ({result.period} days)" in ui.named_period_caption.text
         assert "Recovery plan" in ui.legend_labels and ui.chart.inspection_name=="Recovery plan"
         assert "Recovery plan" in ui.saved_rows[saved.id]["title"].text
         assert "Recovery plan" in ui.landing_saved_rows[saved.id]["title"].text

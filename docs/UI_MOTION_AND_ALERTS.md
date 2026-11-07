@@ -1,7 +1,7 @@
 # UI motion and notification banners
 
-Included in Android **0.10.2**, build tag **apk-v0.10.2**. See the
-[release notes](RELEASE_0_10_2.md) and [screenshots](design/ui-0.10.2/README.md).
+Current Android **0.10.3**, build tag **apk-v0.10.3**. See the
+[release notes](RELEASE_0_10_3.md) and [screenshots](design/ui-0.10.3/README.md).
 
 The chart header keeps the saved SMA name and pencil on one row, with the pencil
 at the far right. Target crossings appear below the name. Generated period
@@ -30,6 +30,14 @@ selected company/target visible. No extra on-screen Back button is added.
 The worker receives a cancellation event; stale callbacks cannot replace
 results or hide a newer overlay. Saved/cached targets still open immediately
 without the loading overlay or a price fetch.
+
+The 0.10.3 spinner uses a frame-clock loop rather than a one-shot animation's
+unsupported repeat flag. A fixed arc rotates on the GPU; mobile scoring yields
+CPU/GIL time periodically so frame updates can continue. Native Back still
+cancels promptly without changing optimizer arithmetic. On a saved SMA, the
+palette icon left of the rename pencil offers 12 colours, retained through
+restart, hiding, unsave/restore and subsequent price refreshes. Automatic colour
+allocations remain separate from explicit overrides.
 
 ## Android pop-up banners
 
@@ -71,8 +79,8 @@ Unit checks cover channel migration, OS opt-outs and presentation-independent
 delivery keys. Banners, sound, sleeping-phone delivery and iOS presentation
 require physical-device testing.
 
-Verified locally: **218 unit tests and 97 UI checks passed**, including 46
+Verified locally: **232 unit tests and 103 distinct UI checks passed**, including 46
 general UI checks, 6 library flow, 14 mobile transport, 12 chart refinements,
-and 19 motion/flow checks. The Android adapter also compiles against Android
+and 25 colour/logo/motion/flow checks. The existing Android adapter compiles against Android
 15 and WorkManager 2.10.1 with the existing p4a service contract. This
 compatibility compile uses host stubs and is not a complete APK/device run.

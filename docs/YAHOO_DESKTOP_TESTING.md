@@ -22,7 +22,7 @@ Python 3.12. The launcher installs requirements-desktop.txt, including yfinance
 
 | Action | Expected data operation |
 | --- | --- |
-| Start a new app process | One small SPY five-day history check; successful startup stays quiet. Failure adds a nonblocking Library warning. |
+| Start a new app process | One small VOO five-day history check; successful startup stays quiet. Failure adds a nonblocking Library warning. |
 | Type Apple, AAPL, DBS or D05.SI | No request until Enter or Submit. |
 | Submit a new query | One Search operation. US/SG stocks and ETFs only. Company logos use packaged assets or initials. |
 | Submit that query again | Cached results, zero calls. The separate Refresh search results button has been removed. |
@@ -67,8 +67,8 @@ not additional network operations.
 7. Save two different SMA periods for the same security. View each from Library;
    each should retain its own exact period and both should share one cache.
 
-In live mode, the guided example uses the selected company's downloaded history,
-or explicitly searches/loads SPY if no company is selected. It shows up to three
+In live mode, the guided example always searches/loads **Vanguard S&P 500 ETF
+(VOO)**, independently of your selected company. It shows up to three
 calendar years and never substitutes fictional prices on a failure.
 Old preview saves remain separate from Yahoo identities. The local-demo screenshots
 and prior preview guide describe that offline mode rather than historical prices.
@@ -135,7 +135,7 @@ and OS/version are supplied; this update does not declare it a false positive.
 
 Use the data request log first. The app distinguishes access blocking, rate
 limiting, secure-connection failure and timeouts where possible. A failed request
-does not prove a global Yahoo outage, and a successful SPY check does not prove
+does not prove a global Yahoo outage, and a successful VOO check does not prove
 that every symbol or search request works.
 Rate limiting pauses new requests for at least 60 seconds (longer when an exposed
 Retry-After header requires it). That cooldown survives restarting the app;

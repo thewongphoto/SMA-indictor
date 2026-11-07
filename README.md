@@ -1,13 +1,16 @@
 # SMA Stock Analyzer
 
-**Android 0.10.2:** right-aligned SMA naming, `SMA (X days)` labels, matching custom
-inputs, animated pages/drawers/accordions, a Back-cancelable optimization overlay
-and notification banners. Read the
+**Android 0.10.3:** a continuous GPU-rotated loading indicator, 12 saved-SMA colour
+choices, VOO startup/guide data, the DBS company logo and offline logos for 30
+major ETF providers. Read the
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_10_2.md). See the
-[new screenshots](docs/design/ui-0.10.2/README.md),
+[release notes](docs/RELEASE_0_10_3.md). See the
+[new screenshots](docs/design/ui-0.10.3/README.md),
 [app flow](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
+
+Included from 0.10.2: animated pages/drawers/accordions, `SMA (X days)` labels,
+matching custom inputs, Back-cancelable optimization and notification banners.
 
 Included from 0.10.1: new saved SMA phone alerts and both signal types default
 to On, preserving stored Off choices. The request log identifies each SMA,
@@ -25,7 +28,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.10.2 is
+keeps desktop fetching interactive. Android 0.10.3 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

@@ -12,6 +12,8 @@ from .market_cache import MarketCache
 from .market_data import PreviewMarketDataProvider
 from .schedule import latest_due
 from .securities import Security, SECURITIES, normalize_query, register_security
+from .reference_market import HEALTH_SYMBOL
+from .branding import etf_issuer, local_logo
 
 SCENARIO = "Yahoo EOD"
 PRICE_BASIS = "dividend-split-adjusted-close-v1"
@@ -148,10 +150,12 @@ def security_from_quote(quote):
     known = next((s for s in SECURITIES if s.ticker == symbol.removesuffix(".SI")), None)
     name = str(quote.get("longname") or quote.get("shortname") or symbol)
     initials = "".join(word[0] for word in name.split()[:2]).upper()
+    issuer=etf_issuer(symbol,name,str(quote.get("fundFamily") or "")) if kind=="ETF" else None
     return Security("YAHOO:" + symbol, symbol, name,
                     str(quote.get("exchDisp") or exchange), initials,
-                    known.logo if known else "", provider="yahoo", symbol=symbol,
-                    currency=currency, timezone=tz, region=region)
+                    local_logo(symbol,name,kind,issuer.key if issuer else "") or (known.logo if known else ""),
+                    provider="yahoo", symbol=symbol,currency=currency, timezone=tz, region=region,
+                    instrument_type=kind,issuer=issuer.key if issuer else "")
 
 
 def completed_bars(bars, security, metadata, now):
@@ -370,7 +374,7 @@ class YahooMarketDataProvider:
                 return self._health_result
             self._health_checked = True
             try:
-                bars, _ = self._request("health", "SPY", lambda c: c.history("SPY", period="5d"))
+                bars, _ = self._request("health", HEALTH_SYMBOL, lambda c: c.history(HEALTH_SYMBOL, period="5d"))
                 if not bars or not any(b.get("close") is not None for b in bars):
                     raise MarketDataError("The availability check returned no usable observations.")
                 if max(date.fromisoformat(b["date"]) for b in bars) < self.now().date()-timedelta(days=10):
@@ -380,5 +384,5 @@ class YahooMarketDataProvider:
                 self._health_result = (False, str(error) if isinstance(error, MarketDataError) else public_error(error))
                 recent = self.cache.operations(1)
                 if isinstance(error, MarketDataError) and (not recent or recent[0][3] != "failed"):
-                    self.cache.operation("health-result", "SPY", "failed", self._health_result[1])
+                    self.cache.operation("health-result", HEALTH_SYMBOL, "failed", self._health_result[1])
             return self._health_result

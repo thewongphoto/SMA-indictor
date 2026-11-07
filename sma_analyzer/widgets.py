@@ -3,7 +3,7 @@ import math
 from kivy.graphics import Color, Line, Mesh, RoundedRectangle, Triangle, Ellipse
 from kivy.core.text import Label as CoreLabel
 from kivy.metrics import dp, sp
-from kivy.properties import BooleanProperty, StringProperty, NumericProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty, ListProperty
 from kivy.uix.button import Button
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
@@ -389,6 +389,12 @@ def draw_icon(kind, x, y, radius, selected=False):
                      x+radius*.5,y+radius*.9,x+radius*.9,y+radius*.5,
                      x-radius*.08,y-radius*.48,x-radius*.65,y-radius*.65],width=dp(1.1))
         Line(points=[x+radius*.33,y+radius*.72,x+radius*.72,y+radius*.33],width=dp(1))
+    elif kind == "palette":
+        Line(ellipse=(x-radius,y-radius*.75,radius*2,radius*1.6),width=dp(1.1))
+        for dx,dy,ink in ((-.5,.25,(1,.74,.36,1)),(0,.5,(1,.49,.62,1)),(.5,.25,(.42,.76,1,1)),
+                          (-.3,-.3,(.60,.84,.42,1))):
+            Color(*ink)
+            Ellipse(pos=(x+dx*radius-radius*.15,y+dy*radius-radius*.15),size=(radius*.3,radius*.3))
     elif kind in ("gain","loss"):
         Color(*((.22,.94,.43,1) if kind=="gain" else (1,.35,.40,1)))
         direction = 1 if kind=="gain" else -1
@@ -397,6 +403,31 @@ def draw_icon(kind, x, y, radius, selected=False):
         Line(points=[x+radius*.05,y+direction*radius*.65,
                      x+radius*.65,y+direction*radius*.65,
                      x+radius*.65,y+direction*radius*.05],width=dp(1.3),cap="round")
+
+
+class ColorOption(Button):
+    swatch=ListProperty([1,1,1,1])
+    selected=BooleanProperty(False)
+
+    def __init__(self,swatch,selected=False,**kwargs):
+        super().__init__(size_hint_y=None,height=dp(70),font_size=sp(11),color=(.92,.95,.98,1),
+                         background_normal="",background_down="",background_color=(0,0,0,0),
+                         valign="bottom",halign="center",padding=(0,dp(4)),**kwargs)
+        self.swatch,self.selected=swatch,selected
+        self.bind(pos=self._paint,size=self._paint,swatch=self._paint,selected=self._paint)
+
+    def _paint(self,*_):
+        self.text_size=self.size
+        x,y,r=self.center_x,self.center_y+dp(8),dp(15)
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(*self.swatch)
+            Ellipse(pos=(x-r,y-r),size=(2*r,2*r))
+            if self.selected:
+                Color(.94,.96,.98,1)
+                Line(circle=(x,y,r+dp(4)),width=dp(1.4))
+                Color(.07,.10,.15,1)
+                Line(points=[x-dp(6),y,x-dp(1),y-dp(4),x+dp(7),y+dp(5)],width=dp(1.5))
 
 
 class IconButton(Button):

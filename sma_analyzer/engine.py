@@ -10,6 +10,7 @@ does not count. No crossing is inferred over a missing observation.
 from collections import deque
 from dataclasses import dataclass
 import math
+import time
 from numbers import Real
 from typing import Iterable, Sequence
 
@@ -173,11 +174,12 @@ def optimize_sma(
         result = _fast_optimization(values, periods, minimum, target_frequency, cancel)
         if result is not None:
             return result
+    budget=_OptimizationBudget(cancel) if cancel is not None else None
     best_key, best_period = None, None
     for period in sorted(set(periods)):
         if cancel is not None and cancel.is_set():
             raise ValueError("Optimization cancelled.")
-        count, comparisons = _rolling_score(values,period)
+        count, comparisons = _rolling_score(values,period,budget)
         if comparisons < minimum:
             continue
         key = (abs(annual_frequency(count,comparisons)-target_frequency),period)
@@ -192,7 +194,21 @@ def optimize_sma(
                               crossover_events(values,average))
 
 
-def _rolling_score(values, period):
+class _OptimizationBudget:
+    """Yield the mobile worker periodically so UI frames can acquire the GIL."""
+    def __init__(self,cancel):
+        self.cancel=cancel
+        self.next_yield=time.perf_counter()+.004
+
+    def checkpoint(self):
+        if self.cancel.is_set():
+            raise ValueError("Optimization cancelled.")
+        if time.perf_counter()>=self.next_yield:
+            time.sleep(0)
+            self.next_yield=time.perf_counter()+.004
+
+
+def _rolling_score(values, period,budget=None):
     """One-pass candidate scoring with the reference rolling arithmetic.
 
     Avoids re-validating and allocating several full arrays/events per candidate
@@ -201,6 +217,8 @@ def _rolling_score(values, period):
     """
     total, run, previous_side, previous_valid, count, comparisons = 0.0, 0, None, False, 0, 0
     for index, price in enumerate(values):
+        if budget is not None and index%512==0:
+            budget.checkpoint()
         if price is None:
             total, run, previous_side, previous_valid = 0.0, 0, None, False
             continue

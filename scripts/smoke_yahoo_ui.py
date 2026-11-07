@@ -76,7 +76,7 @@ class YahooSmoke(App):
         assert ui.saved_rows=={} and ui.landing_saved_rows=={}
         self.checked("live start has no demo selection or imported synthetic library rows")
         yield lambda:not ui._source_check_busy
-        assert self.client.calls == [("history","SPY",{"period":"5d"})]
+        assert self.client.calls == [("history","VOO",{"period":"5d"})]
         assert ui.source_warning.text == ""
         self.checked("one quiet startup check")
         ui.show_search()

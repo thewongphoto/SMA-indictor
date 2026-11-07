@@ -1,6 +1,7 @@
 """Shared page motion, modal bottom sheets and cancelable calculation feedback."""
 from kivy.animation import Animation, AnimationTransition
-from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
+from kivy.clock import Clock
+from kivy.graphics import Color, Line, Rectangle, RoundedRectangle, PushMatrix, PopMatrix, Rotate
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -186,25 +187,39 @@ class LoadingSpinner(Widget):
 
     def __init__(self,**kwargs):
         super().__init__(size_hint_y=None,height=dp(44),**kwargs)
+        self._spin_event=None
+        self._elapsed=0
         with self.canvas:
             Color(.22,.32,.40,1)
             self.track=Line(width=dp(2))
+            PushMatrix()
+            self.rotation=Rotate()
             Color(1,.74,.36,1)
             self.arc=Line(width=dp(2.5),cap="round")
-        self.bind(pos=self._paint,size=self._paint,angle=self._paint)
+            PopMatrix()
+        self.bind(pos=self._paint,size=self._paint,angle=self._rotate)
 
     def _paint(self,*_):
         self.track.circle=(self.center_x,self.center_y,dp(15))
-        self.arc.circle=(self.center_x,self.center_y,dp(15),self.angle,self.angle+105)
+        self.arc.circle=(self.center_x,self.center_y,dp(15),0,105)
+        self.rotation.origin=self.center
+
+    def _rotate(self,*_):
+        self.rotation.angle=self.angle
+
+    def _advance(self,dt):
+        self._elapsed+=max(0,dt)
+        self.angle=(self._elapsed*360/.9)%360
 
     def start(self):
         self.stop()
-        animation=Animation(angle=360,duration=.85,t="linear")
-        animation.repeat=True
-        animation.start(self)
+        self._elapsed=0
+        self._spin_event=Clock.schedule_interval(self._advance,0)
 
     def stop(self):
-        Animation.cancel_all(self,"angle")
+        if self._spin_event is not None:
+            self._spin_event.cancel()
+            self._spin_event=None
         self.angle=0
 
 

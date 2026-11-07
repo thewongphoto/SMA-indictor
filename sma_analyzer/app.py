@@ -49,15 +49,17 @@ from .viewport import available_timelines
 from .widgets import (TimelineSelector, RoundedSelector, LegendItem, LegendSymbol,
                       IconButton, IconSymbol, RuleSwitch, SecurityMatchButton,
                       SecurityIdentity, SecurityIdentityButton, SavedSecurityGroup)
-from .widgets import PreferenceReveal
+from .widgets import PreferenceReveal, ColorOption
 from .notifications import evaluate_eod, evaluate_dataset_eod, deliver_alerts, AndroidNotifier, Alert
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
-from .securities import security_by_key, normalize_query
+from .securities import Security, security_by_key, normalize_query
 from .version import APP_VERSION
 from .presentation import display_text
 from .line_names import sma_label
 from .palette import line_color as saved_color
+from .palette import COLOR_CHOICES, COLOR_NAMES
+from .reference_market import GUIDE_SYMBOL, GUIDE_NAME
 
 BG = (0.075, 0.122, 0.192, 1)
 PANEL = (0.122, 0.188, 0.282, 1)
@@ -353,6 +355,8 @@ class AnalyzerScreen(FloatLayout):
         self.line_name_row.add_widget(self.card_values["period"])
         self.rename_button=IconButton(kind="edit",pos_hint={"center_y":.5})
         self.rename_button.bind(on_release=self.show_rename_line)
+        self.color_button=IconButton(kind="palette",pos_hint={"center_y":.5})
+        self.color_button.bind(on_release=self.show_color_picker)
         self.optimal_value.add_widget(self.line_name_row)
         self.selected_target_badge=WrappedLabel(text="",font_size=sp(12),color=MUTED)
         self.optimal_value.add_widget(self.selected_target_badge)
@@ -591,6 +595,10 @@ class AnalyzerScreen(FloatLayout):
 
     def _build_guide(self):
         self.guide_content.add_widget(WrappedLabel(text=INTRODUCTION,bold=True,font_size=sp(22)))
+        if self.yahoo_enabled:
+            self.guide_identity=SecurityIdentity(Security("YAHOO:"+GUIDE_SYMBOL,GUIDE_SYMBOL,GUIDE_NAME,
+                "NYSE Arca","VA","vanguard",provider="yahoo",symbol=GUIDE_SYMBOL),show_ticker=True)
+            self.guide_content.add_widget(self.guide_identity)
         for text in (RECOVERY_HELP,RISK_HELP):
             self.guide_content.add_widget(WrappedLabel(text=text,color=MUTED))
         self.guide_target = choice("12 / year",("1 / year","6 / year","12 / year"))
@@ -621,13 +629,12 @@ class AnalyzerScreen(FloatLayout):
         self.guide_busy = True
         self.guide_status.text = "Loading the historical example…" if self.yahoo_enabled else "Calculating the educational example…"
         target = int(self.guide_target.text.split()[0])
-        data = self.model.dataset
         def work():
-            lesson_data = data
-            if self.yahoo_enabled and not data.prices:
+            lesson_data=None
+            if self.yahoo_enabled:
                 provider = self.model.data_provider
-                matches = provider.search("SPY")
-                security = next((match for match in matches if match.ticker == "SPY"), None)
+                matches = provider.search(GUIDE_SYMBOL)
+                security = next((match for match in matches if match.ticker == GUIDE_SYMBOL), None)
                 if security is None:
                     raise ValueError("Example security unavailable. Select a company and try again.")
                 lesson_data = provider.historical_data(security)
@@ -648,7 +655,9 @@ class AnalyzerScreen(FloatLayout):
                 price_label="Adj. close" if self.yahoo_enabled else "EOD")
             self.guide_chart.set_timeline("3Y" if "3Y" in available_timelines(
                 len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
-            name = self.model.security(lesson.dataset.counter).name if self.yahoo_enabled else "Educational example"
+            name = f"{GUIDE_NAME} ({GUIDE_SYMBOL})" if self.yahoo_enabled else "Educational example"
+            if self.yahoo_enabled:
+                self.guide_identity.set_security(replace(self.model.security(lesson.dataset.counter),name=GUIDE_NAME))
             self.guide_status.text = (f"{name} · {lesson.dataset.dates[report.start]} – {lesson.dataset.dates[report.end]}\n"
                 f"{sma_label(result.period)} · "
                 f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
@@ -757,7 +766,7 @@ class AnalyzerScreen(FloatLayout):
             return True
         if self._close_selectors():
             return True
-        for name in ("rename_popup","history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
+        for name in ("rename_popup","color_popup","history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
             popup = getattr(self, name, None)
             if popup is not None and (popup._is_open or isinstance(popup,BottomSheet) and popup.parent is not None):
                 popup.dismiss()
@@ -1290,10 +1299,11 @@ class AnalyzerScreen(FloatLayout):
         saved=self.model.current_saved_line()
         self.selected_target_badge.text=f"Target {self.model.result.target_frequency if self.model.result else self.model.target_frequency}/year"
         self.named_period_caption.text=sma_label(self.model.result.period) if saved and saved.custom_name else ""
-        if saved and self.rename_button.parent is None:
-            self.line_name_row.add_widget(self.rename_button)
-        elif not saved and self.rename_button.parent is not None:
-            self.line_name_row.remove_widget(self.rename_button)
+        for button in (self.color_button,self.rename_button):
+            if saved and button.parent is None:
+                self.line_name_row.add_widget(button)
+            elif not saved and button.parent is not None:
+                self.line_name_row.remove_widget(button)
         self.card_values["period"].color = (saved_color(self.model.store.color_index(
             data.counter,data.scenario,self.model.result.period)) if self.model.result else ACTIVE_COLOR)
         self._set_busy(self.busy)
@@ -2037,6 +2047,36 @@ class AnalyzerScreen(FloatLayout):
             self.backtest_years.bind(on_text_validate=self._refresh_backtest, focus=self._editor_focus)
         self.backtest_section_title.text=f"03  /  BACKTESTING · {self.model.current_line_name()}"
         self._refresh_backtest()
+
+    def show_color_picker(self,*_):
+        saved=self.model.current_saved_line()
+        if saved is None:
+            return
+        content=BoxLayout(orientation="vertical",spacing=dp(8),padding=dp(12),size_hint_y=None)
+        content.bind(minimum_height=content.setter("height"))
+        content.add_widget(WrappedLabel(text=f"{saved.display_name} · choose a colour for this SMA.",color=MUTED))
+        grid=GridLayout(cols=4,spacing=dp(8),size_hint_y=None)
+        grid.bind(minimum_height=grid.setter("height"))
+        current=saved_color(self.model.store.color_index(saved.counter,saved.scenario,saved.period))
+        self.color_buttons={}
+        self.color_status=WrappedLabel(text="",color=ERROR,font_size=sp(11))
+        for index,(name,rgba) in enumerate(zip(COLOR_NAMES,COLOR_CHOICES)):
+            button=ColorOption(text=name,swatch=rgba,selected=tuple(rgba)==tuple(current))
+            button.bind(on_release=lambda _,choice=index:self._apply_line_color(saved.id,choice))
+            self.color_buttons[index]=button
+            grid.add_widget(button)
+        content.add_widget(grid)
+        content.add_widget(self.color_status)
+        self.color_popup=BottomSheet(self,content,title="Choose SMA colour",height_ratio=.6)
+        self.color_popup.open()
+
+    def _apply_line_color(self,line_id,choice):
+        try:
+            self.model.store.set_color(line_id,choice)
+            self.refresh()
+            self.color_popup.dismiss()
+        except (ValueError,sqlite3.Error) as error:
+            self.color_status.text=str(error)
 
     def show_rename_line(self,*_):
         saved=self.model.current_saved_line()

@@ -36,6 +36,7 @@ class FakeYahooClient:
             dict(symbol="AAPL", longname="Apple Inc.", exchange="NMS", quoteType="EQUITY"),
             dict(symbol="D05.SI", longname="DBS Group Holdings Ltd", exchange="SES", quoteType="EQUITY"),
             dict(symbol="SPY", longname="SPDR S&P 500 ETF Trust", exchange="PCX", quoteType="ETF"),
+            dict(symbol="VOO", longname="Vanguard S&P 500 ETF", exchange="PCX", quoteType="ETF"),
         ]
         return [item for item in options if query.casefold() in
                 (item["symbol"]+" "+item["longname"]).casefold()]

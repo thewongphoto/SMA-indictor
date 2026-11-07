@@ -1360,7 +1360,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             ui.security_search.dispatch("on_text_validate")
             yield from settle()
             assert [item.ticker for item in ui.search_results] == ["D05"]
-            assert ui.security_match_buttons[0].logo_is_fallback
+            assert not ui.security_match_buttons[0].logo_is_fallback
             search_gate.set()
             for _ in range(10): yield
             assert [item.ticker for item in ui.search_results] == ["D05"]

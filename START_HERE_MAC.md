@@ -74,7 +74,7 @@ overwrites an existing destination. Close older app copies first.
    **Search security** (for example `Apple` or `DBS`),
    then press Enter or **Submit**. Click a logo/ticker/name match to load its
    Yahoo daily history. Typing alone never searches or changes the security.
-   Try `AAPL`, `SPY`, or `D05.SI`; search supports US/SG stocks and ETFs.
+   Try `AAPL`, `VOO`, `SPY`, or `D05.SI`; search supports US/SG stocks and ETFs.
 2. After selection, the same screen changes its heading to **Set your preference**
    and reveals the target/Optimize group with a short downward animation. Choose
    **12** crossings per year, then click **Optimize SMA**.
@@ -148,6 +148,10 @@ and results available in Settings → View data request log on the phone.
 This UI update adds a moving indicator during optimization. Press Escape
 to cancel and stay on the selected company/target. Saved or cached targets still
 open immediately. See [UI motion and banner behavior](docs/UI_MOTION_AND_ALERTS.md).
+The startup check uses VOO. The live guided example always uses **Vanguard S&P
+500 ETF (VOO)** and leaves your selected company/analysis intact. On a saved
+chart, use the palette icon left of the pencil to select one of 12 line colours.
+DBS and recognized ETF providers use [bundled offline logos](docs/OFFLINE_LOGO_CATALOGUE.md).
 
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;

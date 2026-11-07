@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import unicodedata
+from .branding import local_logo
 
 
 @dataclass(frozen=True)
@@ -19,11 +20,16 @@ class Security:
     currency: str = ""
     timezone: str = ""
     region: str = ""
+    instrument_type: str = ""
+    issuer: str = ""
 
     @property
     def logo_path(self):
-        path = Path(__file__).parent / "assets" / "logos" / (self.logo + ".png")
-        return str(path) if self.logo and path.is_file() else ""
+        # Resolve against the current local catalogue, including old cached
+        # records whose logo/type fields were empty when originally saved.
+        logo=local_logo(self.symbol or self.ticker,self.name,self.instrument_type,self.issuer) or self.logo
+        path = Path(__file__).parent / "assets" / "logos" / (logo + ".png")
+        return str(path) if logo and path.is_file() else ""
 
 
 # Real company identities are search examples only. Every history is simulated.
@@ -36,7 +42,7 @@ SECURITIES = (
     Security("NASDAQ:TSLA", "TSLA", "Tesla Inc.", "NASDAQ", "TS", "tesla", preview_scale=1.6),
     Security("NASDAQ:NVDA", "NVDA", "NVIDIA Corporation", "NASDAQ", "NV", "nvidia", preview_scale=.6),
     Security("NASDAQ:NFLX", "NFLX", "Netflix Inc.", "NASDAQ", "NF", "netflix", preview_scale=3.1),
-    Security("SGX:D05", "D05", "DBS Group Holdings Ltd", "SGX", "DB", preview_template="DEMO-SGX", preview_scale=.35),
+    Security("SGX:D05", "D05", "DBS Group Holdings Ltd", "SGX", "DB", "dbs", preview_template="DEMO-SGX", preview_scale=.35),
     Security("SGX:O39", "O39", "Oversea-Chinese Banking Corporation (OCBC)", "SGX", "OC", preview_template="DEMO-SGX", preview_scale=.15),
     Security("SGX:U11", "U11", "United Overseas Bank Limited", "SGX", "UB", preview_template="DEMO-SGX", preview_scale=.3),
     Security("SGX:C6L", "C6L", "Singapore Airlines Limited", "SGX", "SQ", "singaporeairlines", "DEMO-SGX", .06),

@@ -37,6 +37,16 @@
   names and numeric saved identities are unchanged. Page transitions are brief;
   archive/help sheets share the saved drawer. Native Back cancels optimization
   in place; stale completions must never dismiss a newer calculation overlay.
+- Loading spinners use a frame-clock loop and a GPU-rotated fixed arc. A plain
+  Kivy Animation does not honor sequence repeat. Mobile scoring yields CPU/GIL
+  time periodically and checks cancellation without changing arithmetic/results.
+- A saved SMA offers 12 colour presets. Keep automatic allocation separate from
+  custom colour overrides; retain choices through archive/restore and upgrades.
+- Startup availability probes use VOO once per provider lifetime. The live guide
+  always uses Vanguard S&P 500 ETF (VOO), independently of the selected security.
+- Company and ETF issuer logos are bundled PNGs, with no runtime logo API calls.
+  Resolve logos for legacy cached identities too; keep issuer metadata portable
+  and never substitute a guessed brand for an unknown fund. Preserve asset credits.
 - These are target times, not a guarantee that Android or iOS will execute
   background work at an exact instant. iOS suspends background apps and native
   OS scheduling must be implemented and tested separately.
@@ -74,6 +84,7 @@
 - Gesture/live-screen refinements: .venv/bin/python -m scripts.smoke_ui_refinements
 - Merged builder/name flows: .venv/bin/python -m scripts.smoke_ui_flow
 - Motion, drawers and cancel races: .venv/bin/python -m scripts.smoke_ui_motion
+- Sustained spinner, colours and ETF logos: .venv/bin/python -m scripts.smoke_ui_color_logos
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

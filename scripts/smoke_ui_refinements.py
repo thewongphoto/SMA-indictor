@@ -50,7 +50,8 @@ class RefinementSmoke(MobileYahooSmoke):
         ui.show_guide()
         yield lambda:not ui.guide_busy
         assert not ui.guide_lesson.dataset.is_simulated
-        assert ui.guide_lesson.dataset.counter=="YAHOO:SPY"
+        assert ui.guide_lesson.dataset.counter=="YAHOO:VOO"
+        assert "Vanguard S&P 500 ETF (VOO)" in ui.guide_status.text
         assert ui.model.dataset.counter=="UNSELECTED"
         assert ui.guide_chart.viewport.dates==ui.guide_lesson.dataset.dates
         assert ui.guide_chart.prices==tuple(b["adj_close"] for b in self.client.bars)

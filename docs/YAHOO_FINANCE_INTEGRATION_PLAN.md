@@ -1,6 +1,6 @@
 # Yahoo Finance integration plan
 
-**Android 0.10.2 update (6 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
+**Android 0.10.3 update (7 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
 implements search/chart HTTPS requests, persistent caches and request reporting
 without embedding the desktop yfinance native stack. It now adds native daily
 checks at US 06:30 / SGX 18:30 Singapore time for enabled saved SMAs. New phone
@@ -9,6 +9,10 @@ identify each SMA/signal trigger and delivery outcome. This version adds
 animated pages/drawers, cancelable optimization and requested banner alerts. See
 [phone notification testing](ANDROID_DAILY_NOTIFICATIONS.md). Physical-device
 sleep behavior still needs validation; native iOS delivery/packaging remain separate.
+
+Availability now probes VOO, and the live guide always uses Vanguard S&P 500 ETF
+(VOO), superseding the original SPY reference below. The loading loop is
+continuous, saved SMAs offer 12 colours, and [logos are bundled locally](OFFLINE_LOGO_CATALOGUE.md).
 
 **Implementation update, 5 November 2026:** interactive desktop search/history,
 persistent cache, full-history MAX, real dates/currency and startup diagnostics

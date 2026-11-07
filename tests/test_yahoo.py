@@ -214,7 +214,7 @@ class YahooTests(unittest.TestCase):
     def test_health_once_per_launch_and_explicit_retry(self):
         self.assertTrue(self.provider.health_check()[0])
         self.assertTrue(self.provider.health_check()[0])
-        self.assertEqual(self.client.calls, [("history","SPY",{"period":"5d"})])
+        self.assertEqual(self.client.calls, [("history","VOO",{"period":"5d"})])
         self.provider.health_check(force=True)
         self.assertEqual(len(self.client.calls), 2)
 

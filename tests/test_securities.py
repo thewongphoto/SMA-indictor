@@ -35,7 +35,7 @@ class SecuritySearchTests(unittest.TestCase):
             self.assertTrue(item.ticker and item.name and item.exchange and item.initials)
             if item.logo:
                 self.assertTrue(Path(item.logo_path).is_file())
-        self.assertEqual(security_by_key('SGX:D05').logo_path, '')
+        self.assertTrue(security_by_key('SGX:D05').logo_path.endswith('dbs.png'))
         with self.assertRaises(ValueError):
             security_by_key('UNKNOWN')
 

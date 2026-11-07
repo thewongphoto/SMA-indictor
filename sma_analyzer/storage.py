@@ -9,6 +9,7 @@ from .notifications import NotificationSettings, validate_email
 
 from .settings import DATA_VERSION
 from .line_names import normalize_name, sma_label
+from .palette import COLOR_CHOICES
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,9 @@ class LineStore:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
+            # The UI and a native daily worker may open an upgraded database
+            # together. Serialize schema inspection and additive migrations.
+            connection.execute("BEGIN IMMEDIATE")
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS saved_lines (
                     id INTEGER PRIMARY KEY,
@@ -70,6 +74,10 @@ class LineStore:
             connection.execute("""CREATE TABLE IF NOT EXISTS sma_colors (
                 counter TEXT NOT NULL, scenario TEXT NOT NULL, period INTEGER NOT NULL,
                 color_index INTEGER NOT NULL, PRIMARY KEY(counter,scenario,period))""")
+            color_columns={row[1] for row in connection.execute("PRAGMA table_info(sma_colors)")}
+            if "custom_color" not in color_columns:
+                connection.execute("ALTER TABLE sma_colors ADD COLUMN custom_color INTEGER "
+                                   "CHECK(custom_color IS NULL OR custom_color BETWEEN 0 AND 11)")
             connection.execute("""CREATE TABLE IF NOT EXISTS analysis_choices (
                 counter TEXT NOT NULL, scenario TEXT NOT NULL, target INTEGER NOT NULL,
                 fingerprint TEXT NOT NULL, period INTEGER NOT NULL,
@@ -186,17 +194,30 @@ class LineStore:
             return row[0]
         index = connection.execute("SELECT COALESCE(MAX(color_index),-1)+1 FROM sma_colors "
                                    "WHERE counter=? AND scenario=?", (counter,scenario)).fetchone()[0]
-        connection.execute("INSERT INTO sma_colors VALUES (?,?,?,?)",(counter,scenario,period,index))
+        connection.execute("INSERT INTO sma_colors(counter,scenario,period,color_index) VALUES (?,?,?,?)",
+                           (counter,scenario,period,index))
         return index
 
     def color_index(self,counter,scenario,period):
         with self._connect() as connection:
-            row = connection.execute("SELECT color_index FROM sma_colors WHERE counter=? AND scenario=? AND period=?",
+            row = connection.execute("SELECT color_index,custom_color FROM sma_colors WHERE counter=? AND scenario=? AND period=?",
                                      (counter,scenario,period)).fetchone()
             if row:
-                return row[0]
+                return -row[1]-1 if row[1] is not None else row[0]
             return connection.execute("SELECT COALESCE(MAX(color_index),-1)+1 FROM sma_colors "
                                       "WHERE counter=? AND scenario=?", (counter,scenario)).fetchone()[0]
+
+    def set_color(self,line_id,choice):
+        if isinstance(choice,bool) or not isinstance(choice,int) or not 0<=choice<len(COLOR_CHOICES):
+            raise ValueError("Choose one of the 12 SMA colours.")
+        with self._connect() as connection:
+            row=connection.execute("SELECT counter,scenario,period FROM saved_lines WHERE id=? AND data_version=?",
+                                   (line_id,DATA_VERSION)).fetchone()
+            if row is None:
+                raise ValueError("This SMA is no longer saved.")
+            self._allocate_color(connection,*row)
+            connection.execute("UPDATE sma_colors SET custom_color=? WHERE counter=? AND scenario=? AND period=?",
+                               (choice,*row))
 
     def cache_choice(self,counter,scenario,target,fingerprint,period):
         with self._connect() as connection:

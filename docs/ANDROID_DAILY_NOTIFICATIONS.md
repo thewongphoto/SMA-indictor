@@ -1,4 +1,4 @@
-# Daily checks on Android 0.10.2
+# Daily checks on Android 0.10.3
 
 New saved SMAs default to **Push notifications On**. Both **Buy signal** and
 **Impending buy signal** default to On for users without stored type preferences.
@@ -46,7 +46,7 @@ that the date was an exchange holiday.
 
 ## Test on the phone
 
-1. Install the **apk-v0.10.2** APK over the existing app, open it and
+1. Install the **apk-v0.10.3** APK over the existing app, open it and
    allow notifications. Keep saved SMAs and price caches in place.
 2. Confirm one saved SMA and a signal type are On. In Settings, use **Test Android phone
    notification** to verify OS permission/channel delivery. This test does not

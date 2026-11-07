@@ -7,8 +7,16 @@ LINE_COLORS = (
     (1,.62,.40,1), (.38,.84,.92,1),
 )
 
+COLOR_NAMES=("Amber","Periwinkle","Rose","Sky","Violet","Lime","Coral","Cyan",
+             "Yellow","Mint","Magenta","Ivory")
+COLOR_CHOICES=LINE_COLORS+((1,.90,.25,1),(.24,.84,.58,1),(.95,.38,.88,1),(.94,.94,.91,1))
+
 
 def line_color(index):
+    # Negative display indices represent an explicit choice. Automatic positive
+    # allocations keep their historical colors, including the HSV fallback.
+    if -len(COLOR_CHOICES)<=index<0:
+        return COLOR_CHOICES[-index-1]
     if index < len(LINE_COLORS):
         return LINE_COLORS[index]
     return (*colorsys.hsv_to_rgb((index*.61803398875+.13)%1,.52,.98),1)

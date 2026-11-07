@@ -1,4 +1,4 @@
-# Android 0.10.2: data, UI and scheduled notification test
+# Android 0.10.3: data, UI and scheduled notification test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
@@ -9,20 +9,22 @@ The log identifies each SMA/signal trigger and delivery outcome. See
 This version adds animated pages/drawers, an optimization overlay cancelled by
 native Back, updated SMA period labels and banner alerts. See
 [UI and banner testing](UI_MOTION_AND_ALERTS.md).
-The optional guided example uses the selected company's downloaded history, or
-loads SPY when no security has been selected. Visible app labels are provider-neutral.
+The guided example always loads **Vanguard S&P 500 ETF (VOO)** and keeps the
+selected company/analysis intact. This version fixes continuous loading motion,
+adds 12 saved-SMA colours and bundles DBS/ETF-provider logos locally. Visible
+app labels remain provider-neutral.
 
 ## Get the APK from GitHub
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.10.2** / version **0.10.2**. A queued/running
+2. Open the run for tag **apk-v0.10.3** / version **0.10.3**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.10.2**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.10.3**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.
@@ -46,8 +48,8 @@ For a later source fix, request a new run on main or use the next release tag.
 6. Save an SMA, then save another for the same company. Viewing them should
    retain their exact saved periods and share one downloaded history.
 
-The opening SPY five-day check is quiet on success. Failure produces a Library
-warning. A successful SPY check does not guarantee that every search/symbol works.
+The opening VOO five-day check is quiet on success. Failure produces a Library
+warning. A successful VOO check does not guarantee that every search/symbol works.
 A failed download never generates substitute demo prices.
 
 ## Open and monitor the request log

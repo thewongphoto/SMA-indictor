@@ -66,6 +66,12 @@
   launches. Linux fixture checks do not establish Apple signing/device behavior.
   A cold iOS background launch must stay in the pure native/Python entry path
   until foregrounded. Never import the Kivy app/window or use OpenGL there.
+  Run the verified native-source preflight before kivy-ios. Its legacy OpenSSL
+  HTTP endpoint failed with 504; use the immutable official source commit and
+  pinned checksums in ios/native-sources.json. Never disable TLS/checksums.
+- Sustained-spinner checks use elapsed-time rotation and update gaps, not a
+  minimum FPS/frame count. Exercise a slow CI frame clock too; preserve checks
+  for one-revolution stops, pauses and incorrect speed while real scoring runs.
 - Mobile uses the portable Yahoo JSON transport for the yfinance search/chart
   subset; it does not import pandas/curl_cffi or launch desktop helpers.
   p4a installs generic modules with --no-deps, so buildozer.spec must list the

@@ -26,11 +26,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build-ios/toolchain
-          key: ios-native-v1-${{ runner.arch }}-${{ hashFiles('artifacts/ios-xcode-version.txt', 'requirements-ios-build.txt', 'requirements-ios.txt', 'ios/recipes/**/*.py') }}
+          key: ios-native-v2-${{ runner.arch }}-${{ hashFiles('artifacts/ios-xcode-version.txt', 'requirements-ios-build.txt', 'requirements-ios.txt', 'ios/recipes/**/*.py', 'ios/native-sources.json') }}
+      - name: Restore verified native source archives
+        id: native-sources
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .build-ios/toolchain/.cache/hostopenssl-openssl-1.1.1w.tar.gz
+            .build-ios/toolchain/.cache/openssl-openssl-1.1.1w.tar.gz
+          key: ios-sources-v1-${{ hashFiles('ios/native-sources.json') }}
       - name: Validate calculations, cache, notifications and packaging
         run: |
           set -o pipefail
           python -m unittest discover -s tests -v 2>&1 | tee artifacts/ios-unit-tests.log
+      - name: Fetch and verify the pinned OpenSSL source archives
+        run: |
+          set -o pipefail
+          python -m scripts.prepare_ios_sources .build-ios/toolchain/.cache 2>&1 | tee artifacts/ios-native-sources.log
+      - name: Save verified sources before compiling native libraries
+        if: steps.native-sources.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .build-ios/toolchain/.cache/hostopenssl-openssl-1.1.1w.tar.gz
+            .build-ios/toolchain/.cache/openssl-openssl-1.1.1w.tar.gz
+          key: ios-sources-v1-${{ hashFiles('ios/native-sources.json') }}
       - name: Compile Python, Kivy and the iPhone project
         run: |
           set -o pipefail

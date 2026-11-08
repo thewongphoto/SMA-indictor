@@ -1,10 +1,11 @@
 # SMA Stock Analyzer
 
-**0.11.0:** centred colour swatches and labels, plus the first private iPhone
-build with a free Xcode Personal Team installation route. Read the
+**0.11.1:** fixes the Android build's frame-count false failure and the iPhone
+build's OpenSSL download failure. It retains the centred palette and free
+Xcode Personal Team installation route. Read the
 [iPhone download/install guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_11_0.md). See the
+[release notes](docs/RELEASE_0_11_1.md). See the
 [centred palette screenshots](docs/design/ui-0.11.0/README.md),
 [app flow](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
@@ -31,7 +32,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.11.0 is
+keeps desktop fetching interactive. Android 0.11.1 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

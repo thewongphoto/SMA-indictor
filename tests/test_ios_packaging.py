@@ -97,3 +97,19 @@ class IOSPackagingTests(TestCase):
         self.assertNotIn("if",steps[publish])  # Normal success gate; never publish failed native checks.
         self.assertTrue(any("CODE_SIGNING_ALLOWED=NO" in step.get("run","") for step in steps))
         self.assertNotIn("secrets.",(ROOT/".github/workflows/ios-private.yml").read_text())
+
+    @skipUnless(importlib.util.find_spec("yaml"),"Install requirements-validation.txt for workflow checks")
+    def test_source_cache_is_verified_before_saving_and_before_compilation(self):
+        import yaml
+        workflow=yaml.load((ROOT/".github/workflows/ios-private.yml").read_text(),Loader=yaml.BaseLoader)
+        steps=workflow["jobs"]["iphone"]["steps"]
+        verify=next(i for i,step in enumerate(steps) if "scripts.prepare_ios_sources" in step.get("run",""))
+        save=next(i for i,step in enumerate(steps) if step.get("uses")=="actions/cache/save@v4")
+        compile=next(i for i,step in enumerate(steps) if step.get("name")=="Compile Python, Kivy and the iPhone project")
+        self.assertLess(verify,save)
+        self.assertLess(save,compile)
+        manifest=json.loads((ROOT/"ios/native-sources.json").read_text())["openssl"]
+        for step in steps:
+            if step.get("uses") in ("actions/cache/restore@v4","actions/cache/save@v4"):
+                paths=step["with"]["path"].split()
+                self.assertEqual({Path(path).name for path in paths},set(manifest["cache_files"]))

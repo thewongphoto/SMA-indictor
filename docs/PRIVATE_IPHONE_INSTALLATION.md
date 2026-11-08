@@ -20,6 +20,9 @@ provisioning profiles.
 The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
 compiles the native app on GitHub's Mac runner. After a **successful** run:
 
+Use **ios-v0.11.1** or later. Version 0.11.1 fixes the initial OpenSSL source
+download failure; rerunning the old 0.11.0 tag still uses its original code.
+
 1. Open that run while signed in to GitHub. Under **Artifacts**, download
    **sma-iphone-xcode-kit** to your Mac and unzip it. This contains an unsigned
    device app and a small signing project; no local Python compilation is needed.
@@ -90,6 +93,10 @@ bash run-ios.command
 The launcher creates `.venv-ios`, installs the pinned official `kivy-ios`
 toolchain, compiles Python/Kivy/OpenSSL and generates the Xcode project. The
 first build can take an hour or more; later builds reuse compiled libraries.
+Before compilation, the launcher fetches and verifies the pinned OpenSSL
+sources over HTTPS. A separate verified source cache also survives later build
+failures in GitHub reruns. [Source provenance](IOS_NATIVE_SOURCES.md) records
+the version, immutable commit, checksums and compatible legacy cache format.
 Leave Terminal open. Xcode opens automatically on success. Follow steps 4–8
 above to sign and install. The generated project path is recorded in
 `.build-ios/current-project.txt`.

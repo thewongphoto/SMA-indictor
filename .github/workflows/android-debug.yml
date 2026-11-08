@@ -27,7 +27,7 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip build-essential autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev xvfb libegl1 libgl1-mesa-dri
+          sudo apt-get install -y git zip unzip build-essential autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev xvfb libegl1 libgl1-mesa-dri libmtdev1 xclip
           python -m pip install --upgrade pip
           python -m pip install -r requirements-android.txt -r requirements.txt -r requirements-validation.txt
       - name: Run calculation, Yahoo transport, cache and signing regression tests
@@ -40,7 +40,7 @@ jobs:
           KIVY_HOME: ${{ github.workspace }}/.local/kivy
           XDG_CACHE_HOME: ${{ github.workspace }}/.local/cache
           KIVY_NO_ARGS: '1'
-          KIVY_CLIPBOARD: dummy
+          KIVY_CLIPBOARD: xclip
           SDL_VIDEODRIVER: x11
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
@@ -52,7 +52,8 @@ jobs:
           xvfb-run -a python -m scripts.smoke_ui_refinements 2>&1 | tee artifacts/ui-refinements.log
           xvfb-run -a python -m scripts.smoke_ui_flow 2>&1 | tee artifacts/ui-flow.log
           xvfb-run -a python -m scripts.smoke_ui_motion 2>&1 | tee artifacts/ui-motion.log
-          xvfb-run -a python -m scripts.smoke_ui_color_logos 2>&1 | tee artifacts/ui-color-logos.log
+          # Exercise a deliberately slow frame clock: continuity must not rely on a fixed FPS.
+          KCFG_GRAPHICS_MAXFPS=12 xvfb-run -a python -m scripts.smoke_ui_color_logos 2>&1 | tee artifacts/ui-color-logos.log
       - name: Reuse debug signing identity
         uses: actions/cache@v4
         with:

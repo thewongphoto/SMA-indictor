@@ -12,6 +12,7 @@ from sma_analyzer.engine import optimize_sma
 from sma_analyzer.palette import COLOR_CHOICES,line_color
 from scripts.smoke_ui_motion import MotionSmoke,temporary
 from scripts.yahoo_test_data import bars_ending
+from scripts.spinner_metrics import observe_spinner
 
 
 class ColorLogoSmoke(MotionSmoke):
@@ -144,12 +145,11 @@ class ColorLogoSmoke(MotionSmoke):
             while time.perf_counter()-started<3.3:
                 assert ui.busy,"The mobile-sized workload should still be running during the motion sample"
                 yield lambda:True
-            intervals=[b[0]-a[0] for a,b in zip(samples,samples[1:])]
-            degrees=sum((b[1]-a[1])%360 for a,b in zip(samples,samples[1:]))
-            self.performance={"sample_seconds":time.perf_counter()-started,"frames":len(samples),
-                              "rotation_degrees":degrees,"largest_frame_interval":max(intervals)}
-            assert degrees>1080 and len(samples)>60,self.performance
-            assert max(intervals)<.3,self.performance
+            # Hosted software rendering may be slower than a developer laptop.
+            # Verify sustained motion, no pauses and clock-correct rotation;
+            # a fixed frame count incorrectly rejected a healthy 55-frame run.
+            self.performance,problems=observe_spinner(samples,started,time.perf_counter())
+            assert not problems,{"problems":problems,**self.performance}
             assert spinner._spin_event is not None
             self.capture("continuous-spinner")
             assert ui.handle_back()

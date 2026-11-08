@@ -13,6 +13,7 @@ import subprocess
 import sys
 
 from sma_analyzer.version import APP_VERSION
+from .prepare_ios_sources import ensure_native_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_NAME = "smaanalyzer"
@@ -149,6 +150,7 @@ def main():
     compile_dir = work / "toolchain"
     compile_dir.mkdir(parents=True, exist_ok=True)
     if not args.reuse_toolchain:
+        ensure_native_sources(compile_dir/".cache")
         run([toolchain, "build", "python3", "kivy", "--add-custom-recipe", ROOT/"ios/recipes/pyobjus"], compile_dir)
         run([toolchain, "pip", "install", "--upgrade", "--platform", "any", "--only-binary=:all:",
              "--implementation", "py", "--python-version", "3.11", "--abi", "none",

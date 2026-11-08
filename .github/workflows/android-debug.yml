@@ -54,6 +54,22 @@ jobs:
           xvfb-run -a python -m scripts.smoke_ui_motion 2>&1 | tee artifacts/ui-motion.log
           # Exercise a deliberately slow frame clock: continuity must not rely on a fixed FPS.
           KCFG_GRAPHICS_MAXFPS=12 xvfb-run -a python -m scripts.smoke_ui_color_logos 2>&1 | tee artifacts/ui-color-logos.log
+      - name: Restore verified source archives
+        id: native-sources
+        uses: actions/cache/restore@v4
+        with:
+          path: .local/native-archives
+          key: android-sources-v1-${{ hashFiles('scripts/native-archives.json') }}
+      - name: Fetch and verify native source archives before building
+        run: |
+          set -o pipefail
+          python -m scripts.prepare_android_sources 2>&1 | tee artifacts/android-native-sources.log
+      - name: Save verified sources before native compilation
+        if: steps.native-sources.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .local/native-archives
+          key: android-sources-v1-${{ hashFiles('scripts/native-archives.json') }}
       - name: Reuse debug signing identity
         uses: actions/cache@v4
         with:
@@ -91,6 +107,7 @@ jobs:
             bin/*.apk
             artifacts/android-signing-info.txt
             artifacts/android-build.log
+            artifacts/android-native-sources.log
             artifacts/unit-tests.log
             artifacts/ui-smoke.log
             artifacts/ui-smoke.json

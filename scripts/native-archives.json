@@ -1,0 +1,105 @@
+{
+  "android_toolchain": "v2026.05.09",
+  "ios_toolchain": "fd363d49eddb5ac06766348738bd89c7d46007f8",
+  "sources": [
+    {
+      "id": "kivy",
+      "repo": "kivy/kivy",
+      "ref": "2.3.1",
+      "commit": "20d74dcd30f143abbd1aa94c76bafc5bd934d5bd",
+      "url": "https://codeload.github.com/kivy/kivy/zip/refs/tags/2.3.1",
+      "filename": "kivy-2.3.1.zip",
+      "sha256": "70f8dcd542bb4c79bc8bf984a7e62cee7d7e40d83a65fd023447abc3021b0b61",
+      "bytes": 24393859,
+      "version": "2.3.1",
+      "source_url": "https://github.com/kivy/kivy/archive/2.3.1.zip",
+      "android_cache": [
+        "kivy/2.3.1.zip"
+      ],
+      "ios_cache": [
+        "kivy-2.3.1.zip"
+      ]
+    },
+    {
+      "id": "pyjnius",
+      "repo": "kivy/pyjnius",
+      "ref": "1.7.0",
+      "commit": "53390891ac90ab764ffd6e04170567f181456265",
+      "url": "https://codeload.github.com/kivy/pyjnius/zip/refs/tags/1.7.0",
+      "filename": "pyjnius-1.7.0.zip",
+      "sha256": "0a0655257ae0b11abb949665c0ed88eb6b5b0b25d9a78271c32f8f81ffb5d977",
+      "bytes": 131808,
+      "version": "1.7.0",
+      "source_url": "https://github.com/kivy/pyjnius/archive/1.7.0.zip",
+      "android_cache": [
+        "pyjnius/1.7.0.zip"
+      ],
+      "ios_cache": []
+    },
+    {
+      "id": "cpython_android",
+      "repo": "python/cpython",
+      "ref": "v3.14.2",
+      "commit": "df793163d5821791d4e7caf88885a2c11a107986",
+      "url": "https://codeload.github.com/python/cpython/tar.gz/refs/tags/v3.14.2",
+      "filename": "cpython_android-v3.14.2.tar.gz",
+      "sha256": "452d758a660bf1faa31b0b5e39999721b6034421b1cb0a3a26223a344c4fa949",
+      "bytes": 31176007,
+      "version": "3.14.2",
+      "source_url": "https://github.com/python/cpython/archive/refs/tags/v3.14.2.tar.gz",
+      "android_cache": [
+        "hostpython3/v3.14.2.tar.gz",
+        "python3/v3.14.2.tar.gz"
+      ],
+      "ios_cache": []
+    },
+    {
+      "id": "libffi_android",
+      "repo": "libffi/libffi",
+      "ref": "v3.4.2",
+      "commit": "f9ea41683444ebe11cfa45b05223899764df28fb",
+      "url": "https://codeload.github.com/libffi/libffi/tar.gz/refs/tags/v3.4.2",
+      "filename": "libffi_android-v3.4.2.tar.gz",
+      "sha256": "0acbca9fd9c0eeed7e5d9460ae2ea945d3f1f3d48e13a4c54da12c7e0d23c313",
+      "bytes": 541362,
+      "version": "3.4.2",
+      "source_url": "https://github.com/libffi/libffi/archive/v3.4.2.tar.gz",
+      "android_cache": [
+        "libffi/v3.4.2.tar.gz"
+      ],
+      "ios_cache": []
+    },
+    {
+      "id": "sqlite_android",
+      "repo": "sqlite/sqlite",
+      "ref": "version-3.50.4",
+      "commit": "8ed5e7365e6f12f427910188bbf6b254daad2ef6",
+      "url": "https://codeload.github.com/sqlite/sqlite/tar.gz/refs/tags/version-3.50.4",
+      "filename": "sqlite_android-version-3.50.4.tar.gz",
+      "sha256": "74ed9d2e5930d79564d92b838a61f943a9df01403b51f479fb64ce9aa5dca70d",
+      "bytes": 12993233,
+      "version": "3.50.4",
+      "source_url": "https://github.com/sqlite/sqlite/archive/refs/tags/version-3.50.4.tar.gz",
+      "android_cache": [
+        "sqlite3/version-3.50.4.tar.gz"
+      ],
+      "ios_cache": []
+    },
+    {
+      "id": "pyobjus",
+      "repo": "kivy/pyobjus",
+      "ref": "0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81",
+      "commit": "0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81",
+      "url": "https://codeload.github.com/kivy/pyobjus/zip/0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81",
+      "filename": "pyobjus-0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81.zip",
+      "sha256": "54e575e9a85651b4730b2804dd9724957657cb416cbb7cec1a7102510605d437",
+      "bytes": 240785,
+      "version": "0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81",
+      "source_url": "https://github.com/kivy/pyobjus/archive/0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81.zip",
+      "android_cache": [],
+      "ios_cache": [
+        "pyobjus-0c204ada4a5aa4f065ac65fc678c6cb35e4dcb81.zip"
+      ]
+    }
+  ]
+}

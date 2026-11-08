@@ -1,4 +1,4 @@
-# Android 0.11.1: data, UI and scheduled notification test
+# Android 0.11.2: data, UI and scheduled notification test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
@@ -19,17 +19,21 @@ the selected ring inside the drawer on narrow phones. The separate
 [iPhone build/install guide](PRIVATE_IPHONE_INSTALLATION.md) covers the new
 free Personal Team route; it does not change Android installation or signing.
 
+Version 0.11.2 fixes build-time HTTP 504 source-download failures using verified
+archives from GitHub's direct archive server. No changes to your app settings
+or signing secrets are needed. See the [release notes](RELEASE_0_11_2.md).
+
 ## Get the APK from GitHub
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.11.1** / version **0.11.1**. A queued/running
+2. Open the run for tag **apk-v0.11.2** / version **0.11.2**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.11.1**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.11.2**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.

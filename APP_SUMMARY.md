@@ -1,10 +1,11 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
-**Current release: 0.11.1.** The app uses real dividend/split-adjusted daily
+**Current release: 0.11.2.** The app uses real dividend/split-adjusted daily
 history, persistent caches, saved names/colours and native Android daily checks.
-This release centres the colour picker and adds the first private iPhone build
-with UIKit/notification/background adapters. See the
-[release notes](docs/RELEASE_0_11_1.md),
+This release fixes Android/iPhone source-download failures while retaining the
+centred colour picker and private iPhone build with UIKit/notification/background
+adapters. See the
+[release notes](docs/RELEASE_0_11_2.md),
 [Android guide](docs/YAHOO_ANDROID_TESTING.md) and
 [free iPhone installation guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 Apple signing and physical-device iPhone behavior still require validation.

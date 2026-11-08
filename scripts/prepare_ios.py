@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 from sma_analyzer.version import APP_VERSION
-from .prepare_ios_sources import ensure_native_sources
+from .prepare_ios_sources import prepare_ios_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_NAME = "smaanalyzer"
@@ -144,15 +144,17 @@ def main():
         raise SystemExit("An iPhone binary requires macOS and full Xcode; staging alone is not a build.")
     if any(character.isspace() for character in str(work)):
         raise SystemExit("The native toolchain needs a folder without spaces. Copy the source to ~/SMA-indictor and run again.")
-    toolchain = shutil.which("toolchain")
-    if not toolchain:
+    if not shutil.which("toolchain"):
         raise SystemExit("Use bash run-ios.command or install requirements-ios-build.txt in a Mac virtual environment.")
+    # All subcommands need the transport: recipe discovery in pip/create also
+    # executes Kivy's temporary source/version probe.
+    toolchain=[sys.executable,ROOT/"scripts/ios_toolchain.py"]
     compile_dir = work / "toolchain"
     compile_dir.mkdir(parents=True, exist_ok=True)
     if not args.reuse_toolchain:
-        ensure_native_sources(compile_dir/".cache")
-        run([toolchain, "build", "python3", "kivy", "--add-custom-recipe", ROOT/"ios/recipes/pyobjus"], compile_dir)
-        run([toolchain, "pip", "install", "--upgrade", "--platform", "any", "--only-binary=:all:",
+        prepare_ios_sources(compile_dir/".cache")
+        run([*toolchain, "build", "python3", "kivy", "--add-custom-recipe", ROOT/"ios/recipes/pyobjus"], compile_dir)
+        run([*toolchain, "pip", "install", "--upgrade", "--platform", "any", "--only-binary=:all:",
              "--implementation", "py", "--python-version", "3.11", "--abi", "none",
              "-r", ROOT / "requirements-ios.txt"], compile_dir)
     elif not (compile_dir / "dist/root/python3/lib/python311.zip").is_file():
@@ -161,7 +163,7 @@ def main():
     # Recreate generated project files; cached compiled libraries are preserved.
     if project_dir.exists():
         shutil.rmtree(project_dir)
-    run([toolchain, "create", "SMAAnalyzer", stage, "--add-framework", "UserNotifications",
+    run([*toolchain, "create", "SMAAnalyzer", stage, "--add-framework", "UserNotifications",
          "--add-framework", "BackgroundTasks"], compile_dir)
     project = configure_project(project_dir, args.bundle_id)
     (work / "current-project.txt").write_text(str(project))

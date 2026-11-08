@@ -5,6 +5,7 @@ import plistlib
 import shutil
 from tempfile import TemporaryDirectory
 from unittest import TestCase, skipUnless
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 from scripts.make_iphone_kit import make_kit
@@ -109,7 +110,21 @@ class IOSPackagingTests(TestCase):
         self.assertLess(verify,save)
         self.assertLess(save,compile)
         manifest=json.loads((ROOT/"ios/native-sources.json").read_text())["openssl"]
+        sources=json.loads((ROOT/"scripts/native-archives.json").read_text())["sources"]
+        expected=set(manifest["cache_files"])|{name for source in sources for name in source["ios_cache"]}
         for step in steps:
             if step.get("uses") in ("actions/cache/restore@v4","actions/cache/save@v4"):
                 paths=step["with"]["path"].split()
-                self.assertEqual({Path(path).name for path in paths},set(manifest["cache_files"]))
+                self.assertEqual({Path(path).name for path in paths},expected)
+
+    def test_every_ios_cli_command_uses_the_archive_transport_wrapper(self):
+        from scripts import prepare_ios
+        with patch.object(prepare_ios,"ROOT",self.directory),patch.object(prepare_ios,"stage_app"),\
+             patch.object(prepare_ios,"prepare_ios_sources"),patch.object(prepare_ios.shutil,"which",return_value="toolchain"),\
+             patch.object(prepare_ios.sys,"platform","darwin"),patch.object(prepare_ios.sys,"argv",["prepare_ios"]),\
+             patch.object(prepare_ios,"configure_project",return_value=self.directory/"app.xcodeproj"),\
+             patch.object(prepare_ios,"run") as run:
+            prepare_ios.main()
+        commands=[call.args[0] for call in run.call_args_list]
+        self.assertEqual([command[2] for command in commands],["build","pip","create"])
+        self.assertTrue(all(command[1]==self.directory/"scripts/ios_toolchain.py" for command in commands))

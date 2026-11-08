@@ -69,6 +69,14 @@
   Run the verified native-source preflight before kivy-ios. Its legacy OpenSSL
   HTTP endpoint failed with 504; use the immutable official source commit and
   pinned checksums in ios/native-sources.json. Never disable TLS/checksums.
+- Both mobile workflows prefetch verified GitHub source archives from the
+  official codeload host; the archive frontend returned HTTP 504 for PyJNIus and
+  Kivy. Keep versions/commits/checksums in scripts/native-archives.json aligned
+  with the pinned toolchains. Android needs the original recipe filenames and
+  a completion marker created only after verification. All iOS CLI subcommands
+  use scripts/ios_toolchain.py so even Kivy's temporary SDL version probe reads
+  the verified cache. Do not replace release assets with Git snapshots: their
+  generated contents can differ. Save verified sources before native compilation.
 - Sustained-spinner checks use elapsed-time rotation and update gaps, not a
   minimum FPS/frame count. Exercise a slow CI frame clock too; preserve checks
   for one-revolution stops, pauses and incorrect speed while real scoring runs.

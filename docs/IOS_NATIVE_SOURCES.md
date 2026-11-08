@@ -1,5 +1,10 @@
 # Verified OpenSSL sources for the private iPhone build
 
+Version 0.11.2 also verifies/caches Kivy and Pyobjus and routes the toolchain's
+temporary Kivy version probe through that cache. See
+[the shared mobile source policy](MOBILE_NATIVE_SOURCES.md) for those pins and
+the Android archive-download correction. The OpenSSL provenance below is retained.
+
 The first iPhone workflow stopped while downloading
 `http://www.openssl.org/source/openssl-1.1.1w.tar.gz`. Its redirect chain returned
 HTTP 504 on all five attempts. No native compilation or signing had started.

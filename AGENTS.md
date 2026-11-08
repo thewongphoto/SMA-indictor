@@ -28,11 +28,14 @@
   SGX: Mon–Fri 18:30, Asia/Singapore. Native WorkManager starts a short headless
   Python service; do not replace it with a paused Kivy timer. Use per-slot unique
   native work and the durable region/due journal; never replay old session alerts.
-  Native iOS delivery still requires its BGTaskScheduler/notification adapter.
+  iOS 0.11.0 adds a BGTaskScheduler/UNUserNotificationCenter adapter. Register
+  native background handlers before application launch finishes. Use the shared
+  daily job, real session dates and durable run journal; expiry stops further
+  fetches/delivery. Never promise exact background execution on iPhone.
 - Research notifications request a banner and sound, then stay in the system
   notification drawer/Notification Center. Preserve explicit OS quiet/disabled
-  channel choices. The future iOS adapter must honor the shared alert
-  presentation contract and use foreground banner/list/sound presentation too.
+  channel choices. The iOS adapter honors the same alert presentation contract
+  with foreground banner/list/sound and the user's system/Focus preferences.
 - SMA period labels use `SMA (X days)`; days mean trading observations. Custom
   names and numeric saved identities are unchanged. Page transitions are brief;
   archive/help sheets share the saved drawer. Native Back cancels optimization
@@ -53,6 +56,16 @@
 - Keep base/mobile dependencies in requirements.txt and desktop Yahoo
   dependencies in requirements-desktop.txt until mobile packaging is validated.
   A desktop update does not authorize an APK tag/build.
+- iPhone builds use the pinned official kivy-ios toolchain, mobile JSON client,
+  pure Python HTTPS dependency wheels and bundled tzdata. Stage an allowlist:
+  never include local data, secrets, desktop environments or signing files.
+  The private download is an unsigned arm64 Xcode kit; the user signs locally
+  with their Personal Team. Never claim a kit/IPA installs directly from Safari.
+  Keep its bundle identifier and signing team stable to preserve installed data.
+  The kit upload is gated on native device/simulator builds and fresh simulator
+  launches. Linux fixture checks do not establish Apple signing/device behavior.
+  A cold iOS background launch must stay in the pure native/Python entry path
+  until foregrounded. Never import the Kivy app/window or use OpenGL there.
 - Mobile uses the portable Yahoo JSON transport for the yfinance search/chart
   subset; it does not import pandas/curl_cffi or launch desktop helpers.
   p4a installs generic modules with --no-deps, so buildozer.spec must list the

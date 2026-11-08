@@ -34,7 +34,7 @@ def enabled_lines(store,provider,region=None):
     return result
 
 
-def run_daily_notifications(store,provider,region,notifier,now=None):
+def run_daily_notifications(store,provider,region,notifier,now=None,should_stop=lambda:False):
     now=now or datetime.now(timezone.utc)
     due=latest_due(region,now)
     due_at=int(due.timestamp())
@@ -57,6 +57,8 @@ def run_daily_notifications(store,provider,region,notifier,now=None):
             groups.setdefault(security.key,(security,[]))[1].append(line)
         for security,saved_lines in groups.values():
             try:
+                if should_stop():
+                    raise RuntimeError("The operating system ended this background check.")
                 # Shares a fresh interactive cache. A stale/failed download must
                 # not create an alert from a previous close.
                 data=provider.historical_data(security,strict=True)
@@ -67,6 +69,8 @@ def run_daily_notifications(store,provider,region,notifier,now=None):
                             f" Latest supplied {data.dates[-1] if data.dates else 'none'}. No signal replayed.")
                     continue
                 for saved_line in saved_lines:
+                    if should_stop():
+                        raise RuntimeError("The operating system ended this background check.")
                     try:
                         line=store.get_line(saved_line.id)
                     except ValueError:

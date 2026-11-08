@@ -29,5 +29,6 @@ def sync_schedules(store,provider,platform_name):
             return event["detail"]+"\n"+status
         return status
     if platform_name=="ios":
-        return "Daily-check rules are ready; this iPhone build needs its native background-task adapter."
+        from .ios_runtime import sync_ios_schedules
+        return sync_ios_schedules(config,provider.cache)
     return "Desktop: interactive retrieval only. Android checks enabled SMAs at the scheduled Singapore times."

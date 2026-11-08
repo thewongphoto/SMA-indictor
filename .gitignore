@@ -8,6 +8,14 @@ artifacts/
 .local/
 .buildozer/
 .venv-android/
+.venv-ios/
+.build-ios/
+*.ipa
+*.xcarchive/
+*.mobileprovision
+*.p12
+*.p8
+xcuserdata/
 bin/
 *.apk
 *.aab

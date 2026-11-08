@@ -1,0 +1,102 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+  111111111111111111111111 = {isa = PBXBuildFile; fileRef = 222222222222222222222222; };
+  222222222222222222222222 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Stub.m; sourceTree = "<group>"; };
+  333333333333333333333333 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = smaanalyzer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+  444444444444444444444444 = {isa = PBXGroup; children = (222222222222222222222222, 555555555555555555555555); sourceTree = "<group>"; };
+  555555555555555555555555 = {isa = PBXGroup; children = (333333333333333333333333); name = Products; sourceTree = "<group>"; };
+  666666666666666666666666 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (111111111111111111111111); runOnlyForDeploymentPostprocessing = 0; };
+  777777777777777777777777 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  888888888888888888888888 = {
+   isa = PBXShellScriptBuildPhase;
+   buildActionMask = 2147483647;
+   files = ();
+   inputPaths = ("$(SRCROOT)/UnsignedApp.app/smaanalyzer");
+   outputPaths = ();
+   name = "Install compiled SMA payload before Xcode signs it";
+   runOnlyForDeploymentPostprocessing = 0;
+   shellPath = /bin/bash;
+   shellScript = "set -euo pipefail\n/bin/bash \"$SRCROOT/copy-payload.sh\"\n";
+   alwaysOutOfDate = 1;
+  };
+  999999999999999999999999 = {
+   isa = PBXNativeTarget;
+   buildConfigurationList = AAAAAAAAAAAAAAAAAAAAAAAA;
+   buildPhases = (666666666666666666666666, 777777777777777777777777, 888888888888888888888888);
+   buildRules = ();
+   dependencies = ();
+   name = smaanalyzer;
+   productName = smaanalyzer;
+   productReference = 333333333333333333333333;
+   productType = "com.apple.product-type.application";
+  };
+  AAAAAAAAAAAAAAAAAAAAAAAA = {isa = XCConfigurationList; buildConfigurations = (BBBBBBBBBBBBBBBBBBBBBBBB, CCCCCCCCCCCCCCCCCCCCCCCC); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+  BBBBBBBBBBBBBBBBBBBBBBBB = {
+   isa = XCBuildConfiguration;
+   name = Debug;
+   buildSettings = {
+    ARCHS = arm64;
+    CODE_SIGN_STYLE = Automatic;
+    CODE_SIGN_IDENTITY = "Apple Development";
+    DEVELOPMENT_TEAM = "";
+    ENABLE_BITCODE = NO;
+    ENABLE_DEBUG_DYLIB = NO;
+    ENABLE_USER_SCRIPT_SANDBOXING = NO;
+    INFOPLIST_FILE = Info.plist;
+    IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+    PRODUCT_BUNDLE_IDENTIFIER = org.thewongphoto.smaanalyzer;
+    PRODUCT_NAME = smaanalyzer;
+    SDKROOT = iphoneos;
+    SUPPORTED_PLATFORMS = iphoneos;
+    TARGETED_DEVICE_FAMILY = 1;
+    COPY_PHASE_STRIP = NO;
+    STRIP_INSTALLED_PRODUCT = NO;
+    LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+   };
+  };
+  CCCCCCCCCCCCCCCCCCCCCCCC = {
+   isa = XCBuildConfiguration;
+   name = Release;
+   buildSettings = {
+    ARCHS = arm64;
+    CODE_SIGN_STYLE = Automatic;
+    CODE_SIGN_IDENTITY = "Apple Development";
+    DEVELOPMENT_TEAM = "";
+    ENABLE_BITCODE = NO;
+    ENABLE_DEBUG_DYLIB = NO;
+    ENABLE_USER_SCRIPT_SANDBOXING = NO;
+    INFOPLIST_FILE = Info.plist;
+    IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+    PRODUCT_BUNDLE_IDENTIFIER = org.thewongphoto.smaanalyzer;
+    PRODUCT_NAME = smaanalyzer;
+    SDKROOT = iphoneos;
+    SUPPORTED_PLATFORMS = iphoneos;
+    TARGETED_DEVICE_FAMILY = 1;
+    COPY_PHASE_STRIP = NO;
+    STRIP_INSTALLED_PRODUCT = NO;
+    LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+   };
+  };
+  DDDDDDDDDDDDDDDDDDDDDDDD = {
+   isa = PBXProject;
+   attributes = {LastUpgradeCheck = 1600; TargetAttributes = {999999999999999999999999 = {CreatedOnToolsVersion = 16.0; ProvisioningStyle = Automatic; }; }; };
+   buildConfigurationList = EEEEEEEEEEEEEEEEEEEEEEEE;
+   compatibilityVersion = "Xcode 14.0";
+   developmentRegion = en;
+   hasScannedForEncodings = 0;
+   knownRegions = (en, Base);
+   mainGroup = 444444444444444444444444;
+   productRefGroup = 555555555555555555555555;
+   projectDirPath = "";
+   projectRoot = "";
+   targets = (999999999999999999999999);
+  };
+  EEEEEEEEEEEEEEEEEEEEEEEE = {isa = XCConfigurationList; buildConfigurations = (FFFFFFFFFFFFFFFFFFFFFFFF); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+  FFFFFFFFFFFFFFFFFFFFFFFF = {isa = XCBuildConfiguration; name = Debug; buildSettings = {CLANG_ENABLE_MODULES = YES; }; };
+ };
+ rootObject = DDDDDDDDDDDDDDDDDDDDDDDD;
+}

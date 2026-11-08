@@ -6,6 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kivy.core.window import Window
+from kivy.graphics import Ellipse
+from kivy.metrics import dp
 from sma_analyzer.engine import optimize_sma
 from sma_analyzer.palette import COLOR_CHOICES,line_color
 from scripts.smoke_ui_motion import MotionSmoke,temporary
@@ -17,7 +19,7 @@ class ColorLogoSmoke(MotionSmoke):
     performance={}
 
     def capture(self,name,widget=None):
-        root=Path("artifacts/ui-0.10.3")
+        root=Path("artifacts/ui-0.11.0")
         root.mkdir(exist_ok=True,parents=True)
         (widget or self.screen).export_to_png(str(root/(name+".png")))
 
@@ -55,6 +57,11 @@ class ColorLogoSmoke(MotionSmoke):
             assert len(ui.color_buttons)==12
             assert len({tuple(button.swatch) for button in ui.color_buttons.values()})==12
             assert all(button.width>=44 and button.height>=44 for button in ui.color_buttons.values())
+            for button in ui.color_buttons.values():
+                swatch=next(item for item in button.canvas.before.children if isinstance(item,Ellipse))
+                assert abs(swatch.pos[0]+swatch.size[0]/2-button.x-button.width/2)<.5
+                assert swatch.pos[0]-dp(5)>=button.x and swatch.pos[0]+swatch.size[0]+dp(5)<=button.right
+                assert button.halign=="center" and abs(button.text_size[0]-button.width)<.5
             self.capture("colour-picker-"+str(width))
             ui.handle_back()
             yield lambda:ui.color_popup.parent is None

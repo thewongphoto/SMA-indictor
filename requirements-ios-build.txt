@@ -1,0 +1,5 @@
+# Host Mac tooling. Native Python/Kivy come from this pinned official toolchain.
+kivy-ios @ git+https://github.com/kivy/kivy-ios.git@fd363d49eddb5ac06766348738bd89c7d46007f8
+Cython==0.29.37
+pbxproj==4.3.3
+cookiecutter==2.7.1

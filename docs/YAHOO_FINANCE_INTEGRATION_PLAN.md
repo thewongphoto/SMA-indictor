@@ -1,5 +1,12 @@
 # Yahoo Finance integration plan
 
+**0.11.0 update (8 November 2026):** the palette is centred and an iPhone target
+now reuses the mobile JSON transport, persistent cache and signal rules. Native
+UIKit, local notification and BGTaskScheduler adapters plus a free Personal Team
+Xcode kit are included. See [iPhone installation](PRIVATE_IPHONE_INSTALLATION.md).
+Native build results belong to the GitHub Mac workflow; Apple signing, real data
+on iPhone and physical-device background behavior still need device validation.
+
 **Android 0.10.3 update (7 November 2026):** [the mobile data test](YAHOO_ANDROID_TESTING.md)
 implements search/chart HTTPS requests, persistent caches and request reporting
 without embedding the desktop yfinance native stack. It now adds native daily
@@ -8,7 +15,8 @@ alerts and both signal types default On, preserving stored Off choices; logs
 identify each SMA/signal trigger and delivery outcome. This version adds
 animated pages/drawers, cancelable optimization and requested banner alerts. See
 [phone notification testing](ANDROID_DAILY_NOTIFICATIONS.md). Physical-device
-sleep behavior still needs validation; native iOS delivery/packaging remain separate.
+sleep behavior still needs validation. At that revision iOS packaging was deferred;
+the 0.11.0 update above adds its first native target.
 
 Availability now probes VOO, and the live guide always uses Vanguard S&P 500 ETF
 (VOO), superseding the original SPY reference below. The loading loop is

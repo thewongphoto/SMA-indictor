@@ -13,7 +13,7 @@ from kivy.config import Config
 from kivy.utils import platform
 
 # A portrait desktop window is a convenient stand-in for the eventual phone UI.
-if platform != "android":
+if platform not in ("android", "ios"):
     Config.set("graphics", "width", "440")
     Config.set("graphics", "height", "920")
     Config.set("graphics", "resizable", "1")
@@ -65,6 +65,17 @@ BG = (0.075, 0.122, 0.192, 1)
 PANEL = (0.122, 0.188, 0.282, 1)
 TEXT = (0.92, 0.95, 0.98, 1)
 ERROR = (1, 0.52, 0.52, 1)
+
+
+def phone_notifier_class():
+    if platform == "ios":
+        from .ios_runtime import IOSNotifier
+        return IOSNotifier
+    return AndroidNotifier
+
+
+def phone_system_name():
+    return "iOS" if platform == "ios" else "Android"
 
 
 class WrappedLabel(Label):
@@ -1468,11 +1479,11 @@ class AnalyzerScreen(FloatLayout):
     def on_line_alert(self, line, channel):
         if channel != "phone":
             return
-        if self.yahoo_enabled and platform=="android" and not line.push_enabled:
+        if self.yahoo_enabled and platform in ("android","ios") and not line.push_enabled:
             try:
-                AndroidNotifier.request_permission(lambda allowed:self._on_ui(
+                phone_notifier_class().request_permission(lambda allowed:self._on_ui(
                     lambda:self._apply_line_alert(line.id,True) if allowed else
-                    self.message("Notification permission was not granted. Enable it in Android Settings to turn this SMA on.",True)))
+                    self.message("Notification permission was not granted. Enable it in phone Settings to turn this SMA on.",True)))
             except RuntimeError as error:
                 self.message(str(error),True)
             return
@@ -1502,13 +1513,14 @@ class AnalyzerScreen(FloatLayout):
         try:
             from .native_schedule import sync_schedules
             self.notification_status.text=sync_schedules(self.model.store,self.model.data_provider,platform)
-            if platform=="android" and not self.model.data_provider.cache.preference("android_notification_permission_asked_v1",False):
+            permission_key=f"{platform}_notification_permission_asked_v1"
+            if platform in ("android","ios") and not self.model.data_provider.cache.preference(permission_key,False):
                 from .daily_notifications import enabled_lines
                 if enabled_lines(self.model.store,self.model.data_provider):
                     # Existing enabled preferences need the same OS consent as
                     # a newly enabled line. Ask once; explicit On/Test can retry.
-                    self.model.data_provider.cache.set_preference("android_notification_permission_asked_v1",True)
-                    AndroidNotifier.request_permission(lambda allowed:self._on_ui(self.sync_notification_schedule))
+                    self.model.data_provider.cache.set_preference(permission_key,True)
+                    phone_notifier_class().request_permission(lambda allowed:self._on_ui(self.sync_notification_schedule))
         except Exception:
             logging.exception("Native daily schedule could not be configured")
             self.notification_status.text="Daily scheduling could not be configured. Reopen Settings and share the request log."
@@ -1589,7 +1601,8 @@ class AnalyzerScreen(FloatLayout):
         self.settings_panel.add_widget(WrappedLabel(
             text=("Only saved SMAs with notifications switched on are checked. US: Tuesday–Saturday at 6:30am; "
                   "SGX: Monday–Friday at 6:30pm, Singapore time. New saved SMAs and both signal types default to On. "
-                  "Android may delay a background check while sleeping or offline."
+                  + ("iOS chooses when to run background checks and may skip them. Enable Background App Refresh in iPhone Settings."
+                   if platform=="ios" else "Android may delay a background check while sleeping or offline.")
                   if self.yahoo_enabled else
                   "SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications."),
             color=MUTED,font_size=sp(11)))
@@ -1633,7 +1646,7 @@ class AnalyzerScreen(FloatLayout):
         test_row.add_widget(self.alert_session)
         test_row.add_widget(self.preview_alert_button)
         self.settings_panel.add_widget(test_row)
-        self.phone_test_button = LabButton(text="Test Android phone notification")
+        self.phone_test_button = LabButton(text="Test iPhone notification" if platform=="ios" else "Test Android phone notification")
         self.phone_test_button.bind(on_release=self.test_phone_notification)
         self.settings_panel.add_widget(self.phone_test_button)
         self.eod_deliver_button = LabButton(text="Send enabled alerts")
@@ -1645,7 +1658,7 @@ class AnalyzerScreen(FloatLayout):
         self.last_alerts = ()
         if self.yahoo_enabled:
             self.preview_alert_button.disabled = True
-            self.phone_test_button.disabled = platform!="android"
+            self.phone_test_button.disabled = platform not in ("android","ios")
             self.eod_deliver_button.disabled = True
             self.notification_status.text = "Daily checks use the enabled saved SMAs and signal types."
             for widget in (self.alert_session_label,test_row,self.preview_alert_button,self.eod_deliver_button,self.alert_preview):
@@ -1889,34 +1902,34 @@ class AnalyzerScreen(FloatLayout):
         def permitted(allowed):
             self._on_ui(lambda: self._post_test_phone(allowed))
         try:
-            AndroidNotifier.request_permission(permitted)
+            phone_notifier_class().request_permission(permitted)
         except RuntimeError as error:
             self.notification_status.text = str(error)
-            self._record_notification_test("failed", "Test could not start. Check Android notification setup.")
+            self._record_notification_test("failed", "Test could not start. Check phone notification setup.")
 
     def _record_notification_test(self, status, detail):
         if self.yahoo_enabled:
-            self.model.data_provider.cache.operation("notification-test", "Android", status, detail)
+            self.model.data_provider.cache.operation("notification-test", phone_system_name(), status, detail)
 
     def _post_test_phone(self, allowed):
         if not allowed:
-            self.notification_status.text = "Notification permission denied. Enable it in Android Settings to test again."
-            self._record_notification_test("permission_denied", "Test phone notification not posted; Android notification permission denied.")
+            self.notification_status.text = "Notification permission denied. Enable it in phone Settings to test again."
+            self._record_notification_test("permission_denied", "Test phone notification not posted; notification permission denied.")
             return
         try:
             alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
                           "SMA Stock Analyzer · Test", "Notification test · Phone notifications are working."
                           if self.yahoo_enabled else "SIMULATED TEST · Phone notifications are working.")
-            receipt=AndroidNotifier().send(alert)
+            receipt=phone_notifier_class()().send(alert)
             self._record_notification_test("ok", "Test phone notification posted; OS accepted it. No market signal or API request. " +
                                            (receipt if isinstance(receipt,str) else ""))
             self.sync_notification_schedule()
-            self.notification_status.text = "Android test notification posted. Check the notification shade."
+            self.notification_status.text = f"{phone_system_name()} test notification posted. Check " + ("Notification Center." if platform=="ios" else "the notification shade.")
             if isinstance(receipt,str):
                 self.notification_status.text+="\n"+receipt
         except RuntimeError as error:
             self.notification_status.text = str(error)
-            self._record_notification_test("failed", "Test phone notification not confirmed. Check Android notification permission/channel and device setup.")
+            self._record_notification_test("failed", "Test phone notification not confirmed. Check phone notification permission and device setup.")
 
     def _delivery_controls(self, busy):
         self.delivery_busy = busy
@@ -1937,7 +1950,7 @@ class AnalyzerScreen(FloatLayout):
                     self.notification_status.text = "Notification permission denied. Enable it in Android Settings to send alerts."
             self._on_ui(continue_delivery)
         try:
-            AndroidNotifier.request_permission(after_permission)
+            phone_notifier_class().request_permission(after_permission)
         except RuntimeError:
             self._run_delivery(alerts)
 
@@ -2261,7 +2274,7 @@ class SMAStockAnalyzerApp(App):
 
     def build(self):
         Window.clearcolor = BG
-        if platform != "android":
+        if platform not in ("android", "ios"):
             Window.minimum_width = dp(320)
             Window.minimum_height = dp(480)
         try:
@@ -2285,15 +2298,21 @@ class SMAStockAnalyzerApp(App):
         # surface/inset geometry instead of Kivy's unsupported resize mode.
         Window.softinput_mode = ""
         self.device_frame = DeviceFrame(self.screen)
-        self.android_window = AndroidWindow()
+        if platform == "ios":
+            from .ios_runtime import IOSWindow
+            self.window_adapter = IOSWindow()
+        else:
+            self.window_adapter = AndroidWindow()
         Window.bind(on_keyboard=self._on_keyboard)
-        if platform == "android":
+        if platform in ("android", "ios"):
             try:
-                self.android_window.start(lambda metrics: Clock.schedule_once(
-                    lambda _: self.device_frame.apply_metrics(metrics) if not self.screen.closed else None, 0))
+                self.window_adapter.start(self._apply_window_metrics)
             except Exception:
-                logging.exception("Android window metrics could not be installed")
+                logging.exception("Phone window metrics could not be installed")
         return self.device_frame
+
+    def _apply_window_metrics(self, metrics):
+        Clock.schedule_once(lambda _: self.device_frame.apply_metrics(metrics) if not self.screen.closed else None, 0)
 
     def _on_keyboard(self, _window, key, *_):
         if key == 27 and hasattr(self, "screen"):
@@ -2301,17 +2320,23 @@ class SMAStockAnalyzerApp(App):
         return False
 
     def on_pause(self):
-        # Google consent can temporarily cover the Kivy activity.
+        if platform=="ios" and hasattr(self,"window_adapter"):
+            self.window_adapter.stop()
         return True
 
     def on_resume(self):
+        if platform=="ios" and hasattr(self,"window_adapter"):
+            self.window_adapter.start(self._apply_window_metrics)
         if hasattr(self,"screen"):
             self.screen.resume_cached_prices()
             self.screen.sync_notification_schedule()
 
     def on_stop(self):
         Window.unbind(on_keyboard=self._on_keyboard)
-        if hasattr(self, "android_window"):
-            self.android_window.stop()
+        if hasattr(self, "window_adapter"):
+            self.window_adapter.stop()
+        if platform=="ios":
+            from .ios_runtime import bridge
+            bridge().stop()
         if hasattr(self, "screen"):
             self.screen.close()

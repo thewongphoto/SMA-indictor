@@ -45,6 +45,26 @@ class DailyNotificationsTests(TestCase):
         self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
         self.assertEqual(configuration(self.store,self.provider,self.root)["regions"],[])
 
+    def test_native_expiry_stops_before_retrieval_and_does_not_replay_the_slot(self):
+        before=len(self.client.calls)
+        result=run_daily_notifications(self.store,self.provider,"US",self.phone,NOW,should_stop=lambda:True)
+        self.assertEqual(result["status"],"failed")
+        self.assertEqual(len(self.client.calls),before)
+        self.phone.send.assert_not_called()
+        self.assertEqual(self.run_job()["status"],"already_checked")
+
+    def test_native_expiry_during_download_stops_before_signal_delivery(self):
+        stopped=[False]
+        original=self.provider.historical_data
+        def fetch(*args,**kwargs):
+            data=original(*args,**kwargs)
+            stopped[0]=True
+            return data
+        with patch.object(self.provider,"historical_data",side_effect=fetch):
+            result=run_daily_notifications(self.store,self.provider,"US",self.phone,NOW,should_stop=lambda:stopped[0])
+        self.assertEqual(result["status"],"failed")
+        self.phone.send.assert_not_called()
+
     def test_off_lines_and_disabled_signal_types_make_no_history_requests(self):
         self.store.set_notifications(self.line.id,"phone",False)
         before=len(self.client.calls)

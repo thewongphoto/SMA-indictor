@@ -415,10 +415,14 @@ class ColorOption(Button):
                          valign="bottom",halign="center",padding=(0,dp(4)),**kwargs)
         self.swatch,self.selected=swatch,selected
         self.bind(pos=self._paint,size=self._paint,swatch=self._paint,selected=self._paint)
+        self._paint()
 
     def _paint(self,*_):
         self.text_size=self.size
-        x,y,r=self.center_x,self.center_y+dp(8),dp(15)
+        # Layout dispatches pos/size before Kivy invalidates cached center
+        # aliases. Use the new geometry directly so swatches stay over their
+        # labels while the drawer moves or its columns change width.
+        x,y,r=self.x+self.width/2,self.y+self.height/2+dp(8),dp(15)
         self.canvas.before.clear()
         with self.canvas.before:
             Color(*self.swatch)

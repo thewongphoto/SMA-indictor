@@ -1,5 +1,18 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
+**Current release: 0.11.0.** The app uses real dividend/split-adjusted daily
+history, persistent caches, saved names/colours and native Android daily checks.
+This release centres the colour picker and adds the first private iPhone build
+with UIKit/notification/background adapters. See the
+[release notes](docs/RELEASE_0_11_0.md),
+[Android guide](docs/YAHOO_ANDROID_TESTING.md) and
+[free iPhone installation guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
+Apple signing and physical-device iPhone behavior still require validation.
+
+The older development records below describe the original **simulation** and
+its calculation policy; statements about mock-only prices, missing schedulers
+or Gmail refer to those historical revisions, not the current live app.
+
 **Android 0.8.0 update:** real Yahoo search/daily history, persistent caches and
 copyable HTTP/app/cache diagnostics are included in the private data test.
 See [the Android guide](docs/YAHOO_ANDROID_TESTING.md). Background fetching,
@@ -11,7 +24,7 @@ MAX. Follow [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md).
 The 0.7.0 APK and the simulation rules recorded below remain separate;
 background fetching and notification delivery testing are deferred.
 
-**Current release: 0.7.0.** The approved library-first UI, three-year guide,
+**Historical preview release: 0.7.0.** The approved library-first UI, three-year guide,
 Parameters/Custom and logo/name chart heading are documented in the
 [release notes](docs/RELEASE_0_7_0.md). The current app is phone-notification-only;
 the Gmail/authorization sections below describe older development work and do
@@ -21,7 +34,7 @@ This document records the app's purpose, inner workings, limitations, and the
 active frequency policy for a future printed summary. The tested policy is now
 connected to the running app; the status table records the remaining scope.
 
-## Implementation status
+## Historical implementation status (0.7.0)
 
 | Component | Status |
 | --- | --- |

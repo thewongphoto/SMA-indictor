@@ -1,13 +1,16 @@
 # SMA Stock Analyzer
 
-**Android 0.10.3:** a continuous GPU-rotated loading indicator, 12 saved-SMA colour
-choices, VOO startup/guide data, the DBS company logo and offline logos for 30
-major ETF providers. Read the
+**0.11.0:** centred colour swatches and labels, plus the first private iPhone
+build with a free Xcode Personal Team installation route. Read the
+[iPhone download/install guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_10_3.md). See the
-[new screenshots](docs/design/ui-0.10.3/README.md),
+[release notes](docs/RELEASE_0_11_0.md). See the
+[centred palette screenshots](docs/design/ui-0.11.0/README.md),
 [app flow](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
+
+Included from 0.10.3: continuous loading, twelve SMA colours, VOO startup/guide
+data, the DBS logo and offline logos for thirty major ETF providers.
 
 Included from 0.10.2: animated pages/drawers/accordions, `SMA (X days)` labels,
 matching custom inputs, Back-cancelable optimization and notification banners.
@@ -28,7 +31,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.10.3 is
+keeps desktop fetching interactive. Android 0.11.0 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided
@@ -39,10 +42,12 @@ example and company logo/name chart heading. See the [release notes](docs/RELEAS
 A personal Python/Kivy app for finding a simple moving average whose
 upward-crossing frequency is closest to a chosen target. The desktop Yahoo
 preview downloads US/SG stock and ETF daily history for private use; analysis
-stays local. The guided example and `DEMO-SGX`/`DEMO-US` remain fictional.
-Android uses a portable HTTPS adapter for the same Yahoo search/chart subset;
-the APK does not include the desktop yfinance native dependency stack.
-iOS packaging and native background adapters remain separate work.
+stays local. The live guided example uses Vanguard S&P 500 ETF (VOO).
+Fictional `DEMO-SGX`/`DEMO-US` data is confined to explicit preview/test mode.
+Android and iPhone use a portable HTTPS adapter for the same Yahoo search/chart
+subset, without the desktop yfinance native dependency stack. iPhone builds
+have UIKit safe-area/keyboard, local notification and BGTaskScheduler adapters.
+Native device validation and Apple signing are separate from Linux fixture checks.
 No Yahoo account/API key is normally required.
 
 This is frequency matching, **not evidence of a profitable trading strategy**.

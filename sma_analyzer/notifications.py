@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from email.utils import parseaddr
 import hashlib
 import math
+import os
 from typing import TYPE_CHECKING
 
 from .engine import crossover_events, simple_moving_average
@@ -143,6 +144,8 @@ class AndroidNotifier:
     native channel settings govern presentation. Scheduling belongs to the
     separate native adapter, not this delivery boundary.
     """
+    system_name = "Android"
+
     def __init__(self,context=None):
         self.context=context
 
@@ -270,7 +273,15 @@ def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> lis
         record("notification-trigger", "triggered", "Signal matched; attempting delivery.")
         try:
             if alert.channel == "phone":
-                receipt=(phone or AndroidNotifier()).send(alert)
+                if phone is None:
+                    # The official iOS launcher sets this before Python starts.
+                    # Keep Kivy/UI imports out of the headless daily job.
+                    if os.environ.get("KIVY_BUILD") == "ios":
+                        from .ios_runtime import IOSNotifier
+                        phone = IOSNotifier()
+                    else:
+                        phone = AndroidNotifier()
+                receipt=phone.send(alert)
             else:
                 if mailer is None:
                     record("notification-delivery", "not_sent", "Email delivery is unavailable.")
@@ -279,7 +290,10 @@ def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> lis
                 mailer.send(alert, store.notification_settings().email)
                 receipt=None
             store.record_delivery(alert.key)
-            status = "Accepted by Gmail" if alert.channel == "email" else "Posted to Android"
+            system_name=getattr(phone,"system_name","Android")
+            if system_name not in ("Android","iOS"):
+                system_name="Android"
+            status = "Accepted by Gmail" if alert.channel == "email" else f"Posted to {system_name}"
             record("notification-delivery", "ok", status + "; OS accepted the notification. " +
                    (receipt if isinstance(receipt,str) else ""))
             report.append(f"{status}: {alert.channel}, session {alert.session}.")

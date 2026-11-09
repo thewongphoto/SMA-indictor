@@ -154,7 +154,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert len(ui.chart.prices) == 1260 and not ui.chart.series
         assert ui.chart.viewport.bounds == (1008, 1259)
         assert ui.timeline_selector.text == "1Y"
-        assert tuple(ui.timeline_selector.values) == ("1Y", "3Y", "5Y", "Max")
+        assert tuple(ui.timeline_selector.values) == ("3M", "6M", "9M", "1Y", "3Y", "5Y", "Max")
         assert "count" not in ui.card_values
         assert len(ui.cards.children) == 2
         assert ui.save_button.parent.parent is ui.optimal_panel
@@ -233,7 +233,8 @@ class SmokeApp(SMAStockAnalyzerApp):
 
         result_before = ui.model.result
         summary_before = ui.model.summary()
-        for label, bounds in [("3Y",(504,1259)), ("5Y",(0,1259)), ("Max",(0,1259)), ("1Y",(1008,1259))]:
+        for label, bounds in [("3M",(1197,1259)), ("6M",(1134,1259)), ("9M",(1071,1259)),
+                              ("3Y",(504,1259)), ("5Y",(0,1259)), ("Max",(0,1259)), ("1Y",(1008,1259))]:
             ui.timeline_selector._dropdown.select(label)
             assert ui.chart.viewport.bounds == bounds
             assert ui.model.result is result_before
@@ -243,7 +244,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert all(":" not in label and "Triangles" not in label for label in ui.legend_labels)
         self.check("timeline ranges preserve full-history results; revised cards, contained actions and symbol legend")
         original_data = ui.model.dataset
-        for length, choices in [(500,("1Y","Max")), (756,("1Y","3Y","Max")), (1259,("1Y","3Y","Max"))]:
+        for length, choices in [(500,("3M","6M","9M","1Y","Max")),
+                                (756,("3M","6M","9M","1Y","3Y","Max")),
+                                (1259,("3M","6M","9M","1Y","3Y","Max"))]:
             ui.model.dataset = Dataset(original_data.counter, original_data.scenario, original_data.prices[:length])
             ui.model.result = None
             ui.refresh()
@@ -269,10 +272,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.card_values["actual"].text == "31.31 / yr"
         ui.backtest_period._dropdown.select("Max")
         assert "125 upward crossings" in ui.backtest_captions["crossings"].text
-        assert "1006 usable comparisons" in ui.explanation.text
-        assert "SMA search: 2–756" in ui.explanation.text
-        assert "Warm-up is included" not in ui.explanation.text
-        assert "not matched exactly" in ui.explanation.text
+        assert ui.model.result.comparisons==1006
+        assert ui.model.result.frequency_error>0
+        assert not hasattr(ui,"explanation")
         self.check("active adjusted-frequency policy: known sideways result, coverage, cap, unreachable target")
         # Details retain the complete crossing history outside the backtest panel.
         original_result = ui.model.result
@@ -626,7 +628,7 @@ class SmokeApp(SMAStockAnalyzerApp):
             yield
         assert ui.timeline_selector.is_open, "Arrow area must open the same dropdown as the label"
         options = {option.text: option for option in ui.timeline_selector._dropdown.container.children}
-        assert set(options) == {"1Y","3Y","5Y","Max"}
+        assert set(options) == {"3M","6M","9M","1Y","3Y","5Y","Max"}
         assert options["1Y"].background_color != options["3Y"].background_color
         options["3Y"].dispatch("on_release")
         assert chart.viewport.bounds == (504,1259)
@@ -817,6 +819,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         yield from settle()
         assert ui.manager.current=='guide' and ui.model.dataset is original
         assert ui.guide_chart.timeline=='3Y' and len(ui.guide_chart.prices)==756
+        assert ui.guide_target.text=='4 / year' and ui.guide_backtest_period.text=='Max'
         assert ui.guide_lesson.result.events and 'vs a' in ui.guide_values.text
         ui.guide_content.export_to_png('artifacts/library-guide-full.png')
         capture('06-guide')

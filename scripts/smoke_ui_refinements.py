@@ -16,10 +16,11 @@ from kivy.uix.textinput import TextInput
 
 from scripts.smoke_mobile_yahoo_ui import MobileYahooSmoke,temporary
 from scripts.smoke_ui import Pointer
-from sma_analyzer.app import AnalyzerScreen
+from sma_analyzer.app import AnalyzerScreen,CustomValueField
 from sma_analyzer.model import AnalyzerModel
 from sma_analyzer.storage import LineStore
 from sma_analyzer.palette import line_color
+from sma_analyzer.backtest import period_sessions
 
 
 class RefinementSmoke(MobileYahooSmoke):
@@ -56,7 +57,47 @@ class RefinementSmoke(MobileYahooSmoke):
         assert ui.guide_chart.viewport.dates==ui.guide_lesson.dataset.dates
         assert ui.guide_chart.prices==tuple(b["adj_close"] for b in self.client.bars)
         assert ui.guide_chart.price_label=="Adj. close"
+        assert ui.guide_target.text=="4 / year" and ui.guide_lesson.result.target_frequency==4
+        assert ui.guide_backtest_period.text=="Max" and ui.guide_lesson.report.start==0
+        yield from self.frames()
+        self.capture("guide-max",ui.guide_content)
+        lesson_data,lesson_result=ui.guide_lesson.dataset,ui.guide_lesson.result
+        calls=len(self.client.calls)
+        with patch.object(ui.market_executor,"submit",side_effect=AssertionError("Horizon changes must reuse the lesson")):
+            for label in ("1Y","3Y","5Y","Max"):
+                ui.guide_backtest_period._dropdown.select(label)
+                sessions=period_sessions(label,"",len(lesson_data.prices),lesson_data.dates)
+                assert ui.guide_lesson.report.start==len(lesson_data.prices)-sessions
+                assert ui.guide_lesson.result is lesson_result
+            ui.guide_backtest_period._dropdown.select("Custom")
+            yield lambda:ui.guide_backtest_custom_holder.progress==1
+            assert isinstance(ui.guide_backtest_years,CustomValueField)
+            ui.guide_backtest_years.text="1.5"
+            ui.guide_backtest_years.dispatch("on_text_validate")
+            assert ui.guide_lesson.report.start==len(lesson_data.prices)-period_sessions("Custom","1.5",len(lesson_data.prices),lesson_data.dates)
+            for width in (320,440):
+                Window.size=(width,920)
+                yield from self.frames()
+                assert ui.guide_backtest_heading.right<=ui.guide_backtest_period.x
+                assert ui.guide_backtest_period.right<=ui.guide_content.right
+                assert ui.guide_backtest_years.width>=dp(44)
+                self.capture("guide-custom-"+str(width),ui.guide_content)
+            with patch.object(ui.guide_scroll,"scroll_to",wraps=ui.guide_scroll.scroll_to) as reveal:
+                ui.guide_backtest_years.focus=True
+                yield from self.frames()
+                assert reveal.call_args.args[0] is ui.guide_backtest_years
+                assert ui.handle_back() and not ui.guide_backtest_years.focus
+                assert ui.manager.current=="guide"
+            ui.guide_backtest_years.text="invalid"
+            ui.guide_backtest_years.dispatch("on_text_validate")
+            assert "positive number of years" in ui.guide_values.text
+            ui.guide_backtest_period._dropdown.select("Max")
+        assert len(self.client.calls)==calls and ui.model.dataset.counter=="UNSELECTED"
+        ui.guide_target._dropdown.select("6 / year")
+        yield lambda:not ui.guide_busy
+        assert ui.guide_lesson.result.target_frequency==6 and ui.guide_backtest_period.text=="Max"
         self.checked("live guided lesson downloads actual provider data without changing selection")
+        self.checked("guide starts at 4/year and Max; every horizon and Custom reuse cached data/SMA, and other frequencies remain selectable")
         ui.show_search()
         ui.security_search.text="apple"
         ui.submit_security_search()
@@ -67,6 +108,25 @@ class RefinementSmoke(MobileYahooSmoke):
         ui.on_optimize()
         yield lambda:not ui.busy
         result=ui.model.result
+        assert ui.plot_subtitle.text=="USD adjusted daily close\nDividends and splits included"
+        assert ui.guide_price_note.text=="USD adjusted daily close\nDividends and splits included"
+        assert not hasattr(ui,"explanation")
+        ui.scroll.scroll_to(ui.timeline_selector,animate=False)
+        yield from self.frames()
+        ui.timeline_selector.dispatch("on_release")
+        yield from self.frames()
+        assert ui.timeline_selector.is_open
+        assert tuple(option.text for option in reversed(ui.timeline_selector._dropdown.container.children))==("3M","6M","9M","1Y","3Y","5Y","Max")
+        ui.timeline_selector._dropdown.export_to_png("artifacts/ui-0.9/chart-views.png")
+        for label in ("3M","6M","9M"):
+            ui.timeline_selector._dropdown.select(label)
+            assert ui.chart.timeline==label
+            assert ui.chart.viewport.end==len(ui.model.dataset.prices)-1
+            if label=="3M":
+                yield from self.frames()
+                self.capture("chart-3m")
+        ui.timeline_selector._dropdown.select("1Y")
+        self.checked("three month presets work through the chart selector and result captions contain only the requested copy")
         calls=len(self.client.calls)
         ui.show_parameters()
         with patch.object(ui.executor,"submit",side_effect=AssertionError("must reuse cached analysis")):

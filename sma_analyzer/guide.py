@@ -1,4 +1,4 @@
-"""Isolated three-year lesson; uses the real optimizer and backtest engine."""
+"""Isolated lesson with a selectable horizon and the real calculation engines."""
 from dataclasses import dataclass
 import math
 
@@ -19,7 +19,7 @@ RISK_HELP = (
     "Inspect the chart for reversals as well as recoveries."
 )
 COMPARISON_HELP = (
-    "Choose a crossing frequency to see its SMA and investment-return comparisons. "
+    "Choose a crossing frequency and investment horizon to see its SMA and investment-return comparisons. "
     "The optimizer matches crossing frequency, not profit. The comparisons use "
     "$100 per buy: a. upward crossings; b. equal-period buys; c. the most common "
     "of 500 random-buy scenarios, with the same number of buys in each. "
@@ -40,11 +40,11 @@ class Lesson:
     report: object
 
 
-def calculate_lesson(target, data=None):
+def calculate_lesson(target, data=None, period="Max", custom_years=""):
     data = data if data is not None else lesson_dataset()
-    result = optimize_sma(data.prices, target)
     from .backtest import period_sessions
     dates = data.dates if not getattr(data, "is_simulated", True) else None
-    sessions = period_sessions("3Y", "", len(data.prices), dates)
+    sessions = period_sessions(period, custom_years, len(data.prices), dates)
+    result = optimize_sma(data.prices, target)
     report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
     return Lesson(data, result, report)

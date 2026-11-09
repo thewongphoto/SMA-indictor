@@ -20,9 +20,9 @@ provisioning profiles.
 The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
 compiles the native app on GitHub's Mac runner. After a **successful** run:
 
-Use **ios-v0.11.2** or later. Version 0.11.2 fixes the separate Kivy source/version
-probe download that still failed after the OpenSSL correction. Rerunning an old
-tag still uses its original code.
+Use **ios-v0.12.0** for the updated chart presets and VOO guided-example controls.
+The build retains the verified source caching introduced in 0.11.2. Rerunning
+an old tag still uses its original code.
 
 1. Open that run while signed in to GitHub. Under **Artifacts**, download
    **sma-iphone-xcode-kit** to your Mac and unzip it. This contains an unsigned

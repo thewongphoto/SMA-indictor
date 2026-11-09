@@ -2,24 +2,32 @@
 from dataclasses import dataclass
 import math
 from datetime import date
+from calendar import monthrange
 from bisect import bisect_left
 from .settings import TRADING_SESSIONS_PER_YEAR
 
 
+SHORT_TIMELINES = ("3M", "6M", "9M", "1Y")
+
+
+def months_before(day, months):
+    """Subtract calendar months, clamping dates such as May 31 to February 28."""
+    year, month = divmod(day.year * 12 + day.month - 1 - months, 12)
+    month += 1
+    return day.replace(year=year, month=month, day=min(day.day, monthrange(year, month)[1]))
+
+
 def available_timelines(session_count, dates=()):
-    """1Y clamps to shorter histories; unavailable longer ranges are omitted."""
+    """Short presets clamp to available data; incomplete 3Y/5Y ranges are omitted."""
     if dates:
         last = date.fromisoformat(dates[-1])
         def covered(years):
-            try:
-                cutoff = last.replace(year=last.year-years)
-            except ValueError:
-                cutoff = last.replace(year=last.year-years, day=28)
+            cutoff = months_before(last, years * 12)
             return dates[0] <= cutoff.isoformat()
-        return tuple(label for label, years in (("1Y",1),("3Y",3),("5Y",5))
-                     if years == 1 or covered(years)) + ("Max",)
-    return tuple(label for label, years in (("1Y", 1), ("3Y", 3), ("5Y", 5))
-                 if years == 1 or session_count >= years * TRADING_SESSIONS_PER_YEAR) + ("Max",)
+        return SHORT_TIMELINES + tuple(label for label, years in (("3Y",3),("5Y",5))
+                     if covered(years)) + ("Max",)
+    return SHORT_TIMELINES + tuple(label for label, years in (("3Y", 3), ("5Y", 5))
+                 if session_count >= years * TRADING_SESSIONS_PER_YEAR) + ("Max",)
 
 
 @dataclass
@@ -59,14 +67,12 @@ class ChartViewport:
     def show_timeline(self, label):
         if label not in available_timelines(self.session_count, self.dates):
             raise ValueError(f"{label} is not available for this price history.")
-        sessions = self.session_count if label == "Max" else int(label[:-1]) * TRADING_SESSIONS_PER_YEAR
+        months = 0 if label == "Max" else int(label[:-1]) * (12 if label.endswith("Y") else 1)
+        sessions = self.session_count if label == "Max" else months * TRADING_SESSIONS_PER_YEAR // 12
         self.base_range = (max(0, self.session_count - sessions), max(0, self.session_count - 1))
         if self.dates and label != "Max":
             last = date.fromisoformat(self.dates[-1])
-            try:
-                cutoff = last.replace(year=last.year-int(label[:-1]))
-            except ValueError:
-                cutoff = last.replace(year=last.year-int(label[:-1]), day=28)
+            cutoff = months_before(last, months)
             self.base_range = (bisect_left(self.dates, cutoff.isoformat()), self.session_count-1)
         self.reset()
 

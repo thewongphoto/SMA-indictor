@@ -1,11 +1,12 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
-**Current release: 0.11.2.** The app uses real dividend/split-adjusted daily
+**Current release: 0.12.0.** The app uses real dividend/split-adjusted daily
 history, persistent caches, saved names/colours and native Android daily checks.
-This release fixes Android/iPhone source-download failures while retaining the
-centred colour picker and private iPhone build with UIKit/notification/background
-adapters. See the
-[release notes](docs/RELEASE_0_11_2.md),
+This release adds 3M/6M/9M chart views, trims descriptive copy and starts the
+VOO guide at 4/year with a selectable investment horizon defaulting to Max.
+Both mobile builds retain verified native source downloads and their signing
+identities. See the
+[release notes](docs/RELEASE_0_12_0.md),
 [Android guide](docs/YAHOO_ANDROID_TESTING.md) and
 [free iPhone installation guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 Apple signing and physical-device iPhone behavior still require validation.

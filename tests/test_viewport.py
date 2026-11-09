@@ -58,15 +58,16 @@ class ViewportTests(unittest.TestCase):
         self.assertFalse(view.is_zoomed)
 
     def test_timeline_options_only_offer_complete_longer_ranges(self):
-        self.assertEqual(available_timelines(100), ("1Y", "Max"))
-        self.assertEqual(available_timelines(755), ("1Y", "Max"))
-        self.assertEqual(available_timelines(756), ("1Y", "3Y", "Max"))
-        self.assertEqual(available_timelines(1259), ("1Y", "3Y", "Max"))
-        self.assertEqual(available_timelines(1260), ("1Y", "3Y", "5Y", "Max"))
+        self.assertEqual(available_timelines(100), ("3M", "6M", "9M", "1Y", "Max"))
+        self.assertEqual(available_timelines(755), ("3M", "6M", "9M", "1Y", "Max"))
+        self.assertEqual(available_timelines(756), ("3M", "6M", "9M", "1Y", "3Y", "Max"))
+        self.assertEqual(available_timelines(1259), ("3M", "6M", "9M", "1Y", "3Y", "Max"))
+        self.assertEqual(available_timelines(1260), ("3M", "6M", "9M", "1Y", "3Y", "5Y", "Max"))
 
     def test_timeline_windows_show_latest_sessions(self):
         view = ChartViewport(1260)
-        for label, bounds in [("1Y", (1008,1259)), ("3Y", (504,1259)),
+        for label, bounds in [("3M", (1197,1259)), ("6M", (1134,1259)), ("9M", (1071,1259)),
+                              ("1Y", (1008,1259)), ("3Y", (504,1259)),
                               ("5Y", (0,1259)), ("Max", (0,1259))]:
             view.show_timeline(label)
             self.assertEqual(view.bounds, bounds)
@@ -83,6 +84,27 @@ class ViewportTests(unittest.TestCase):
         view.show_timeline("Max")
         self.assertEqual(view.bounds, (0,1259))
 
+    def test_month_presets_use_calendar_boundaries_and_leap_day(self):
+        dates=("2023-08-30","2023-08-31","2023-11-29","2023-11-30",
+               "2024-02-28","2024-02-29","2024-05-30","2024-05-31")
+        view=ChartViewport(len(dates))
+        view.dates=dates
+        for label,start in (("3M",5),("6M",3),("9M",1)):
+            view.show_timeline(label)
+            self.assertEqual(view.bounds,(start,7))
+            view.select(start,6)
+            view.reset()
+            self.assertEqual(view.bounds,(start,7))
+
+    def test_month_end_without_a_close_uses_next_available_session(self):
+        view=ChartViewport(4)
+        view.dates=("2026-05-29","2026-06-01","2026-06-02","2026-08-31")
+        view.show_timeline("3M")  # May 31 is a Sunday.
+        self.assertEqual(view.bounds,(1,3))
+        view.dates=("2023-02-27","2023-02-28","2023-03-01","2023-05-31")
+        view.show_timeline("3M")  # February clamps to 28 in a non-leap year.
+        self.assertEqual(view.bounds,(1,3))
+
     def test_short_and_empty_history_timeline_handling(self):
         for count, bounds in [(0,(0,0)), (100,(0,99))]:
             view = ChartViewport(count)
@@ -92,6 +114,10 @@ class ViewportTests(unittest.TestCase):
                 view.show_timeline("3Y")
             with self.assertRaises(ValueError):
                 view.show_timeline("5Y")
+        view=ChartViewport(20)
+        for label in ("3M","6M","9M"):
+            view.show_timeline(label)
+            self.assertEqual(view.bounds,(0,19))
 
 
 class PinchTests(unittest.TestCase):

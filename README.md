@@ -1,12 +1,13 @@
 # SMA Stock Analyzer
 
-**0.11.2:** fixes the next Android and iPhone build failures: source downloads
-returning HTTP 504. Both workflows now fetch and verify pinned archives directly
-from GitHub's archive server before compilation; iPhone's separate Kivy version
-probe also uses the cache. Read the
+**0.12.0:** adds 3M, 6M and 9M chart views, simplifies chart/result copy and starts
+the VOO guided example at 4 upward crossings per year. The guide's investment
+horizon defaults to Max and offers the same presets and Custom input as the
+main backtesting section. Read the
 [iPhone download/install guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_11_2.md). See the
+[release notes](docs/RELEASE_0_12_0.md) and
+[updated UI screenshots](docs/design/ui-0.12.0/README.md). See the
 [centred palette screenshots](docs/design/ui-0.11.0/README.md),
 [app flow](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
@@ -33,7 +34,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.11.2 is
+keeps desktop fetching interactive. Android 0.12.0 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided
@@ -131,8 +132,11 @@ The app opens on **My SMA library**. Yahoo mode shows saved real-company SMAs
 and puts **New analysis** first when none exist. It starts with no selected
 company or prices; old synthetic saves remain separate. The offline demo's
 first card introduces moving averages and upward crossing buy signals.
-**See the guided example** opens a three-year
-simulation with frequency choices and investment comparisons. The guide explains
+**See the guided example** loads Vanguard S&P 500 ETF (VOO) in live mode, with
+4/year selected initially and other frequencies available. Its investment
+horizon starts at Max; choose 1Y, 3Y, 5Y or Custom years to compare a different
+period without fetching again or reoptimizing the SMA. Explicit demo mode uses
+an isolated fictional history. The guide explains
 possible recovery signals, SMA lag, false crossings and the risk of subsequent falls.
 
 **New analysis → Search → Parameters → Optimize SMA → Results** is the main
@@ -153,8 +157,9 @@ The footer reports the percentage of the 500 random scenarios with an arithmetic
 mean purchase price higher than a's mean crossing price. See the desktop guide
 for exact mode/tie and percentile rules. This price rank is not necessarily an
 ending-value rank. **View all upward crossings** retains the full event list.
-Prices/dates are synthetic; crossing fills use interpolated daily-line
-intersections, not observed intraday trades.
+Live mode uses real dated adjusted closes; explicit demo mode uses synthetic
+prices/dates. Crossing fills use interpolated daily-line intersections, not
+observed intraday trades.
 
 **Screen 2b** is a partial saved-lines bottom sheet. Saving a new configuration
 opens it automatically; the fixed top Saved SMAs menu also opens/closes it. Swipe
@@ -211,9 +216,11 @@ is hidden. The chart's plus markers describe **all currently visible SMA lines**
 
 The rounded dropdown below the counter/scenario title starts at **1Y** whenever
 an app session or a new counter/scenario starts. Its label and downward arrow
-share one clickable area. Choose **1Y**, **3Y**, **5Y**, or **Max**; 3Y is omitted
-below 756 sessions and 5Y below 1,260. 1Y clamps to all data if less than a year
-is available, and Max shows everything. The latest sessions are always used.
+share one clickable area. Choose **3M**, **6M**, **9M**, **1Y**, **3Y**, **5Y**, or
+**Max**. Live histories use calendar months/years ending at the latest close,
+with the first available session on or after the cutoff. Short presets clamp
+to the available history; 3Y/5Y are offered only when that span is available.
+Max shows all downloaded history. Demo-only ranges use 252 sessions per year.
 
 Timeline changes do not alter the optimizer's input or crossing statistics.
 Re-selecting a preset resets any custom drag zoom within that preset. Gold/teal
@@ -223,7 +230,7 @@ symbol identifies upward crossings, without color-name prefixes or colons.
 ### Inspect EOD prices and pinch to zoom
 
 Drag one finger inside the plot to move a vertical cursor to the nearest EOD
-point. Its tooltip shows the simulated date, close and selected SMA's value,
+point. Its tooltip shows the date, close and selected SMA's value,
 including when that SMA is hidden. Warm-up/gap values are labelled unavailable.
 The cursor remains on release; this gesture never zooms.
 
@@ -231,7 +238,7 @@ Two fingers switch the chart into pinch mode: spread to zoom in, bring them
 closer to zoom out, around their midpoint. Lifting one finger ends the pinch;
 the remaining finger cannot accidentally change the range or start a cursor.
 Use **Zoom out**, or reselect a timeline preset, to restore the preset's range.
-1Y, 3Y, 5Y and Max quick views remain. Prices and SMA values still use the full
+3M, 6M, 9M, 1Y, 3Y, 5Y and Max quick views remain. Prices and SMA values still use the full
 history; chart gestures do not change crossing statistics or the backtest period.
 Page scrolling remains available outside the plot.
 

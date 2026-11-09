@@ -47,6 +47,14 @@
   custom colour overrides; retain choices through archive/restore and upgrades.
 - Startup availability probes use VOO once per provider lifetime. The live guide
   always uses Vanguard S&P 500 ETF (VOO), independently of the selected security.
+  Its initial target is 4/year and investment horizon Max. Guide horizon changes
+  reuse the lesson's data and SMA without fetching or optimizing again; use the
+  same presets, animated Custom input and keyboard handling as real backtesting.
+- Chart presets include 3M/6M/9M before 1Y. Live ranges use actual calendar months
+  with month-end/leap-day clamping, then the first session on/after the cutoff.
+  Chart zoom and investment horizons remain independent of full-history scoring.
+  Chart descriptive copy is currency plus adjusted daily close and dividend/split
+  inclusion; the old usable-comparisons paragraph above backtesting is removed.
 - Company and ETF issuer logos are bundled PNGs, with no runtime logo API calls.
   Resolve logos for legacy cached identities too; keep issuer metadata portable
   and never substitute a guessed brand for an unknown fund. Preserve asset credits.

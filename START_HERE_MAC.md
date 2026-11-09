@@ -85,7 +85,7 @@ overwrites an existing destination. Close older app copies first.
    completed daily history, which can take longer to analyze.
 3. Plus markers show estimated price/SMA intersections. Drag the mouse across
    the chart to inspect the nearest EOD date, price, and SMA value; this does
-   not zoom. Use **1Y**, **3Y**, **5Y**, or **Max** for quick views. Two-finger
+   not zoom. Use **3M**, **6M**, **9M**, **1Y**, **3Y**, **5Y**, or **Max** for quick views. Two-finger
    zoom requires an input device/provider that supplies two touches to Kivy;
    a normal laptop mouse supplies one pointer. **Zoom out** restores a preset.
 4. Scroll to section **03 / Backtesting**. Its independent period dropdown sits
@@ -151,7 +151,9 @@ This UI update adds a moving indicator during optimization. Press Escape
 to cancel and stay on the selected company/target. Saved or cached targets still
 open immediately. See [UI motion and banner behavior](docs/UI_MOTION_AND_ALERTS.md).
 The startup check uses VOO. The live guided example always uses **Vanguard S&P
-500 ETF (VOO)** and leaves your selected company/analysis intact. On a saved
+500 ETF (VOO)** and leaves your selected company/analysis intact. It starts at
+4 upward crossings/year and a Max investment horizon; both selectors can be
+changed, with Custom years available for the horizon. On a saved
 chart, use the palette icon left of the pencil to select one of 12 line colours.
 DBS and recognized ETF providers use [bundled offline logos](docs/OFFLINE_LOGO_CATALOGUE.md).
 

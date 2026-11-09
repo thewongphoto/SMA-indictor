@@ -41,7 +41,7 @@ class RealDateTests(unittest.TestCase):
 
     def test_chart_calendar_presets_cover_actual_dates_and_max_covers_every_bar(self):
         dates=("2020-01-02","2021-01-04","2022-01-04","2023-01-04","2024-01-04","2025-01-06","2026-01-05")
-        self.assertEqual(available_timelines(len(dates),dates),("1Y","3Y","5Y","Max"))
+        self.assertEqual(available_timelines(len(dates),dates),("3M","6M","9M","1Y","3Y","5Y","Max"))
         view=ChartViewport(len(dates))
         view.dates=dates
         view.show_timeline("1Y")

@@ -400,7 +400,7 @@ class AnalyzerScreen(FloatLayout):
                                          pos_hint={"center_y": 0.5})
         self.zoom_out_button.height = dp(36)
         plot_panel.add_widget(self.plot_header)
-        self.timeline_selector = TimelineSelector(values=("1Y", "Max"))
+        self.timeline_selector = TimelineSelector(values=available_timelines(0))
         plot_panel.add_widget(self.timeline_selector)
         self.plot_subtitle = WrappedLabel(text="", color=MUTED, font_size=sp(11))
         plot_panel.add_widget(self.plot_subtitle)
@@ -410,9 +410,6 @@ class AnalyzerScreen(FloatLayout):
         self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
         self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
-        plot_panel.add_widget(WrappedLabel(text="Drag one finger to inspect "
-            + ("adjusted daily prices." if self.yahoo_enabled else "EOD prices.")
-            + " Pinch with two fingers to zoom in/out.",font_size=sp(11),color=MUTED))
         legend_holder = AnchorLayout(size_hint_y=None, height=dp(24))
         self.legend = StackLayout(size_hint=(None, None), spacing=(dp(12), dp(2)))
         self.legend.bind(minimum_height=self.legend.setter("height"))
@@ -444,8 +441,6 @@ class AnalyzerScreen(FloatLayout):
             self.card_values[key] = value
             self.cards.add_widget(card)
         self.content.add_widget(self.cards)
-        self.explanation = WrappedLabel(text="", color=MUTED, font_size=sp(12))
-        self.content.add_widget(self.explanation)
         self.saved_panel = Panel()
         self.saved_sheet = SavedLinesSheet(self, self.saved_panel)
         self.optimization_overlay=OptimizationOverlay(self)
@@ -612,7 +607,7 @@ class AnalyzerScreen(FloatLayout):
             self.guide_content.add_widget(self.guide_identity)
         for text in (RECOVERY_HELP,RISK_HELP):
             self.guide_content.add_widget(WrappedLabel(text=text,color=MUTED))
-        self.guide_target = choice("12 / year",("1 / year","6 / year","12 / year"))
+        self.guide_target = choice("4 / year",("1 / year","4 / year","6 / year","12 / year"))
         self.guide_target.bind(on_select=self._load_guide)
         self.guide_content.add_widget(WrappedLabel(text="Try a target upward crossing frequency"))
         self.guide_content.add_widget(self.guide_target)
@@ -621,9 +616,12 @@ class AnalyzerScreen(FloatLayout):
         self.guide_chart = PriceChart(size_hint_y=None,height=dp(280))
         self.guide_scroll.chart = self.guide_chart
         self.guide_content.add_widget(self.guide_chart)
-        self.guide_content.add_widget(WrappedLabel(text=("Turquoise adjusted close (dividends included)" if self.yahoo_enabled
-            else "Turquoise example close") + " · amber SMA/plus crossings. Drag to inspect; pinch to zoom.",color=MUTED,font_size=sp(11)))
+        self.guide_price_note = WrappedLabel(text="", color=MUTED, font_size=sp(11))
+        self.guide_content.add_widget(self.guide_price_note)
         self.guide_content.add_widget(WrappedLabel(text=COMPARISON_HELP,color=MUTED))
+        (self.guide_backtest_heading, self.guide_backtest_period,
+         self.guide_backtest_years, self.guide_backtest_custom_holder) = self._add_investment_horizon(
+            self.guide_content, self._refresh_guide_backtest, default="Max")
         self.guide_values = WrappedLabel(text="",bold=True)
         self.guide_content.add_widget(self.guide_values)
         self.guide_start_button = LabButton(text="Choose my own security",primary=True)
@@ -638,6 +636,8 @@ class AnalyzerScreen(FloatLayout):
         self._guide_job += 1
         token = self._guide_job
         self.guide_busy = True
+        self.guide_lesson = None
+        self.guide_values.text = ""
         self.guide_status.text = "Loading the historical example…" if self.yahoo_enabled else "Calculating the educational example…"
         target = int(self.guide_target.text.split()[0])
         def work():
@@ -659,17 +659,42 @@ class AnalyzerScreen(FloatLayout):
         self.guide_busy = False
         try:
             lesson = self.guide_lesson = future.result()
-            result,report = lesson.result,lesson.report
+            result = lesson.result
             self.guide_chart.update(lesson.dataset.prices,
                 [PlotLine("guide",result.period,result.target_frequency,result.sma,True)],
                 lesson.dataset.dates,(result.period,result.sma),calendar_dates=self.yahoo_enabled,
                 price_label="Adj. close" if self.yahoo_enabled else "EOD")
             self.guide_chart.set_timeline("3Y" if "3Y" in available_timelines(
                 len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
-            name = f"{GUIDE_NAME} ({GUIDE_SYMBOL})" if self.yahoo_enabled else "Educational example"
+            self.guide_price_note.text = (f"{lesson.dataset.currency} adjusted daily close\nDividends and splits included"
+                                         if self.yahoo_enabled else "Example daily close")
             if self.yahoo_enabled:
                 self.guide_identity.set_security(replace(self.model.security(lesson.dataset.counter),name=GUIDE_NAME))
-            self.guide_status.text = (f"{name} · {lesson.dataset.dates[report.start]} – {lesson.dataset.dates[report.end]}\n"
+            self._refresh_guide_backtest()
+            if self.yahoo_enabled:
+                self._update_api_status()
+        except Exception as error:
+            logging.exception("Guided example failed")
+            self.guide_lesson = None
+            self.guide_values.text = ""
+            self.guide_status.text = display_text(f"Could not load the example: {error}. Open it again to retry.")
+
+    def _refresh_guide_backtest(self, *_):
+        custom = self.guide_backtest_period.text == "Custom"
+        if not custom:
+            self.guide_backtest_years.focus = False
+        self.guide_backtest_custom_holder.show(custom, animate=True)
+        if self.guide_busy or self.guide_lesson is None:
+            return
+        try:
+            data, result = self.guide_lesson.dataset, self.guide_lesson.result
+            dates = data.dates if not getattr(data, "is_simulated", True) else None
+            sessions = period_sessions(self.guide_backtest_period.text, self.guide_backtest_years.text,
+                                       len(data.prices), dates)
+            report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
+            self.guide_lesson = replace(self.guide_lesson, report=report)
+            name = f"{GUIDE_NAME} ({GUIDE_SYMBOL})" if self.yahoo_enabled else "Educational example"
+            self.guide_status.text = (f"{name} · {data.dates[report.start]} – {data.dates[report.end]}\n"
                 f"{sma_label(result.period)} · "
                 f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
                 f"{len(report.crossings.indices)} buys per comparison")
@@ -681,11 +706,8 @@ class AnalyzerScreen(FloatLayout):
                 difference = "N/A" if delta is None else f"{delta:+.2f}%"
                 values.append(f"{title}: {prefix}{scenario.ending_value:,.2f} ({difference} vs a)")
             self.guide_values.text = "\n".join(values)
-            if self.yahoo_enabled:
-                self._update_api_status()
-        except Exception as error:
-            logging.exception("Guided example failed")
-            self.guide_status.text = display_text(f"Could not load the example: {error}. Open it again to retry.")
+        except ValueError as error:
+            self.guide_values.text = str(error)
 
     def show_parameters(self, *_):
         if self.yahoo_enabled and not self.model.dataset.prices:
@@ -764,7 +786,7 @@ class AnalyzerScreen(FloatLayout):
 
     @property
     def editors(self):
-        return (self.security_search, self.custom_target, self.alert_session) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ()) + ((self.rename_editor,) if hasattr(self,"rename_editor") else ())
+        return (self.security_search, self.custom_target, self.alert_session, self.guide_backtest_years) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ()) + ((self.rename_editor,) if hasattr(self,"rename_editor") else ())
 
     def finish_editing(self):
         for editor in self.editors:
@@ -825,6 +847,7 @@ class AnalyzerScreen(FloatLayout):
                     return
                 scroll = (self.search_scroll if editor is self.security_search else
                           self.parameter_scroll if editor is self.custom_target else
+                          self.guide_scroll if editor is self.guide_backtest_years else
                           self.scroll if editor is getattr(self, "backtest_years", None) else self.settings_scroll)
                 scroll.scroll_to(editor, padding=dp(20), animate=False)
                 break
@@ -1322,18 +1345,6 @@ class AnalyzerScreen(FloatLayout):
         self.optimal_caption.text = ("SAVED SMA" if self.model.viewing_saved else
                                      "SELECTED SMA" if self.model.period_preserved else "OPTIMAL SMA")
         self.hide_button.text = "Hide SMA" if self.model.active_visible else "Show SMA"
-        result = self.model.result
-        self.explanation.text = (
-            f"Based on {result.comparisons} usable comparisons "
-            f"({result.usable_years:.2f} trading years) from {result.history_sessions} trading days. "
-            f"Target difference: {float(result.frequency_error):.2f}/yr. " +
-            ("Viewing the exact selected period. " if self.model.viewing_saved or self.model.period_preserved else
-             f"SMA search: 2–{maximum_sma_period(result.history_sessions)}. ") +
-            "Warm-up and gaps are excluded. "
-            + ("Parameters have not been re-optimized." if self.model.viewing_saved or self.model.period_preserved else
-               "Ties choose the shorter SMA. " +
-               ("Closest eligible result; target not matched exactly." if result.frequency_error else "Target matched."))
-            if result else "Optimize across all observable history. Warm-up and gaps are excluded from annual frequency.")
         self._refresh_saved()
         self._refresh_table()
 
@@ -1348,21 +1359,9 @@ class AnalyzerScreen(FloatLayout):
                                     data.dates if not getattr(data, "is_simulated", True) else ())
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
-        self.plot_subtitle.text = f"EDUCATIONAL EXAMPLE · {len(data.prices)} trading days · example price units\nCrossing markers estimate daily-line intersections."
+        self.plot_subtitle.text = "Example daily close" if data.prices else ""
         if not getattr(data, "is_simulated", True) and data.prices:
-            from .schedule import SGT
-            fetched = datetime.fromtimestamp(data.fetched_at, SGT).strftime("%Y-%m-%d %H:%M SGT")
-            self.plot_subtitle.text = (f"{data.currency} adjusted daily close · {len(data.prices)} trading days\n"
-                                      f"Last close {data.dates[-1]} · fetched {fetched}\n"
-                                      "Dividends/splits included; crossing fills are daily-line estimates.")
-            if data.stale:
-                self.plot_subtitle.text += "\nSaved data · refresh pending or unavailable."
-        elif not getattr(data, "is_simulated", True):
-            self.plot_subtitle.text = "Choose a company to download daily price history."
-        if data.prices:
-            start, end = self.chart.view_range
-            first,last = max(0,math.ceil(start)),min(len(data.prices)-1,math.floor(end))
-            self.plot_subtitle.text += f"\n{self.chart.timeline} view · {data.dates[first]} – {data.dates[last]}"
+            self.plot_subtitle.text = f"{data.currency} adjusted daily close\nDividends and splits included"
 
     def _refresh_saved(self):
         self.saved_rows = self._populate_saved_panel(self.saved_panel, self.model.library_lines())
@@ -1981,31 +1980,42 @@ class AnalyzerScreen(FloatLayout):
                 table.add_widget(Label(text=value,color=TEXT,font_size=sp(12)))
         return table
 
+    def _add_investment_horizon(self, container, callback, default="1Y"):
+        """Shared horizon/Custom inputs for the guide and the selected SMA."""
+        header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(6))
+        prefix = "USD " if self.yahoo_enabled else "$"
+        heading = WrappedLabel(text=f"If you invested {prefix}100 per buy for the past:", bold=True, font_size=sp(14))
+        heading.pos_hint = {"center_y": .5}
+        header.add_widget(heading)
+        period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
+        period.text = default
+        period.width = dp(112)
+        period.pos_hint = {"center_y": .5}
+        header.add_widget(period)
+        heading.bind(height=lambda _, height: setattr(header, "height", max(dp(48), height)))
+        container.add_widget(header)
+        custom_row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
+        custom_row.bind(minimum_height=custom_row.setter("height"))
+        custom_row.add_widget(WrappedLabel(text="Custom period (years)", font_size=sp(11), color=MUTED))
+        entry = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+        years = CustomValueField(text="2", hint_text="Years")
+        entry.add_widget(years)
+        entry.add_widget(LabButton(text="Apply", on_release=callback, size_hint_x=None, width=dp(82)))
+        custom_row.add_widget(entry)
+        holder = PreferenceReveal(custom_row, detach_when_hidden=True)
+        container.add_widget(holder)
+        period.bind(on_select=callback)
+        years.bind(on_text_validate=callback, focus=self._editor_focus)
+        return heading, period, years, holder
+
     def _refresh_table(self):
         # Keep the controls alive: refreshing after a save/hide must retain the period.
         if not hasattr(self, "backtest_period"):
             self.backtest_section_title=WrappedLabel(text="",font_size=sp(11),color=MUTED)
             self.table_panel.add_widget(self.backtest_section_title)
-            self.backtest_header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(6))
-            self.backtest_heading = WrappedLabel(text="If you invested $100 per buy for the past:", bold=True, font_size=sp(14))
-            self.backtest_heading.pos_hint = {"center_y": .5}
-            self.backtest_header.add_widget(self.backtest_heading)
-            self.backtest_period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
-            self.backtest_period.width = dp(112)
-            self.backtest_period.pos_hint = {"center_y": .5}
-            self.backtest_header.add_widget(self.backtest_period)
-            self.backtest_heading.bind(height=lambda _, height: setattr(self.backtest_header, "height", max(dp(48), height)))
-            self.table_panel.add_widget(self.backtest_header)
-            self.backtest_custom_row = BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(6))
-            self.backtest_custom_row.bind(minimum_height=self.backtest_custom_row.setter("height"))
-            self.backtest_custom_row.add_widget(WrappedLabel(text="Custom period (years)",font_size=sp(11),color=MUTED))
-            custom_entry=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-            self.backtest_years = CustomValueField(text="2",hint_text="Years")
-            custom_entry.add_widget(self.backtest_years)
-            custom_entry.add_widget(LabButton(text="Apply",on_release=self._refresh_backtest,size_hint_x=None,width=dp(82)))
-            self.backtest_custom_row.add_widget(custom_entry)
-            self.backtest_custom_holder=PreferenceReveal(self.backtest_custom_row,detach_when_hidden=True)
-            self.table_panel.add_widget(self.backtest_custom_holder)
+            (self.backtest_heading, self.backtest_period,
+             self.backtest_years, self.backtest_custom_holder) = self._add_investment_horizon(
+                self.table_panel, self._refresh_backtest)
             self.backtest_contribution = WrappedLabel(font_size=sp(13))
             self.table_panel.add_widget(self.backtest_contribution)
             self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(11))
@@ -2056,8 +2066,6 @@ class AnalyzerScreen(FloatLayout):
             self.crossing_details_button = LabButton(text="View all upward crossings")
             self.crossing_details_button.bind(on_release=self.show_more_crossings)
             self.table_panel.add_widget(self.crossing_details_button)
-            self.backtest_period.bind(on_select=self._refresh_backtest)
-            self.backtest_years.bind(on_text_validate=self._refresh_backtest, focus=self._editor_focus)
         self.backtest_section_title.text=f"03  /  BACKTESTING · {self.model.current_line_name()}"
         self._refresh_backtest()
 

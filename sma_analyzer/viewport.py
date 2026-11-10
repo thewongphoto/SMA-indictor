@@ -1,10 +1,11 @@
 """Chart range math, independent of Kivy and the SMA optimization objective."""
 from dataclasses import dataclass
 import math
-from datetime import date
+from datetime import date,timedelta
 from calendar import monthrange
 from bisect import bisect_left
 from .settings import TRADING_SESSIONS_PER_YEAR
+from .policy import CALENDAR_DAYS_PER_YEAR
 
 
 SHORT_TIMELINES = ("3M", "6M", "9M", "1Y")
@@ -22,7 +23,7 @@ def available_timelines(session_count, dates=()):
     if dates:
         last = date.fromisoformat(dates[-1])
         def covered(years):
-            cutoff = months_before(last, years * 12)
+            cutoff = last - timedelta(days=years * CALENDAR_DAYS_PER_YEAR)
             return dates[0] <= cutoff.isoformat()
         return SHORT_TIMELINES + tuple(label for label, years in (("3Y",3),("5Y",5))
                      if covered(years)) + ("Max",)
@@ -72,7 +73,8 @@ class ChartViewport:
         self.base_range = (max(0, self.session_count - sessions), max(0, self.session_count - 1))
         if self.dates and label != "Max":
             last = date.fromisoformat(self.dates[-1])
-            cutoff = months_before(last, months)
+            cutoff = (last - timedelta(days=int(label[:-1]) * CALENDAR_DAYS_PER_YEAR)
+                      if label.endswith("Y") else months_before(last, months))
             self.base_range = (bisect_left(self.dates, cutoff.isoformat()), self.session_count-1)
         self.reset()
 

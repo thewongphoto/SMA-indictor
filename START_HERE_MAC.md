@@ -157,6 +157,11 @@ changed, with Custom years available for the horizon. On a saved
 chart, use the palette icon left of the pencil to select one of 12 line colours.
 DBS and recognized ETF providers use [bundled offline logos](docs/OFFLINE_LOGO_CATALOGUE.md).
 
+The 0.13.1 source uses **365 actual calendar days per year** for live target and
+observed frequencies, including weekends/holidays. SMA periods remain trading
+observations. Saved lines keep their exact periods. See the
+[calendar-year calculation notes](docs/CALENDAR_YEAR_FREQUENCY.md).
+
 Version 0.13.0 adds an opening reminder alongside the two closing signal types.
 Desktop still tests interactive data/UI only. Use the Android
 [background notification test](docs/ANDROID_DAILY_NOTIFICATIONS.md) on the APK;

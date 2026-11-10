@@ -161,7 +161,7 @@ class MotionSmoke(FlowSmoke):
         cancelled=[Event(),Event()]
         self.releases=releases
         jobs=[]
-        def delayed(prices,target,*,cancel):
+        def delayed(prices,target,*,cancel,dates=None):
             index=len(jobs)
             jobs.append(target)
             starts[index].set()

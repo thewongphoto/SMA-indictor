@@ -8,6 +8,7 @@ from statistics import median
 from datetime import date, timedelta
 
 from .settings import TRADING_SESSIONS_PER_YEAR
+from .policy import CALENDAR_DAYS_PER_YEAR
 
 RANDOM_SCENARIOS = 500
 
@@ -27,12 +28,7 @@ def period_sessions(label, custom_years, history_length, dates=None):
         raise ValueError("Enter a positive number of years (up to 100, at least 2 trading days).") from None
     if dates:
         end = date.fromisoformat(dates[-1])
-        whole = int(years)
-        try:
-            cutoff = end.replace(year=end.year-whole)
-        except ValueError:
-            cutoff = end.replace(year=end.year-whole, day=28)
-        cutoff -= timedelta(days=float(years-whole) * 365.2425)
+        cutoff = end - timedelta(days=float(years * CALENDAR_DAYS_PER_YEAR))
         return max(1, history_length-bisect_left(dates, cutoff.isoformat()))
     return min(history_length, sessions)
 

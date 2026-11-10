@@ -14,7 +14,8 @@ import time
 from numbers import Real
 from typing import Iterable, Sequence
 
-from .policy import annual_frequency, maximum_sma_period, observable_comparisons
+from .policy import (annual_frequency, maximum_sma_period, observable_comparisons,
+                     calendar_weights, observable_calendar_days, CALENDAR_DAYS_PER_YEAR)
 from .settings import TRADING_SESSIONS_PER_YEAR
 
 Price = float | None
@@ -119,6 +120,7 @@ class OptimizationResult:
     comparisons: int
     sma: tuple[Price, ...]
     events: tuple[Crossover, ...]
+    calendar_days: int | None = None
 
     @property
     def crossing_count(self) -> int:
@@ -126,7 +128,7 @@ class OptimizationResult:
 
     @property
     def frequency(self):
-        return annual_frequency(self.crossing_count, self.comparisons)
+        return annual_frequency(self.crossing_count, self.comparisons, self.calendar_days)
 
     @property
     def actual_annual_frequency(self) -> float:
@@ -138,7 +140,8 @@ class OptimizationResult:
 
     @property
     def usable_years(self) -> float:
-        return self.comparisons / TRADING_SESSIONS_PER_YEAR
+        return (self.calendar_days / CALENDAR_DAYS_PER_YEAR if self.calendar_days is not None
+                else self.comparisons / TRADING_SESSIONS_PER_YEAR)
 
     @property
     def target_crossings(self) -> float:
@@ -147,7 +150,7 @@ class OptimizationResult:
 
 def optimize_sma(
     prices: Sequence[Price], target_frequency: int, candidates: Iterable[int] | None = None,
-    *, cancel=None, use_fast=True,
+    *, cancel=None, use_fast=True, dates=None,
 ) -> OptimizationResult:
     """Minimize annual-frequency error across all observable history.
 
@@ -161,6 +164,7 @@ def optimize_sma(
     values = _prices(prices)
     if len(values) < 4:
         raise ValueError("At least 4 trading days are needed to optimize an SMA.")
+    weights = calendar_weights(dates, len(values))
     cap = maximum_sma_period(len(values))
     minimum = len(values) - cap
     periods = list(range(2, cap + 1)) if candidates is None else list(candidates)
@@ -171,7 +175,7 @@ def optimize_sma(
         if not 2 <= period <= cap:
             raise ValueError(f"Candidate periods must be between 2 and {cap} for this history.")
     if use_fast and len(values) > 1600:
-        result = _fast_optimization(values, periods, minimum, target_frequency, cancel)
+        result = _fast_optimization(values, periods, minimum, target_frequency, cancel, weights)
         if result is not None:
             return result
     budget=_OptimizationBudget(cancel) if cancel is not None else None
@@ -179,10 +183,10 @@ def optimize_sma(
     for period in sorted(set(periods)):
         if cancel is not None and cancel.is_set():
             raise ValueError("Optimization cancelled.")
-        count, comparisons = _rolling_score(values,period,budget)
+        count, comparisons, elapsed = _score_observations(values,period,budget,weights)
         if comparisons < minimum:
             continue
-        key = (abs(annual_frequency(count,comparisons)-target_frequency),period)
+        key = (abs(annual_frequency(count,comparisons,elapsed)-target_frequency),period)
         if best_key is None or key < best_key:
             best_key, best_period = key, period
     if best_period is None:
@@ -191,7 +195,7 @@ def optimize_sma(
     average = tuple(simple_moving_average(values,best_period))
     return OptimizationResult(best_period,target_frequency,len(values),
                               observable_comparisons(values,average),average,
-                              crossover_events(values,average))
+                              crossover_events(values,average),observable_calendar_days(values,average,weights))
 
 
 class _OptimizationBudget:
@@ -209,6 +213,10 @@ class _OptimizationBudget:
 
 
 def _rolling_score(values, period,budget=None):
+    return _score_observations(values,period,budget)[:2]
+
+
+def _score_observations(values, period,budget=None,weights=None):
     """One-pass candidate scoring with the reference rolling arithmetic.
 
     Avoids re-validating and allocating several full arrays/events per candidate
@@ -216,6 +224,7 @@ def _rolling_score(values, period,budget=None):
     reference functions; only the final winning result builds display arrays.
     """
     total, run, previous_side, previous_valid, count, comparisons = 0.0, 0, None, False, 0, 0
+    elapsed = 0 if weights is not None else None
     for index, price in enumerate(values):
         if budget is not None and index%512==0:
             budget.checkpoint()
@@ -234,16 +243,18 @@ def _rolling_score(values, period,budget=None):
             continue
         if previous_valid:
             comparisons += 1
+            if weights is not None:
+                elapsed += weights[index]
         previous_valid = True
         side = 1 if price > average else -1 if price < average else 0
         if side:
             if previous_side == -1 and side == 1:
                 count += 1
             previous_side = side
-    return count, comparisons
+    return count, comparisons, elapsed
 
 
-def _fast_optimization(values, periods, minimum, target, cancel):
+def _fast_optimization(values, periods, minimum, target, cancel, weights=None):
     """Vectorized exhaustive scoring; exact reference output for the winner.
 
     Prefix arithmetic can differ from rolling arithmetic near equality. Such
@@ -257,6 +268,7 @@ def _fast_optimization(values, periods, minimum, target, cancel):
         return None
     array = np.array([np.nan if x is None else x for x in values], dtype=float)
     finite = np.isfinite(array)
+    day_weights = None if weights is None else np.array(weights, dtype=np.int64)
     clean = np.where(finite, array, 0)
     prefix = np.concatenate(([0.0], np.cumsum(clean)))
     missing = np.concatenate(([0], np.cumsum(~finite)))
@@ -275,16 +287,18 @@ def _fast_optimization(values, periods, minimum, target, cancel):
         comparisons = int(np.count_nonzero(valid[1:] & valid[:-1]))
         if comparisons < minimum:
             continue
+        elapsed = None if day_weights is None else int(np.sum(day_weights[1:][valid[1:] & valid[:-1]]))
         delta = array - average
         bound = accumulated_error * (sum_abs / period + peak)
         if np.any(np.abs(delta[valid]) <= bound):
             exact = simple_moving_average(values, period)
             comparisons = observable_comparisons(values, exact)
             count = len(crossover_events(values, exact))
+            elapsed = observable_calendar_days(values,exact,weights)
         else:
             tokens = np.where(valid, np.sign(delta), 0)[np.flatnonzero(~valid | (delta != 0))]
             count = int(np.count_nonzero((tokens[:-1] == -1) & (tokens[1:] == 1)))
-        key = (abs(annual_frequency(count, comparisons) - target), period)
+        key = (abs(annual_frequency(count, comparisons,elapsed) - target), period)
         if best_key is None or key < best_key:
             best_key, best_period = key, period
     if best_period is None:
@@ -292,6 +306,6 @@ def _fast_optimization(values, periods, minimum, target, cancel):
     average = tuple(simple_moving_average(values, best_period))
     result = OptimizationResult(best_period, target, len(values),
                                 observable_comparisons(values, average), average,
-                                crossover_events(values, average))
+                                crossover_events(values, average),observable_calendar_days(values,average,weights))
     # Retain the reference route as a safety fallback for an unexpected numeric discrepancy.
     return result if (result.frequency_error, result.period) == best_key else None

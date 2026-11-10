@@ -40,7 +40,7 @@ from .navigation import SavedLinesSheet, BottomSheet, SoftPageTransition, Optimi
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .engine import optimize_sma
-from .policy import maximum_sma_period
+from .policy import maximum_sma_period,CALENDAR_DAYS_PER_YEAR
 from .model import AnalyzerModel, PlotLine
 from .guide import INTRODUCTION, RECOVERY_HELP, RISK_HELP, COMPARISON_HELP, calculate_lesson
 from .settings import ALLOW_CUSTOM_TARGET, SCENARIOS, TARGET_FREQUENCIES
@@ -334,6 +334,9 @@ class AnalyzerScreen(FloatLayout):
         target_values = tuple(f"{n} / year" for n in TARGET_FREQUENCIES) + (("Custom",) if ALLOW_CUSTOM_TARGET else ())
         self.target = choice(f"{model.target_frequency} / year", target_values)
         target_row.add_widget(self.target)
+        if self.yahoo_enabled:
+            target_row.add_widget(WrappedLabel(text="1 year = 365 calendar days, including weekends and holidays.",
+                                              color=MUTED,font_size=sp(11)))
         self.custom_target = CustomValueField(text="9")
         self.target_row = target_row
         self.target_cell=field("TARGET CROSSINGS", target_row)
@@ -611,6 +614,9 @@ class AnalyzerScreen(FloatLayout):
         self.guide_target.bind(on_select=self._load_guide)
         self.guide_content.add_widget(WrappedLabel(text="Try a target upward crossing frequency"))
         self.guide_content.add_widget(self.guide_target)
+        if self.yahoo_enabled:
+            self.guide_content.add_widget(WrappedLabel(text="1 year = 365 calendar days, including weekends and holidays.",
+                                                       color=MUTED,font_size=sp(11)))
         self.guide_status = WrappedLabel(text="",color=MUTED)
         self.guide_content.add_widget(self.guide_status)
         self.guide_chart = PriceChart(size_hint_y=None,height=dp(280))
@@ -1148,7 +1154,8 @@ class AnalyzerScreen(FloatLayout):
         self._cancel_optimization.set()
         self._cancel_optimization = Event()
         future = self.executor.submit(optimize_sma, self.model.dataset.prices, self.model.target_frequency,
-                                      cancel=self._cancel_optimization)
+            cancel=self._cancel_optimization,
+            dates=None if getattr(self.model.dataset,"is_simulated",True) else self.model.dataset.dates)
         future.add_done_callback(lambda completed: Clock.schedule_once(
             lambda _dt: self._complete(completed, token), 0))
 
@@ -2210,7 +2217,7 @@ class AnalyzerScreen(FloatLayout):
             count = len(report.crossings.indices)
             self._set_backtest_captions(count)
             from datetime import date
-            years = ((date.fromisoformat(data.dates[report.end])-date.fromisoformat(data.dates[report.start])).days/365.2425
+            years = ((date.fromisoformat(data.dates[report.end])-date.fromisoformat(data.dates[report.start])).days/CALENDAR_DAYS_PER_YEAR
                      if dates else (report.end-report.start+1)/252)
             prefix = "USD " if dates else "$"
             self.backtest_contribution.text = (f"Over {years:.2f} years, following {count} upward crossings, "

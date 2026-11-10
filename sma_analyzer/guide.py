@@ -45,6 +45,6 @@ def calculate_lesson(target, data=None, period="Max", custom_years=""):
     from .backtest import period_sessions
     dates = data.dates if not getattr(data, "is_simulated", True) else None
     sessions = period_sessions(period, custom_years, len(data.prices), dates)
-    result = optimize_sma(data.prices, target)
+    result = optimize_sma(data.prices, target, dates=dates)
     report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
     return Lesson(data, result, report)

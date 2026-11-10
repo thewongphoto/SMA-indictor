@@ -7,7 +7,7 @@ import math
 from .engine import OptimizationResult, Price, crossover_events, optimize_sma, simple_moving_average
 from .market_data import PreviewMarketDataProvider
 from .securities import security_by_key
-from .policy import observable_comparisons
+from .policy import observable_comparisons,calendar_weights,observable_calendar_days
 from .storage import LineStore, SavedLine
 from .line_names import sma_label
 
@@ -74,7 +74,8 @@ class AnalyzerModel:
     def data_fingerprint(self):
         if self._fingerprint_cache is None or self._fingerprint_cache[0] is not self.dataset:
             data = self.dataset
-            payload = json.dumps((2,data.version,getattr(data,"price_basis","example-close"),data.dates,
+            policy_version = 2 if getattr(data,"is_simulated",True) else 3
+            payload = json.dumps((policy_version,data.version,getattr(data,"price_basis","example-close"),data.dates,
                 [float(p) if p is not None and math.isfinite(p) else None for p in data.prices]),
                 separators=(",",":"),allow_nan=False).encode()
             self._fingerprint_cache = (data,hashlib.sha256(payload).hexdigest())
@@ -118,7 +119,8 @@ class AnalyzerModel:
 
     def calculate(self) -> OptimizationResult:
         """Synchronous route for tests and non-UI clients."""
-        result = optimize_sma(self.dataset.prices, self.target_frequency)
+        result = optimize_sma(self.dataset.prices, self.target_frequency,
+                              dates=None if getattr(self.dataset,"is_simulated",True) else self.dataset.dates)
         self.remember_result(result)
         self.apply_result(result)
         return result
@@ -147,7 +149,8 @@ class AnalyzerModel:
         if not comparisons:
             raise ValueError("Not enough observable history to display this saved SMA.")
         return OptimizationResult(period, target, len(data.prices), comparisons,
-                                  average, crossover_events(data.prices, average))
+            average, crossover_events(data.prices, average),observable_calendar_days(data.prices,average,
+                calendar_weights(None if getattr(data,"is_simulated",True) else data.dates,len(data.prices))))
 
     def prepare_saved_line(self, line_id):
         line = self.store.get_line(line_id)

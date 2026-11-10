@@ -1,5 +1,11 @@
 # SMA Stock Analyzer
 
+**Next-build source update (0.13.1):** live “per year” now means exactly
+**365 calendar days**, including weekends and holidays. See the
+[calculation and compatibility notes](docs/CALENDAR_YEAR_FREQUENCY.md).
+The [four logo proposals](docs/design/logo-proposals/README.md) are also available
+for review; the app icon has not been changed.
+
 **0.13.0:** replaces Android's fragile background-service startup path, adds
 detailed scheduler diagnostics and a real background-path test button, and adds
 **Impending buy signal (Start of trading)**. US reminders target 9:30pm and SGX
@@ -354,10 +360,13 @@ observations. Warm-up, gaps, and re-warm-up are excluded. With complete history
 and period N there are **H-N comparisons**: the first SMA supplies a baseline.
 
 ```text
-usable years = observable comparisons / 252
+live usable years = observable calendar days / 365
 actual crossings/year = crossing count / usable years
 error = abs(actual crossings/year - selected target/year)
 ```
+
+Live elapsed days are measured between usable dated closes, including weekends
+and holidays. Date-free legacy/demo experiments retain comparisons / 252.
 
 All observable history contributes, not just the last year or the zoomed region.
 Smallest annual-frequency error wins; exact rational ties choose the shorter

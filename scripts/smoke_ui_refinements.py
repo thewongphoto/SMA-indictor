@@ -57,6 +57,7 @@ class RefinementSmoke(MobileYahooSmoke):
         assert ui.guide_chart.viewport.dates==ui.guide_lesson.dataset.dates
         assert ui.guide_chart.prices==tuple(b["adj_close"] for b in self.client.bars)
         assert ui.guide_chart.price_label=="Adj. close"
+        assert ui.guide_lesson.result.calendar_days is not None
         assert ui.guide_target.text=="4 / year" and ui.guide_lesson.result.target_frequency==4
         assert ui.guide_backtest_period.text=="Max" and ui.guide_lesson.report.start==0
         yield from self.frames()
@@ -108,6 +109,11 @@ class RefinementSmoke(MobileYahooSmoke):
         ui.on_optimize()
         yield lambda:not ui.busy
         result=ui.model.result
+        from datetime import date
+        elapsed=(date.fromisoformat(ui.model.dataset.dates[-1])-
+                 date.fromisoformat(ui.model.dataset.dates[result.period-1])).days
+        assert result.calendar_days==elapsed
+        assert result.actual_annual_frequency==result.crossing_count*365/elapsed
         assert ui.plot_subtitle.text=="USD adjusted daily close\nDividends and splits included"
         assert ui.guide_price_note.text=="USD adjusted daily close\nDividends and splits included"
         assert not hasattr(ui,"explanation")

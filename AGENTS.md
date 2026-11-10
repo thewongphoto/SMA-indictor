@@ -7,6 +7,15 @@
   for both platforms. Keep OS-specific delivery and scheduling in adapters.
 - Persist real session dates, IANA timezones, quotation currencies and UTC
   timestamps. Never identify live alert events only by a shifting row index.
+- Live target/observed annual frequency uses exactly 365 calendar days: sum
+  elapsed days between adjacent observable closes, including weekends/holidays,
+  then crossings × 365 / observable calendar days. Retain warm-up/gap exclusion,
+  exact Fraction ties and identical NumPy/mobile scoring. Always pass live dates
+  through optimization, saved-result reconstruction and the guide. Date-free
+  legacy/demo fixtures alone retain their old 252-session approximation.
+  Live yearly view/backtest horizons also use 365 days per year; monthly presets
+  remain calendar months. Invalidate derived optimizer choices by policy version,
+  but never retune/delete saved SMA periods, colours, names or alert preferences.
 - Keep existing simulated saves and their archive distinct from Yahoo history.
   Never relabel synthetic dates/prices as real data.
 - Yahoo data is currently for private personal use. Cached market histories,

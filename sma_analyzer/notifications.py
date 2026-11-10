@@ -32,6 +32,12 @@ class NotificationSettings:
     phone_monitor: bool = True
     email_buy: bool = False
     email_monitor: bool = False
+    phone_monitor_start: bool = True
+
+
+def signal_title(kind):
+    return {"buy": "Buy signal", "monitor": "Impending buy signal (End of trading)",
+            "monitor_start": "Impending buy signal (Start of trading)", "test": "Test notification"}[kind]
 
 
 def validate_email(value: str) -> str:
@@ -64,6 +70,7 @@ class Alert:
     session_date: str = ""
     source: str = "preview"
     presentation: NotificationPresentation = NotificationPresentation()
+    reference_date: str = ""
 
     @property
     def key(self) -> str:
@@ -105,7 +112,7 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
             kind, subject = "buy", f"Buy Signal for {line.counter}"
             body = f"Buy Signal: {line.counter} has crossed above {sma_label(line.period)}, target {line.target_frequency} /year"
         elif price < average and monitor:
-            kind, subject = "monitor", f"Impending buy signal for {line.counter}"
+            kind, subject = "monitor", f"Impending buy signal (End of trading) for {line.counter}"
             body = f"Monitor: {line.counter} has closed below {sma_label(line.period)}, target {line.target_frequency} /year"
         else:
             continue
@@ -127,7 +134,7 @@ def evaluate_dataset_eod(dataset, line, settings, session=None):
     symbol=dataset.counter.split(":",1)[-1]
     result=[]
     for alert in alerts:
-        title="Buy signal" if alert.kind=="buy" else "Impending buy signal"
+        title=signal_title(alert.kind)
         movement="crossed above" if alert.kind=="buy" else "closed below"
         result.append(replace(alert,source=dataset.source,session_date=dataset.dates[alert.session-1],
             subject=f"{line.display_name} · {title} for {symbol}",
@@ -135,6 +142,34 @@ def evaluate_dataset_eod(dataset, line, settings, session=None):
                  f"\nAdjusted daily close · {dataset.dates[alert.session-1]} · {dataset.currency}. "
                  "Research signal; not an observed intraday execution."))
     return tuple(result)
+
+
+def evaluate_dataset_start(dataset, line, settings, trading_date, security_name, region):
+    """A weekday opening reminder using the prior adjusted close, never live data.
+
+    The requested condition is SMA strictly BELOW the last closing price. This
+    is independent of the existing end-of-trading rule (close below SMA).
+    Identity uses the upcoming trading date, with the reference close logged
+    separately, so this reminder cannot suppress/replay an EOD signal.
+    """
+    if (getattr(dataset, "is_simulated", True) or not line.push_enabled or
+            not settings.phone_monitor_start or len(dataset.prices)<line.period):
+        return ()
+    if region not in ("US", "SG"):
+        raise ValueError("Opening reminders support US and SGX listings.")
+    average = simple_moving_average(dataset.prices, line.period)[-1]
+    price = dataset.prices[-1]
+    if (price is None or average is None or not math.isfinite(price) or
+            not math.isfinite(average) or price <= average):
+        return ()
+    market = "US" if region == "US" else "SGX"
+    label = f"{line.display_name} · {sma_label(line.period)}" if line.custom_name else sma_label(line.period)
+    body = (f"{market} trading is starting soon! {label} for {security_name} may cross today. "
+            "App does not feature live prices, so monitor online.")
+    return (Alert("phone", "monitor_start", line.counter, line.scenario, line.period,
+        line.target_frequency, len(dataset.prices),
+        f"{line.display_name} · {signal_title('monitor_start')} for {security_name}", body,
+        session_date=trading_date, source=dataset.source, reference_date=dataset.dates[-1]),)
 
 
 class AndroidNotifier:
@@ -197,10 +232,11 @@ class AndroidNotifier:
     def send(self, alert: Alert):
         try:
             from jnius import autoclass, cast
-            Activity = autoclass("org.kivy.android.PythonActivity")
             Version = autoclass("android.os.Build$VERSION")
             Context = autoclass("android.content.Context")
-            activity = self.context or Activity.mActivity
+            activity = self.context
+            if activity is None:
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
             if activity is None:
                 activity=autoclass("org.kivy.android.PythonService").mService
             if activity is None:
@@ -246,10 +282,11 @@ class AndroidNotifier:
 
 def alert_log_detail(alert):
     """Controlled signal identity shared by native and foreground delivery logs."""
-    title = {"buy": "Buy signal", "monitor": "Impending buy signal", "test": "Test notification"}[alert.kind]
-    session = alert.session_date or f"preview session {alert.session}"
+    title = signal_title(alert.kind)
+    session = (f"trading day {alert.session_date}; previous close {alert.reference_date}"
+               if alert.kind == "monitor_start" else "close " + (alert.session_date or f"preview session {alert.session}"))
     return (f"{title} · {alert.subject} · {alert.channel} · {sma_label(alert.period)} · "
-            f"target {alert.target}/year · close {session}.")
+            f"target {alert.target}/year · {session}.")
 
 
 def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> list[str]:

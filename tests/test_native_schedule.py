@@ -3,11 +3,49 @@ import importlib.util
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import Mock,patch
+import json
+import sys
 import xml.etree.ElementTree as ET
 from unittest import TestCase
 
 
 class NativeSchedulePackagingTests(TestCase):
+    def test_delayed_native_events_sort_by_event_time_in_the_visible_request_log(self):
+        from sma_analyzer.market_cache import MarketCache
+        with TemporaryDirectory() as directory:
+            cache=MarketCache(Path(directory)/'market.sqlite3')
+            cache.operation('health','VOO','ok',now=1000)
+            cache.operation('notification-scheduler','US','failed','Imported later',now=500)
+            cache.operation('health','VOO','started',now=1000)
+            events=cache.diagnostic_events()
+            self.assertEqual([event['at'] for event in events],[1000,1000,500])
+            self.assertEqual([event['status'] for event in events],['started','ok','failed'])
+
+    def test_android_scheduler_events_are_imported_with_original_time_and_stage(self):
+        from sma_analyzer.native_schedule import sync_schedules
+        from sma_analyzer.notifications import NotificationSettings
+        store=Mock(path=Path('/private/app/saved_lines.sqlite3'))
+        store.notification_settings.return_value=NotificationSettings()
+        store.list_all_lines.return_value=[]
+        provider=SimpleNamespace(cache=Mock())
+        bridge=Mock()
+        bridge.configure.return_value='Scheduled'
+        bridge.takeEvents.return_value=json.dumps([{'job':'US','status':'failed','at':123000,
+            'detail':'Android API 35; stage bind-python-service; SecurityException.'}])
+        bridge.takeLastError.return_value=''
+        activity=object()
+        def autoclass(name):
+            return bridge if name.endswith('SmaAlertBridge') else SimpleNamespace(mActivity=activity)
+        with patch.dict(sys.modules,{'jnius':SimpleNamespace(autoclass=autoclass)}):
+            status=sync_schedules(store,provider,'android')
+        self.assertIn('stage bind-python-service',status)
+        provider.cache.operation.assert_called_once_with('notification-scheduler','US','failed',
+            'Android API 35; stage bind-python-service; SecurityException.',now=123)
+        config=json.loads(bridge.configure.call_args.args[1])
+        self.assertEqual(config['schema'],2)
+        self.assertEqual(set(config['schedules']),{'US','SG','US_START','SG_START'})
+
     def test_manifest_hook_is_idempotent_and_preserves_existing_application(self):
         module_path=Path(__file__).parents[1]/"android/p4a_hook.py"
         spec=importlib.util.spec_from_file_location("sma_p4a_hook",module_path)
@@ -25,7 +63,11 @@ class NativeSchedulePackagingTests(TestCase):
             app=ET.parse(path).getroot().find("application")
             self.assertEqual(len(app.findall("service")),1)
             self.assertEqual(app.get(f"{{{module.ANDROID}}}label"),"Original")
-            self.assertEqual(app.find("service").get(f"{{{module.ANDROID}}}foregroundServiceType"),"dataSync")
+            service=app.find("service")
+            self.assertEqual(service.get(f"{{{module.ANDROID}}}name"),"org.thewongphoto.smaanalyzer.SmaBackgroundService")
+            self.assertEqual(service.get(f"{{{module.ANDROID}}}process"),":sma_background_alerts")
+            self.assertEqual(service.get(f"{{{module.ANDROID}}}exported"),"false")
+            self.assertEqual(service.get(f"{{{module.ANDROID}}}stopWithTask"),"false")
             self.assertIsNotNone(app.find("activity"))
             self.assertEqual(path.read_bytes(),(root/"AndroidManifest.xml").read_bytes())
 

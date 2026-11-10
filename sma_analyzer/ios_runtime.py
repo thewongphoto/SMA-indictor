@@ -141,13 +141,15 @@ def run_background(region, token):
     from .daily_notifications import run_daily_notifications
     from .providers import create_provider
     from .storage import LineStore
+    from .schedule import job_details
     native = bridge()
     config = json.loads(native_text(native.configurationJSON()))
     directory = configured_directory(config)
     provider = create_provider(directory, "ios")
     store = LineStore(directory / "saved_lines.sqlite3")
     stopped = lambda: not native.taskActive_(ns_string(token))
-    if region not in config["regions"] or stopped():
+    if region not in config.get("jobs",config["regions"]) or stopped():
         return False
-    result = run_daily_notifications(store, provider, region, IOSNotifier(token), should_stop=stopped)
+    market,phase=job_details(region)
+    result = run_daily_notifications(store, provider, market, IOSNotifier(token), should_stop=stopped,phase=phase)
     return result["status"] != "failed" and not stopped()

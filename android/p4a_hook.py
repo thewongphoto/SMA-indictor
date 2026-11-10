@@ -1,4 +1,4 @@
-"""Supported p4a hook: declare WorkManager's data-sync foreground service type."""
+"""Declare the private bound worker service in a separate p4a Python process."""
 from copy import deepcopy
 from pathlib import Path
 import xml.etree.ElementTree as ET

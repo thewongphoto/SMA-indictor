@@ -26,7 +26,7 @@ class AlertTests(unittest.TestCase):
         self.assertEqual(alerts[1].subject, 'Buy Signal for DEMO-SGX')
         monitor = evaluate_eod([10, 12, 10], self.line, self.settings)
         self.assertEqual([a.kind for a in monitor], ['monitor', 'monitor'])
-        self.assertEqual(monitor[1].subject, 'Impending buy signal for DEMO-SGX')
+        self.assertEqual(monitor[1].subject, 'Impending buy signal (End of trading) for DEMO-SGX')
         self.assertIn('Monitor: DEMO-SGX has closed below SMA (2 days), target 12 /year', monitor[1].body)
         self.assertIn('SIMULATED DATA', monitor[1].body)
         self.assertEqual(evaluate_eod([10,12,10,12], replace(self.line,push_enabled=False), self.settings)[0].channel, 'email')

@@ -17,13 +17,14 @@ class NotificationDefaultsTests(TestCase):
         self.path = Path(directory.name) / "lines.sqlite3"
         self.store = LineStore(self.path)
 
-    def test_fresh_user_and_saved_lines_default_to_phone_and_both_types(self):
+    def test_fresh_user_and_saved_lines_default_to_phone_and_all_three_types(self):
         self.store.save("YAHOO:AAPL", "Yahoo EOD", 20, 6)
         self.store.save("YAHOO:D05.SI", "Yahoo EOD", 30, 12)
         restarted = LineStore(self.path)
         self.assertTrue(all(line.push_enabled for line in restarted.list_all_lines()))
         self.assertTrue(restarted.notification_settings().phone_buy)
         self.assertTrue(restarted.notification_settings().phone_monitor)
+        self.assertTrue(restarted.notification_settings().phone_monitor_start)
         self.assertFalse(any(line.email_enabled for line in restarted.list_all_lines()))
         self.assertFalse(restarted.notification_settings().email_buy)
         self.assertFalse(restarted.notification_settings().email_monitor)
@@ -32,12 +33,13 @@ class NotificationDefaultsTests(TestCase):
         self.store.save("YAHOO:AAPL", "Yahoo EOD", 20, 6)
         line, = self.store.list_all_lines()
         self.store.set_notifications(line.id, "phone", False)
-        self.store.save_notification_settings(NotificationSettings(phone_buy=False, phone_monitor=False))
+        self.store.save_notification_settings(NotificationSettings(phone_buy=False, phone_monitor=False,phone_monitor_start=False))
         self.store.save(line.counter, line.scenario, line.period, line.target_frequency)
         restarted = LineStore(self.path)
         self.assertFalse(restarted.get_line(line.id).push_enabled)
         self.assertFalse(restarted.notification_settings().phone_buy)
         self.assertFalse(restarted.notification_settings().phone_monitor)
+        self.assertFalse(restarted.notification_settings().phone_monitor_start)
         restarted.delete(line.id)
         archived, = restarted.recent_unsaved()
         restarted.restore(archived.id)
@@ -71,3 +73,14 @@ class NotificationDefaultsTests(TestCase):
         settings = LineStore(self.path).notification_settings()
         self.assertFalse(settings.phone_buy)
         self.assertTrue(settings.phone_monitor)
+        self.assertTrue(settings.phone_monitor_start)
+
+    def test_upgrade_adds_opening_type_without_resetting_existing_off_choices(self):
+        with sqlite3.connect(self.path) as db:
+            db.execute("INSERT INTO preferences VALUES ('notifications',?)", (json.dumps({"phone_buy":False,"phone_monitor":False}),))
+        settings=LineStore(self.path).notification_settings()
+        self.assertFalse(settings.phone_buy)
+        self.assertFalse(settings.phone_monitor)
+        self.assertTrue(settings.phone_monitor_start)
+        self.store.save_notification_settings(settings)
+        self.assertEqual(LineStore(self.path).notification_settings(),settings)

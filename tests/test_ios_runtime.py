@@ -118,6 +118,24 @@ class IOSRuntimeTests(TestCase):
         with self.assertRaises(RuntimeError):
             ios.configured_directory({"directory":"../../other-app","directory_base":"application-home"},home="/this-app")
 
+    def test_ios_opening_job_routes_to_the_same_portable_start_rule(self):
+        config={"directory":"Documents","directory_base":"application-home","regions":["US"],"jobs":["US","US_START"]}
+        self.native.configurationJSON.return_value=json.dumps(config)
+        self.native.taskActive_.return_value=True
+        with TemporaryDirectory() as directory,patch.object(ios,'configured_directory',return_value=Path(directory)),\
+             patch('sma_analyzer.providers.create_provider') as provider,\
+             patch('sma_analyzer.daily_notifications.run_daily_notifications',return_value={'status':'ok'}) as run:
+            self.assertTrue(ios.run_background('US_START','background-token'))
+        self.assertEqual(run.call_args.args[2],'US')
+        self.assertEqual(run.call_args.kwargs['phase'],'start')
+        self.assertEqual(run.call_args.args[3].background_token,'background-token')
+
+    def test_all_four_portable_jobs_have_permitted_iphone_identifiers(self):
+        from scripts.prepare_ios import configure_info
+        from sma_analyzer.schedule import JOB_IDS
+        info=configure_info({})
+        self.assertEqual({value.split('.refresh.')[-1] for value in info['BGTaskSchedulerPermittedIdentifiers']},set(JOB_IDS))
+
     def test_cold_background_launch_pumps_native_events_without_importing_kivy(self):
         self.native.isBackground.side_effect=[True,True,False]
         with patch.dict(sys.modules,{"kivy":None,"kivy.core.window":None}), patch.object(ios.time,"sleep") as sleep:

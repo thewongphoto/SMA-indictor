@@ -25,9 +25,25 @@
   been investigated; do not disable protection or presume a false positive.
 - Android 0.10.0 adds user-authorized scheduled checks for saved live SMAs whose
   phone switch and at least one signal type are enabled. US: Tue–Sat 06:30;
-  SGX: Mon–Fri 18:30, Asia/Singapore. Native WorkManager starts a short headless
-  Python service; do not replace it with a paused Kivy timer. Use per-slot unique
+  SGX: Mon–Fri 18:30, Asia/Singapore. Opening reminders: US Mon–Fri 21:30;
+  SGX Mon–Fri 09:00, fixed Singapore time throughout US daylight saving changes.
+  Opening reminders use the last adjusted close strictly ABOVE the saved SMA,
+  as requested; EOD monitor remains strictly BELOW. Never substitute live prices.
+  New opening-type preferences default On; preserve stored closing-type/line Off
+  choices. Keep close jobs active for cache refresh even for start-only users.
+  Native WorkManager binds a short headless Python service; do not replace it
+  with a paused Kivy timer or a foreground transition followed by startService.
+  The private bound service must run in a dedicated process: p4a kills that
+  process on destruction. Check cancellation and report even Python startup
+  failures; log native stage/cause classes without private exception messages.
+  The background-test button exercises this same path, with no market request.
+  Use per-slot unique
   native work and the durable region/due journal; never replay old session alerts.
+  Keep closing job identities US/SG; opening identities US_START/SG_START and
+  alert kind monitor_start are shared with iOS. Opening reminders expire after
+  30 minutes; delayed older native slots must not borrow today's slot. A fresh
+  closing fetch can verify an older holiday close; stale caches must not trigger
+  opening reminders. Upcoming trading dates and reference close dates are distinct.
   iOS 0.11.0 adds a BGTaskScheduler/UNUserNotificationCenter adapter. Register
   native background handlers before application launch finishes. Use the shared
   daily job, real session dates and durable run journal; expiry stops further

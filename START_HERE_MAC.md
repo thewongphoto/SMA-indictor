@@ -157,6 +157,12 @@ changed, with Custom years available for the horizon. On a saved
 chart, use the palette icon left of the pencil to select one of 12 line colours.
 DBS and recognized ETF providers use [bundled offline logos](docs/OFFLINE_LOGO_CATALOGUE.md).
 
+Version 0.13.0 adds an opening reminder alongside the two closing signal types.
+Desktop still tests interactive data/UI only. Use the Android
+[background notification test](docs/ANDROID_DAILY_NOTIFICATIONS.md) on the APK;
+the new **Test background notification** button exercises the actual headless
+service path without a market request.
+
 To unsave a line, click its red heart. The history/clock icon in section 02 lets
 you restore the last ten unsaved lines. Hide/Show only controls the chart line;
 notification preferences are separate.

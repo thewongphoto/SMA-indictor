@@ -1520,9 +1520,11 @@ class AnalyzerScreen(FloatLayout):
                     # a newly enabled line. Ask once; explicit On/Test can retry.
                     self.model.data_provider.cache.set_preference(permission_key,True)
                     phone_notifier_class().request_permission(lambda allowed:self._on_ui(self.sync_notification_schedule))
-        except Exception:
+        except Exception as error:
             logging.exception("Native daily schedule could not be configured")
             self.notification_status.text="Daily scheduling could not be configured. Reopen Settings and share the request log."
+            self.model.data_provider.cache.operation("notification-scheduler",platform,"failed",
+                f"Schedule configuration failed; {type(error).__name__}. No private exception text recorded.")
 
     def resume_cached_prices(self):
         """Show a completed native refresh on return, with no extra API call."""
@@ -1598,10 +1600,11 @@ class AnalyzerScreen(FloatLayout):
         self.settings_content.add_widget(self.settings_panel)
         self.settings_panel.add_widget(WrappedLabel(text="04  /  NOTIFICATION SETTINGS",bold=True,color=MUTED,font_size=sp(11)))
         self.settings_panel.add_widget(WrappedLabel(
-            text=("Only saved SMAs with notifications switched on are checked. US: Tuesday–Saturday at 6:30am; "
-                  "SGX: Monday–Friday at 6:30pm, Singapore time. New saved SMAs and both signal types default to On. "
+            text=("Only saved SMAs with notifications switched on are checked. Closing checks: US Tuesday–Saturday 6:30am; "
+                  "SGX Monday–Friday 6:30pm. Opening reminders: US Monday–Friday 9:30pm; SGX Monday–Friday 9am. "
+                  "All times are Singapore time, including US daylight-saving changes. New saved SMAs and all three signal types default to On. "
                   + ("iOS chooses when to run background checks and may skip them. Enable Background App Refresh in iPhone Settings."
-                   if platform=="ios" else "Android may delay a background check while sleeping or offline.")
+                   if platform=="ios" else "Android may delay checks while sleeping. Closing refreshes need internet; opening reminders use cached data.")
                   if self.yahoo_enabled else
                   "SIMULATED DATA · Manual EOD tests. Preview sends nothing; Send enabled alerts posts phone notifications."),
             color=MUTED,font_size=sp(11)))
@@ -1609,14 +1612,16 @@ class AnalyzerScreen(FloatLayout):
         self.notification_switches = {}
         descriptions = {
             "buy": ("Buy signal: Upward crossing detected", "Triggers an alert when the end-of-day price crosses above a SMA."),
-            "monitor": ("Impending buy signal", "Triggers an alert once per EOD session when the close is strictly below a SMA."),
+            "monitor": ("Impending buy signal (End of trading)", "After closing, alerts when the adjusted close is strictly below a saved SMA."),
+            "monitor_start": ("Impending buy signal (Start of trading)",
+                "At the scheduled opening reminder, alerts when a saved SMA is strictly below the last adjusted closing price. Uses closing data only; monitor live prices online."),
         }
         for channel, icon, title in (("phone","phone","Phone notifications"),):
             heading = BoxLayout(size_hint_y=None,height=dp(28),spacing=dp(6))
             heading.add_widget(IconSymbol(icon))
             heading.add_widget(WrappedLabel(text=title,bold=True))
             self.settings_panel.add_widget(heading)
-            for kind in ("buy","monitor"):
+            for kind in ("buy","monitor","monitor_start"):
                 key = f"{channel}_{kind}"
                 row = BoxLayout(size_hint_y=None,spacing=dp(8))
                 row.bind(minimum_height=row.setter("height"))
@@ -1648,6 +1653,10 @@ class AnalyzerScreen(FloatLayout):
         self.phone_test_button = LabButton(text="Test iPhone notification" if platform=="ios" else "Test Android phone notification")
         self.phone_test_button.bind(on_release=self.test_phone_notification)
         self.settings_panel.add_widget(self.phone_test_button)
+        if platform=="android" and self.yahoo_enabled:
+            self.background_test_button=LabButton(text="Test background notification")
+            self.background_test_button.bind(on_release=self.test_background_notification)
+            self.settings_panel.add_widget(self.background_test_button)
         self.eod_deliver_button = LabButton(text="Send enabled alerts")
         self.eod_deliver_button.font_size = sp(11)
         self.eod_deliver_button.bind(on_release=self.deliver_eod_alerts)
@@ -1909,6 +1918,28 @@ class AnalyzerScreen(FloatLayout):
     def _record_notification_test(self, status, detail):
         if self.yahoo_enabled:
             self.model.data_provider.cache.operation("notification-test", phone_system_name(), status, detail)
+
+    def test_background_notification(self, *_):
+        self.finish_editing()
+        def post(allowed):
+            if not allowed:
+                self.notification_status.text="Allow Android notifications before running the background test."
+                self.model.data_provider.cache.operation("notification-test-background","Android","blocked",self.notification_status.text)
+                return
+            try:
+                self.sync_notification_schedule()
+                from jnius import autoclass
+                context=autoclass("org.kivy.android.PythonActivity").mActivity
+                self.notification_status.text=autoclass("org.thewongphoto.smaanalyzer.SmaAlertBridge").testBackground(context)
+                self.model.data_provider.cache.operation("notification-test-background","Android","requested",self.notification_status.text)
+            except Exception as error:
+                self.notification_status.text="Background test could not be queued. Share the data request log."
+                self.model.data_provider.cache.operation("notification-test-background","Android","failed",
+                    f"Background test queue failed; {type(error).__name__}.")
+        try:
+            phone_notifier_class().request_permission(lambda allowed:self._on_ui(lambda:post(allowed)))
+        except RuntimeError:
+            post(False)
 
     def _post_test_phone(self, allowed):
         if not allowed:

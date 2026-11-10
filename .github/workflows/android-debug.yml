@@ -54,6 +54,7 @@ jobs:
           xvfb-run -a python -m scripts.smoke_ui_motion 2>&1 | tee artifacts/ui-motion.log
           # Exercise a deliberately slow frame clock: continuity must not rely on a fixed FPS.
           KCFG_GRAPHICS_MAXFPS=12 xvfb-run -a python -m scripts.smoke_ui_color_logos 2>&1 | tee artifacts/ui-color-logos.log
+          xvfb-run -a python -m scripts.smoke_notification_jobs 2>&1 | tee artifacts/ui-notification-jobs.log
       - name: Restore verified source archives
         id: native-sources
         uses: actions/cache/restore@v4
@@ -122,4 +123,6 @@ jobs:
             artifacts/ui-motion.log
             artifacts/ui-motion-smoke.json
             artifacts/ui-color-logos.log
+            artifacts/ui-notification-jobs.log
+            artifacts/ui-notification-jobs.json
             artifacts/ui-color-logos-smoke.json

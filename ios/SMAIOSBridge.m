@@ -52,7 +52,7 @@ static NSDictionary *SMAObject(NSString *value) {
     // Registration must precede the end of application launch, including a
     // cold background launch. Waiting for Python's App.build() is too late.
     @autoreleasepool {
-        for (NSString *region in @[@"US", @"SG"]) {
+        for (NSString *region in @[@"US", @"SG", @"US_START", @"SG_START"]) {
             NSString *identifier = [NSString stringWithFormat:@"%@.refresh.%@", NSBundle.mainBundle.bundleIdentifier, region];
             [BGTaskScheduler.sharedScheduler registerForTaskWithIdentifier:identifier usingQueue:nil
                 launchHandler:^(BGTask *task) { [[self sharedBridge] handleTask:task region:region]; }];
@@ -193,7 +193,9 @@ static NSDictionary *SMAObject(NSString *value) {
 - (void)ensureSchedule:(NSString *)region {
     NSString *identifier = [self identifier:region];
     [BGTaskScheduler.sharedScheduler getPendingTaskRequestsWithCompletionHandler:^(NSArray<BGTaskRequest *> *requests) {
-        if (![SMAObject(self.configurationJSON)[@"regions"] containsObject:region]) return;
+        NSDictionary *configuration = SMAObject(self.configurationJSON);
+        NSArray *jobs = configuration[@"jobs"] ?: configuration[@"regions"];
+        if (![jobs containsObject:region]) return;
         // Keep an overdue pending request: resubmitting on every foreground
         // launch would postpone it to tomorrow before iOS could execute it.
         for (BGTaskRequest *request in requests) if ([request.identifier isEqualToString:identifier]) return;
@@ -210,15 +212,16 @@ static NSDictionary *SMAObject(NSString *value) {
     if (![config[@"directory"] isKindOfClass:NSString.class] || ![config[@"regions"] isKindOfClass:NSArray.class])
         return SMAJSON(@{@"status":@"failed", @"detail":@"iPhone daily-check configuration is invalid."});
     [NSUserDefaults.standardUserDefaults setObject:value forKey:@"sma_daily_config"];
-    for (NSString *region in @[@"US",@"SG"])
-        if ([config[@"regions"] containsObject:region]) [self ensureSchedule:region];
+    NSArray *jobs = config[@"jobs"] ?: config[@"regions"];
+    for (NSString *region in @[@"US",@"SG",@"US_START",@"SG_START"])
+        if ([jobs containsObject:region]) [self ensureSchedule:region];
         else [BGTaskScheduler.sharedScheduler cancelTaskRequestWithIdentifier:[self identifier:region]];
     NSString *error = [NSUserDefaults.standardUserDefaults stringForKey:@"sma_schedule_error"];
     [NSUserDefaults.standardUserDefaults removeObjectForKey:@"sma_schedule_error"];
     BOOL available = UIApplication.sharedApplication.backgroundRefreshStatus == UIBackgroundRefreshStatusAvailable;
-    NSString *detail = ![config[@"regions"] count] ? @"No enabled saved SMAs: background checks are off." :
+    NSString *detail = ![jobs count] ? @"No enabled saved SMAs: background checks are off." :
         !available ? @"Background App Refresh is unavailable. Enable it in iPhone Settings; Low Power Mode can pause it." :
-        @"iPhone background checks requested: US Tue–Sat 6:30am; SGX Mon–Fri 6:30pm, Singapore time. iOS chooses execution time and may skip checks.";
+        @"iPhone checks requested: US closes Tue–Sat 6:30am, starts Mon–Fri 9:30pm; SGX closes Mon–Fri 6:30pm, starts Mon–Fri 9am, Singapore time. iOS chooses execution time and may skip checks.";
     return SMAJSON(@{@"status":error || !available ? @"unavailable" : @"requested", @"detail":error ?: detail});
 }
 - (BOOL)taskActive:(NSString *)token {

@@ -39,6 +39,7 @@ class MarketCache:
                     status TEXT NOT NULL, detail TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS runtime_leases (
                     key TEXT PRIMARY KEY, owner TEXT NOT NULL, expires_at REAL NOT NULL);
+                CREATE INDEX IF NOT EXISTS market_operations_time ON market_operations(at DESC,id DESC);
             """)
             columns = {row[1] for row in db.execute("PRAGMA table_info(market_operations)")}
             for name, kind in (("request_id","TEXT NOT NULL DEFAULT ''"),
@@ -133,7 +134,7 @@ class MarketCache:
                  "http_status","duration_ms","endpoint")
         with self.connect() as db:
             rows = db.execute("SELECT "+",".join(names)+" FROM market_operations "
-                              "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+                              "ORDER BY at DESC,id DESC LIMIT ?", (limit,)).fetchall()
         return [dict(zip(names,row)) for row in rows]
 
     def clear_downloads(self):

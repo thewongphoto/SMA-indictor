@@ -1,13 +1,13 @@
 # SMA Stock Analyzer
 
-**0.12.0:** adds 3M, 6M and 9M chart views, simplifies chart/result copy and starts
-the VOO guided example at 4 upward crossings per year. The guide's investment
-horizon defaults to Max and offers the same presets and Custom input as the
-main backtesting section. Read the
+**0.13.0:** replaces Android's fragile background-service startup path, adds
+detailed scheduler diagnostics and a real background-path test button, and adds
+**Impending buy signal (Start of trading)**. US reminders target 9:30pm and SGX
+9am on weekdays, Singapore time, using last closing data. Read the
 [iPhone download/install guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
-[release notes](docs/RELEASE_0_12_0.md) and
-[updated UI screenshots](docs/design/ui-0.12.0/README.md). See the
+[release notes](docs/RELEASE_0_13_0.md) and
+[notification settings screenshots](docs/design/notifications-0.13.0/README.md). See the
 [centred palette screenshots](docs/design/ui-0.11.0/README.md),
 [app flow](docs/design/ui-0.10/README.md) and
 [Android notification test guide](docs/ANDROID_DAILY_NOTIFICATIONS.md).
@@ -34,7 +34,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.12.0 is
+keeps desktop fetching interactive. Android 0.13.0 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

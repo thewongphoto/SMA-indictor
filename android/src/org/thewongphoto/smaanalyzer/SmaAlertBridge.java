@@ -15,11 +15,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.concurrent.TimeUnit;
+import android.util.Log;
 
 /** OS adapter only: times/markets come from the shared Python configuration. */
 public final class SmaAlertBridge {
     private static final String PREFS = "sma_daily_checks";
     private static final String PREFIX = "sma-daily-";
+    private static final String[] JOBS = {"US", "SG", "US_START", "SG_START"};
     private SmaAlertBridge() {}
 
     static SharedPreferences prefs(Context context) {
@@ -31,7 +33,9 @@ public final class SmaAlertBridge {
     }
 
     static boolean enabled(Context context, String region) throws Exception {
-        JSONArray regions = config(context).optJSONArray("regions");
+        JSONObject current = config(context);
+        JSONArray regions = current.optJSONArray("jobs");
+        if (regions == null) regions = current.optJSONArray("regions");
         if (regions == null) return false;
         for (int i = 0; i < regions.length(); i++) {
             if (region.equals(regions.getString(i))) return true;
@@ -70,11 +74,13 @@ public final class SmaAlertBridge {
         JSONObject spec = config(context).getJSONObject("schedules").getJSONObject(region);
         long now = System.currentTimeMillis();
         long target = nextRun(spec.toString(), now);
-        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(SmaAlertWorker.class)
-                .setInputData(new androidx.work.Data.Builder().putString("region", region).build())
+        OneTimeWorkRequest.Builder builder = new OneTimeWorkRequest.Builder(SmaAlertWorker.class)
+                .setInputData(new androidx.work.Data.Builder().putString("job", region).putLong("due_at", target).build())
                 .setInitialDelay(Math.max(0, target - now), TimeUnit.MILLISECONDS)
-                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .addTag(PREFIX + region).build();
+                .addTag(PREFIX + region);
+        if (!"start".equals(spec.optString("phase")))
+            builder.setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build());
+        OneTimeWorkRequest request = builder.build();
         // Each absolute slot has a unique key. Enqueuing tomorrow must not
         // depend on today's worker finishing, nor replace/cancel that worker.
         WorkManager.getInstance(context).enqueueUniqueWork(PREFIX + region + "-" + target,
@@ -88,15 +94,61 @@ public final class SmaAlertBridge {
         prefs(context).edit().putString("configuration", value).apply();
         JSONObject prior = previous.optJSONObject("schedules");
         boolean changed = prior == null || !prior.toString().equals(current.getJSONObject("schedules").toString());
-        for (String region : new String[]{"US", "SG"}) {
+        for (String region : JOBS) {
             if (!enabled(context, region) || changed)
                 WorkManager.getInstance(context).cancelAllWorkByTag(PREFIX + region);
             if (enabled(context, region)) schedule(context, region);
         }
         if (!notificationsAllowed(context)) return "Android notifications are blocked. Enable permission and the SMA alert channel in Android Settings.";
-        return current.getJSONArray("regions").length() == 0
+        return current.getJSONArray("jobs").length() == 0
                 ? "Enable a saved SMA and at least one signal type to schedule checks."
-                : "Daily checks scheduled for enabled SMAs. Android may delay a check while sleeping or offline.";
+                : "Closing checks and enabled opening reminders scheduled. Android may delay a check while sleeping or offline.";
+    }
+
+    public static String testBackground(Context supplied) throws Exception {
+        Context context = supplied.getApplicationContext();
+        if (!notificationsAllowed(context)) throw new IllegalStateException("Allow Android notifications before testing.");
+        config(context).getString("directory");
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(SmaAlertWorker.class)
+                .setInputData(new androidx.work.Data.Builder().putString("job", "TEST").putBoolean("test", true).build())
+                .setInitialDelay(10, TimeUnit.SECONDS).build();
+        WorkManager.getInstance(context).enqueueUniqueWork("sma-background-test", ExistingWorkPolicy.KEEP, request);
+        record(context, "TEST", "requested", "Background notification test queued for about 10 seconds from now; no market request.");
+        return "Background notification test queued for about 10 seconds from now. Put the app in the background, then check the notification and data request log.";
+    }
+
+    static synchronized void record(Context context, String job, String status, String detail) {
+        try {
+            JSONArray events = new JSONArray(prefs(context).getString("events", "[]"));
+            JSONArray bounded = new JSONArray();
+            for (int i = Math.max(0, events.length() - 99); i < events.length(); i++) bounded.put(events.get(i));
+            bounded.put(new JSONObject().put("job", job == null ? "unknown" : job).put("status", status)
+                    .put("detail", detail).put("at", System.currentTimeMillis()));
+            prefs(context).edit().putString("events", bounded.toString()).commit();
+        } catch (Exception ignored) {
+            Log.e("SmaAlertWorker", "Could not persist the scheduler diagnostic event.");
+        }
+    }
+
+    static void failure(Context context, String job, String stage, Throwable error) {
+        StringBuilder classes = new StringBuilder();
+        Throwable cause = error;
+        for (int i = 0; cause != null && i < 4; i++, cause = cause.getCause()) {
+            if (i > 0) classes.append(" > ");
+            classes.append(cause.getClass().getSimpleName());
+        }
+        // Exception messages may include private paths/identifiers. Controlled
+        // stage and cause classes locate the failure without exposing them.
+        String detail = "Android API " + Build.VERSION.SDK_INT + "; stage " + stage + "; " + classes +
+                ". Background check was not confirmed. Share this request-log event.";
+        record(context, job, "failed", detail);
+        Log.e("SmaAlertWorker", detail);
+    }
+
+    public static synchronized String takeEvents(Context context) {
+        String events = prefs(context).getString("events", "[]");
+        prefs(context).edit().remove("events").commit();
+        return events;
     }
 
     static synchronized void error(Context context, String detail) {

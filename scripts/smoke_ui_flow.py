@@ -68,7 +68,7 @@ class FlowSmoke(MobileYahooSmoke):
         assert ui.model.current_saved_line().push_enabled
         assert all(switch.active for switch in ui.notification_switches.values())
         assert ui.saved_rows[ui.model.current_saved_line().id]["push"].text.endswith("On")
-        self.checked("new saved SMA and both visible phone signal switches default to On")
+        self.checked("new saved SMA and all three visible phone signal switches default to On")
         ui.saved_sheet.dismiss(animate=False)
         yield from self.frames()
         assert ui.rename_button.parent is ui.line_name_row

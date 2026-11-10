@@ -88,6 +88,11 @@ class AndroidNotificationTests(TestCase):
         self.manager.notify.assert_called_once()
         self.classes['android.app.Notification$Builder'].assert_called_once_with(self.activity,RESEARCH_CHANNEL_ID)
 
+    def test_bound_service_does_not_even_load_the_activity_class(self):
+        self.classes.pop('org.kivy.android.PythonActivity')
+        AndroidNotifier(context=self.activity).send(self.alert)
+        self.manager.notify.assert_called_once()
+
     def test_disabled_notifications_and_icon_fallback(self):
         self.manager.areNotificationsEnabled.return_value = False
         with self.assertRaisesRegex(RuntimeError,'disabled'): AndroidNotifier().send(self.alert)

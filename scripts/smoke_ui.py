@@ -382,7 +382,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.model.store.save_notification_settings(NotificationSettings(email="reader@example.com", email_buy=True, email_monitor=True))
         ui.model.store.set_notifications(saved.id, "email", True)
         ui.refresh()
-        assert set(ui.notification_switches) == {"phone_buy", "phone_monitor"}
+        assert set(ui.notification_switches) == {"phone_buy", "phone_monitor", "phone_monitor_start"}
         assert all("email" not in row for row in ui.saved_rows.values())
         assert all("email" not in row for row in ui.landing_saved_rows.values())
         texts = [getattr(widget, "text", "").lower() for widget in ui.settings_panel.walk()]
@@ -442,7 +442,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.alert_session.text = str(below)
         ui.preview_alert_button.dispatch("on_release")
         assert all(a.kind == "monitor" for a in ui.last_alerts) and len(ui.last_alerts)==1
-        assert "Impending buy signal for DEMO-US" in ui.alert_preview.text
+        assert "Impending buy signal (End of trading) for DEMO-US" in ui.alert_preview.text
         ui.phone_test_button.dispatch("on_release")
         assert "Android development build" in ui.notification_status.text
         ui.alert_session.text = "0"

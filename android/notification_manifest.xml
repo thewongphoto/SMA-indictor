@@ -1,3 +1,4 @@
 <service xmlns:android="http://schemas.android.com/apk/res/android"
-         android:name="androidx.work.impl.foreground.SystemForegroundService"
-         android:foregroundServiceType="dataSync" android:exported="false" />
+         android:name="org.thewongphoto.smaanalyzer.SmaBackgroundService"
+         android:process=":sma_background_alerts" android:stopWithTask="false"
+         android:exported="false" />

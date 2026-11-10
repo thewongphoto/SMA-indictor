@@ -1,16 +1,21 @@
 """Native scheduling boundary; common job/rules never depend on the OS."""
 import json
 from .daily_notifications import enabled_lines
-from .schedule import schedule_spec
+from .schedule import schedule_spec,JOB_IDS,job_details
 
 
 def configuration(store,provider,directory):
     regions=sorted({security.region for _,security in enabled_lines(store,provider)})
     specs={}
-    for region in ("US","SG"):
-        hour,minute,weekdays=schedule_spec(region)
-        specs[region]={"hour":hour,"minute":minute,"weekdays":sorted(weekdays),"timezone":"Asia/Singapore"}
-    return {"directory":str(directory),"regions":regions,"schedules":specs}
+    jobs=list(regions)
+    for identifier in JOB_IDS:
+        region,phase=job_details(identifier)
+        hour,minute,weekdays=schedule_spec(region,phase)
+        specs[identifier]={"region":region,"phase":phase,"hour":hour,"minute":minute,
+                           "weekdays":sorted(weekdays),"timezone":"Asia/Singapore"}
+        if phase=="start" and enabled_lines(store,provider,region,phase):
+            jobs.append(identifier)
+    return {"schema":2,"directory":str(directory),"regions":regions,"jobs":jobs,"schedules":specs}
 
 
 def sync_schedules(store,provider,platform_name):
@@ -22,11 +27,18 @@ def sync_schedules(store,provider,platform_name):
         bridge=autoclass("org.thewongphoto.smaanalyzer.SmaAlertBridge")
         context=autoclass("org.kivy.android.PythonActivity").mActivity
         status=bridge.configure(context,json.dumps(config))
+        failures=[]
+        for event in json.loads(bridge.takeEvents(context)):
+            provider.cache.operation("notification-scheduler",event["job"],event["status"],event["detail"],now=event["at"]/1000)
+            if event["status"] in ("failed","blocked"):
+                failures.append(event["detail"])
         error=bridge.takeLastError(context)
         if error:
             event=json.loads(error)
             provider.cache.operation("notification-scheduler","Android","failed",event["detail"],now=event["at"]/1000)
             return event["detail"]+"\n"+status
+        if failures:
+            return failures[-1]+"\n"+status
         return status
     if platform_name=="ios":
         from .ios_runtime import sync_ios_schedules

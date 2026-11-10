@@ -56,7 +56,9 @@ def configure_info(values, bundle_id=BUNDLE_ID):
                    "UISupportedInterfaceOrientations":["UIInterfaceOrientationPortrait"],
                    "UIBackgroundModes":["fetch"],
                    "BGTaskSchedulerPermittedIdentifiers":["$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US",
-                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG"],
+                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG",
+                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US_START",
+                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG_START"],
                    "ITSAppUsesNonExemptEncryption":False})
     # Standard HTTPS only. No arbitrary-load or invalid-certificate exceptions.
     values.pop("NSAppTransportSecurity", None)

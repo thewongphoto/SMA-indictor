@@ -42,7 +42,7 @@ class DailyNotificationsTests(TestCase):
         self.assertEqual((config["schedules"]["US"]["hour"],config["schedules"]["US"]["minute"]),(6,30))
         self.assertEqual((config["schedules"]["SG"]["hour"],config["schedules"]["SG"]["minute"]),(18,30))
         self.assertEqual(config["schedules"]["US"]["timezone"],"Asia/Singapore")
-        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
+        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False,phone_monitor_start=False))
         self.assertEqual(configuration(self.store,self.provider,self.root)["regions"],[])
 
     def test_native_expiry_stops_before_retrieval_and_does_not_replay_the_slot(self):
@@ -71,7 +71,7 @@ class DailyNotificationsTests(TestCase):
         self.assertEqual(self.run_job()["status"],"disabled")
         self.assertEqual(len(self.client.calls),before)
         self.store.set_notifications(self.line.id,"phone",True)
-        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
+        self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False,phone_monitor_start=False))
         self.assertEqual(self.run_job()["status"],"disabled")
         self.assertEqual(len(self.client.calls),before)
 
@@ -124,7 +124,7 @@ class DailyNotificationsTests(TestCase):
         original=self.provider.historical_data
         def stop_types(*args,**kwargs):
             data=original(*args,**kwargs)
-            self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False))
+            self.store.save_notification_settings(NotificationSettings(phone_buy=False,phone_monitor=False,phone_monitor_start=False))
             return data
         with patch.object(self.provider,"historical_data",side_effect=stop_types):
             self.assertEqual(self.run_job()["checked"],0)
@@ -201,7 +201,7 @@ class DailyNotificationsTests(TestCase):
             self.assertEqual(self.run_job()["posted"],0)
         event=next(e for e in self.provider.cache.diagnostic_events() if e["operation"]=="notification-check")
         self.assertEqual(event["status"],"no_signal")
-        self.assertIn("Buy signal On; Impending buy signal On",event["detail"])
+        self.assertIn("Buy signal On; Impending buy signal (End of trading) On",event["detail"])
         self.phone.send.assert_not_called()
 
     def test_delivery_failure_keeps_signal_context_and_excludes_raw_errors(self):

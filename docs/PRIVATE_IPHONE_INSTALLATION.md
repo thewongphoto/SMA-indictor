@@ -20,7 +20,7 @@ provisioning profiles.
 The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
 compiles the native app on GitHub's Mac runner. After a **successful** run:
 
-Use **ios-v0.12.0** for the updated chart presets and VOO guided-example controls.
+Use **ios-v0.13.0** for the three notification types and shared opening schedules.
 The build retains the verified source caching introduced in 0.11.2. Rerunning
 an old tag still uses its original code.
 
@@ -125,7 +125,11 @@ Local notifications do **not** need an APNs server or paid developer membership.
 
 Saved enabled SMAs request native **BGTaskScheduler** checks at the same
 Singapore-time targets as Android: US Tuesday–Saturday **06:30**, SGX
-Monday–Friday **18:30**. **iOS decides when, or whether, to run them**; it cannot
+Monday–Friday **18:30** for closing checks. The added opening reminders target
+US Monday–Friday **21:30** and SGX Monday–Friday **09:00**, fixed Singapore time.
+They use the last adjusted close, with the saved SMA strictly below it; no live
+price request is made. Opening jobs more than 30 minutes late are skipped and
+logged. **iOS decides when, or whether, to run them**; it cannot
 promise a daily alarm at those times. Background App Refresh must be enabled;
 Low Power Mode, infrequent use and force-quitting can prevent checks. This
 adapter uses native OS tasks, not a Kivy timer running during suspension.
@@ -137,6 +141,9 @@ close, suppresses duplicate daily runs/signals and records requests and
 notification outcomes in **Settings → Data request log**. Expired native tasks
 stop before another security fetch or notification delivery. A failed/expired
 slot is not silently replayed. The app imports no UI from the background job.
+The Android-only **Test background notification** button is not an iPhone
+BGTaskScheduler trigger; the iPhone local-notification test does not force a
+background run.
 
 ## What to test on your physical iPhone
 

@@ -51,4 +51,4 @@ DBS: [source PNG](https://github.com/tdrmk/stock-icons/blob/e88424652fb4e4177614
 
 Existing cached identities with an empty logo gain the local image through ticker/name lookup; no history deletion or redownload is required. Fresh search results retain instrument type and the recognized issuer ID. Known ETF symbols and provider-name prefixes identify logos; an unknown fund is not assigned an invented brand. Equity identities are kept distinct from ETF providers.
 
-Colours and logos are portable Python/SQLite metadata and PNG resources for Android and future iOS builds. No OS-specific paths or device IDs are stored.
+Colours and logos are portable Python/SQLite metadata and PNG resources for Android and the planned iPhone web port. No OS-specific paths or device IDs are stored.

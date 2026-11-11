@@ -12,6 +12,11 @@
   publication from completed native builds and downloadable APK artifacts.
 - Run all Android workflow UI gates before publishing a UI fix, including the
   offline preview and library flow as well as the live-data transport fixtures.
+- Keep README, APP_SUMMARY and docs/README.md current; use docs/CHANGELOG.md
+  rather than restoring obsolete release diaries. Validate local documentation
+  links with scripts.check_repository_docs after moves/removals.
+- Gmail/Google authorization transports are retired. Keep legacy SQLite fields
+  readable without recreating email delivery or deleting existing app data.
 
 ## Platform direction
 
@@ -178,7 +183,7 @@
 - Gesture/live-screen refinements: .venv/bin/python -m scripts.smoke_ui_refinements
 - Merged builder/name flows: .venv/bin/python -m scripts.smoke_ui_flow
 - Motion, drawers and cancel races: .venv/bin/python -m scripts.smoke_ui_motion
-- Sustained spinner, colours and ETF logos: .venv/bin/python -m scripts.smoke_ui_color_logos
+- Sustained logo motion, colours and ETF logos: .venv/bin/python -m scripts.smoke_ui_color_logos
 - Live diagnostic (network required): .venv/bin/python -m scripts.check_yahoo
 - Use SDL_VIDEODRIVER=offscreen and LIBGL_ALWAYS_SOFTWARE=1 for headless Kivy.
   UI scripts isolate their data and do not use a user's live cache.

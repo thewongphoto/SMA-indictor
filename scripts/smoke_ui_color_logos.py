@@ -12,7 +12,7 @@ from sma_analyzer.engine import optimize_sma
 from sma_analyzer.palette import COLOR_CHOICES,line_color
 from scripts.smoke_ui_motion import MotionSmoke,temporary
 from scripts.yahoo_test_data import bars_ending
-from scripts.spinner_metrics import observe_logo
+from scripts.loading_metrics import observe_logo
 from sma_analyzer.logo_motion import LOGO_PERIOD
 
 

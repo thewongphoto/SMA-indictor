@@ -1,0 +1,31 @@
+# Documentation index
+
+Start with the guide for the task you are doing. Current source is **0.13.4**;
+GitHub Actions is the authority for native-build completion.
+
+| Task | Guide |
+| --- | --- |
+| Install/update Android | [APK guide](ANDROID_APK_GUIDE.md) |
+| Test prices, caching and report errors | [Android data/request log](YAHOO_ANDROID_TESTING.md) |
+| Test scheduled phone alerts | [Notifications](ANDROID_DAILY_NOTIFICATIONS.md) |
+| Keep APK updates compatible | [Signing identity](ANDROID_SIGNING.md) |
+| Run on a Mac | [Mac walkthrough](../START_HERE_MAC.md) |
+| Test desktop requests and persistence | [Desktop guide](YAHOO_DESKTOP_TESTING.md) |
+| Understand current calculations/UI | [App summary](../APP_SUMMARY.md) |
+| Understand requests/cache policy | [Market data](MARKET_DATA.md) |
+| Deploy a future iPhone web app | [Vercel/PWA guide](PRIVATE_IPHONE_INSTALLATION.md) |
+| Review UI captures | [Current gallery](design/README.md) |
+| Validate a release | [Checklist](ANDROID_RELEASE_CHECKLIST.md) and [status](ANDROID_TEST_STATUS.md) |
+| Find recent changes | [Changelog](CHANGELOG.md) and [0.13.4 notes](RELEASE_0_13_4.md) |
+| Understand repository cleanup | [Maintenance record](MAINTENANCE.md) |
+| Recover cloud work | [Recovery and backup](CLOUD_RECOVERY.md) |
+
+Technical references: [365-day policy](CALENDAR_YEAR_FREQUENCY.md),
+[UI motion/banners](UI_MOTION_AND_ALERTS.md), [logo credits/catalogue](OFFLINE_LOGO_CATALOGUE.md)
+and [verified native build sources](MOBILE_NATIVE_SOURCES.md).
+The [date-free frequency experiment](observable-frequency-evaluation.md) is
+retained as a tested research reference, not the live annualization policy.
+
+Native iOS distribution is paused. Its retained adapters/build fixtures are
+not a deployable web app. The Vercel guide states the implementation still needed.
+Superseded guides/mockups are available in Git history and older tags.

@@ -289,8 +289,8 @@ def alert_log_detail(alert):
             f"target {alert.target}/year · {session}.")
 
 
-def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> list[str]:
-    """Explicit dispatch with persistent successful-delivery deduplication.
+def deliver_alerts(store, alerts, phone=None, *, cache=None) -> list[str]:
+    """Phone-only dispatch with persistent successful-delivery deduplication.
 
     A failed channel remains retryable. Preview never invokes this function.
     At-most-once per successful local record; a crash after send but before
@@ -303,34 +303,32 @@ def deliver_alerts(store, alerts, phone=None, mailer=None, *, cache=None) -> lis
         def record(operation, status, message):
             if cache is not None:
                 cache.operation(operation, symbol, status, detail + " " + message)
+        # Old databases may still contain email preferences/events. Preserve
+        # those records for upgrades, but never dispatch a retired channel.
+        if alert.channel != "phone":
+            record("notification-delivery", "not_sent", "Only phone notifications are supported.")
+            report.append("Email not sent. Only phone notifications are supported." if alert.channel == "email"
+                          else "Unsupported notification channel not sent.")
+            continue
         if store.was_delivered(alert.key):
             record("notification-delivery", "already_delivered", "Duplicate suppressed; no notification posted.")
             report.append(f"Already delivered: {alert.channel}, session {alert.session}.")
             continue
         record("notification-trigger", "triggered", "Signal matched; attempting delivery.")
         try:
-            if alert.channel == "phone":
-                if phone is None:
-                    # The official iOS launcher sets this before Python starts.
-                    # Keep Kivy/UI imports out of the headless daily job.
-                    if os.environ.get("KIVY_BUILD") == "ios":
-                        from .ios_runtime import IOSNotifier
-                        phone = IOSNotifier()
-                    else:
-                        phone = AndroidNotifier()
-                receipt=phone.send(alert)
-            else:
-                if mailer is None:
-                    record("notification-delivery", "not_sent", "Email delivery is unavailable.")
-                    report.append("Email not sent. Connect Gmail and press Send enabled alerts.")
-                    continue
-                mailer.send(alert, store.notification_settings().email)
-                receipt=None
+            if phone is None:
+                # Keep Kivy/UI imports out of the headless daily job.
+                if os.environ.get("KIVY_BUILD") == "ios":
+                    from .ios_runtime import IOSNotifier
+                    phone = IOSNotifier()
+                else:
+                    phone = AndroidNotifier()
+            receipt=phone.send(alert)
             store.record_delivery(alert.key)
             system_name=getattr(phone,"system_name","Android")
             if system_name not in ("Android","iOS"):
                 system_name="Android"
-            status = "Accepted by Gmail" if alert.channel == "email" else f"Posted to {system_name}"
+            status = f"Posted to {system_name}"
             record("notification-delivery", "ok", status + "; OS accepted the notification. " +
                    (receipt if isinstance(receipt,str) else ""))
             report.append(f"{status}: {alert.channel}, session {alert.session}.")

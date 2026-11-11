@@ -1,4 +1,4 @@
-"""Portrait-first, offline Kivy application. Worker calculations never touch widgets."""
+"""Portrait Kivy application with isolated data/calculation workers."""
 from concurrent.futures import Future, ThreadPoolExecutor
 import logging
 import os

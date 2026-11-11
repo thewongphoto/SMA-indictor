@@ -1,210 +1,90 @@
-# Private Yahoo desktop test
+# Desktop data and persistence testing
 
-**Android 0.10.0 adds private data/UI and daily alert checks.** Use
-[the Android/request-log guide](YAHOO_ANDROID_TESTING.md) for its mobile HTTPS
-adapter, artifact and copyable HTTP diagnostics. Desktop continues using the
-isolated Python yfinance transport described here.
+Current source: **0.13.4**. [Start on a Mac](../START_HERE_MAC.md), or install
+requirements-desktop.txt in a Python 3.12 virtual environment. Live mode uses
+an isolated yfinance helper so a blocked/crashing native dependency reports a
+failure instead of closing Kivy. Android uses the separate mobile HTTPS client.
 
-This iteration adds Yahoo EOD retrieval to the approved Kivy screens. It makes
-requests on launch or user interaction only. It does **not** run a background
-worker, deliver desktop notifications or start an APK build.
+The desktop scope is interactive retrieval/UI only: startup check, submitted
+search, selection/saved View when needed and explicit refreshes. Closing the
+window does not schedule future API work or desktop alerts. An already-running
+request can finish before process exit.
 
-Live mode starts with **Choose a company**, not DEMO SGX. Its library and archive
-list only Yahoo saved parameters; older synthetic saves are preserved separately.
-The launcher always selects Yahoo unless --demo or --smoke-test is passed
-explicitly. A failed Yahoo download does not generate substitute sample prices.
+## Expected operations
 
-Use [START_HERE_MAC.md](../START_HERE_MAC.md) to download main and launch with
-Python 3.12. The launcher installs requirements-desktop.txt, including yfinance
-1.8.0. No Yahoo account/API key is normally needed for these public-data calls.
-
-## What to test
-
-| Action | Expected data operation |
+| Action | Expected behaviour |
 | --- | --- |
-| Start a new app process | One small VOO five-day history check; successful startup stays quiet. Failure adds a nonblocking Library warning. |
-| Type Apple, AAPL, DBS or D05.SI | No request until Enter or Submit. |
-| Submit a new query | One Search operation. US/SG stocks and ETFs only. Company logos use packaged assets or initials. |
-| Submit that query again | Cached results, zero calls. The separate Refresh search results button has been removed. |
-| Select a security for the first time | One full available daily-history operation, period=max. Yahoo can add cookie/crumb/timezone requests internally. |
-| Select/View it again while fresh | Read persisted history, zero history calls. Saved View opens its exact SMA period. |
-| Open a stale security after its update target | One incremental history operation, normally overlapping ten calendar days. Cached saved charts can open while the request waits. |
-| Change SMA frequency, chart range, inspect/zoom, save/hide, or change the backtest period | Local calculations, zero additional API calls. All saved SMAs for a security share its price history. |
-| Settings → Refresh selected prices | Explicit incremental refresh, preserving the selected/saved SMA period. |
-| Settings → Refresh all selected history | Full available history for the **selected security**, not every saved security. |
-| Close the app window | No future scheduled API calls or notifications. An already-running request may finish before the process exits. |
+| Start a provider/app lifetime | Small VOO availability check; success stays quiet and failure adds a nonblocking Library warning. |
+| Type / submit search | No request while typing; Enter/Submit searches once and persists results. |
+| First selection | Full available completed daily history, not a five-year MAX cap. |
+| Fresh saved View | Persisted history, exact saved period and no reoptimization. |
+| Stale open / explicit refresh | Incremental history; a revision/adjustment change can require one full resync. |
+| Range / pinch / backtest / save / rename / colour | Local data/calculations, no new market request. |
+| Close window | No future scheduled fetches or desktop notification delivery. |
 
-In Settings, **View data request log** shows recent app-level operations and their
-outcomes. Cached reads do not add API operations. Internal HTTP requests are not
-counted individually. A corporate-action/adjustment change can cause one extra
-full-history resynchronization after an incremental request.
-Rows named history-result or health-result describe validation/cache outcomes,
-not additional network operations.
+[The market-data guide](MARKET_DATA.md) describes cache policy and wire/logical
+request distinctions. yfinance can issue supporting session/timezone requests;
+its desktop log does not individually count every internal wire call.
 
-## Search, charts and comparisons
+## Prices and calculations
 
-1. New analysis → search → Enter/Submit → select a matching company.
-2. After selection the same screen reveals preferences; select a crossing frequency. Custom retains the numeric custom
-   frequency. Fictional Trending/Oscillating/Sideways controls are absent for
-   Yahoo securities.
-3. Optimize. The calculation examines all available history; it does not limit
-   MAX to five years or narrow the candidate grid. Long histories take longer.
-   Close the window to cancel an active optimization.
-4. Results shows company logo/name, actual dates, quotation currency, last close
-   and refresh time. The chart and backtest use calendar-year windows on Yahoo
-   data; MAX includes every downloaded completed daily bar.
-5. Each comparison contributes USD 100 per buy and applies dividend-adjusted
-   returns. USD and SGD quotations are supported; currency movements are excluded
-   and no historical FX conversion is performed.
-   **Adj Close** is used throughout, including dividend and split adjustments.
-   Returns approximate reinvested dividends. The desktop request retains
-   auto_adjust=False to fetch both Close and Adj Close in one operation; its
-   analysis prices equal the Close column produced by auto_adjust=True.
-   Cash dividends are not added again. Fees, taxes and slippage are excluded.
-6. Crossing prices remain interpolated intersections of daily line segments.
-   These are estimates using confirming EOD data, not observed intraday fills or
-   a promise that a live trade could have obtained those prices.
-7. Save two different SMA periods for the same security. View each from Library;
-   each should retain its own exact period and both should share one cache.
+Every live analysis, guide and return comparison uses complete **Adj Close**
+values. Ordinary Close and actions are retained, not substituted when an
+adjustment is missing. Corporate-action changes require consistent historical
+resync. A bad refresh keeps a usable prior revision instead of erasing history.
 
-In live mode, the guided example always searches/loads **Vanguard S&P 500 ETF
-(VOO)**, independently of your selected company. It shows up to three
-calendar years and never substitutes fictional prices on a failure.
-Old preview saves remain separate from Yahoo identities. The local-demo screenshots
-and prior preview guide describe that offline mode rather than historical prices.
-Use `bash run-desktop.command --demo` to open the separate offline demo.
+Live frequencies/horizons use 365-day years, month views use calendar months,
+and SMA periods remain trading observations. Full-history matching is independent
+of chart zoom and backtest horizon. Saved periods/names/colours stay fixed.
+Crossing entries are daily-segment intersections, not live execution prices.
+Fees, taxes and FX movements are excluded. [Full rules](../APP_SUMMARY.md).
 
-## Persistence and offline checks
+The guide always loads **Vanguard S&P 500 ETF (VOO)** independently of your
+selected security. Its initial target is 4/year and investment horizon Max;
+changing the horizon reuses its history/SMA. History can be longer than the
+illustrative chart window. A failure never substitutes synthetic live prices.
 
-Complete cached Adj Close values are reused without a download, even if that
-history was saved by an earlier version. Missing/invalid adjusted values require
-a full-history download; the app never silently uses ordinary Close instead.
-Existing saved periods/colors remain fixed and their lines are recomputed on
-adjusted history. Unsaved optimization choices from the old price basis are
-invalidated. A failed adjustment refresh retains a complete prior adjusted
-revision when available. A legacy cache with no usable adjustments produces a
-visible error until a complete adjusted history can be downloaded.
+## Test persistence and failures
 
-On macOS the normal launcher uses:
+1. Search, select, optimize and save; close and reopen. View exact saved lines.
+2. Disconnect the network and View a cached saved SMA. A source warning can
+   appear, but the chart and parameters remain. Reconnect and refresh.
+3. Change a horizon, name or colour and check the log for zero extra calls.
+4. Use Settings price refreshes. Refresh all selected history reloads only the
+   selected security. Check the app/validation outcomes and stale-data message.
+5. Explicitly clear downloaded data/searches and confirm saved parameters remain.
 
-    ~/Library/Application Support/SMAStockAnalyzer
+The Mac launcher's persistent folder is
+`~/Library/Application Support/SMAStockAnalyzer`. Other desktop platforms use
+the platform application-data path selected by paths.py. SMA_ANALYZER_DATA_DIR
+can override it. Back up the closed app's folder privately before migrations.
+Do not overwrite a current database with an older one. Explicit demo mode uses
+separate synthetic data and leaves live saves separate.
 
-Both market_data.sqlite3 and saved_lines.sqlite3 are retained between runs and
-new ZIP downloads. An explicit SMA_ANALYZER_DATA_DIR overrides this location.
-On Windows/Linux, the same shared path helper chooses the platform's persistent
-application-data directory. Native mobile builds will supply their app-owned
-persistent directory; they must not use disposable OS cache directories.
+## Diagnose a failure
 
-On first use, the launcher copies old .local/preview-data saves only if the new
-destination does not yet exist. Close older app copies before migrating. If the
-destination already exists, the launcher does not overwrite it. Keep the old
-folder as a backup.
+Settings → View data request log is copyable. Share the version, action, logical
+request ID and failure/result rows. The log excludes secrets/raw responses.
+A rate-limit cooldown survives restarts; obey Retry-After rather than repeatedly
+clearing caches. No claim that a one-symbol probe diagnoses a provider-wide outage.
 
-Test persistence:
-
-1. Search, load a security, optimize and save.
-2. Close the app normally and reopen it. Its saved company should be in Library.
-3. Disconnect Wi-Fi and open the same saved SMA. The startup check may warn;
-   the saved chart should remain available. A stale refresh failure must retain
-   the old data and show its last close, not replace it with an empty chart.
-4. Reconnect. Use Settings → Check data connection and Refresh selected prices.
-5. Settings → Clear downloaded prices and search results asks for confirmation.
-   It keeps company identities, saved parameters, preferences and unsaved-line
-   history. Opening a Yahoo saved line afterwards downloads its history again.
-
-Freshness never automatically deletes cached prices. Closing the app does not
-clear anything. An OS uninstall/Clear storage or device loss can still remove
-app files; copy the persistent folder while the app is closed for a manual private
-backup. Do not upload that private cache to this repository.
-
-## Error diagnosis and the cloud test limit
-
-The desktop Yahoo transport now runs in a short-lived support process for each
-operation. If a native dependency is blocked or crashes, the app keeps its window
-open and reports that failure. The support process receives JSON parameters and
-returns dated observations; no background daemon is created. Mobile builds use
-their own transport adapters.
-This contains a failure of the Yahoo support process. It cannot keep the GUI
-running if the OS blocks the Python interpreter or Kivy itself.
-
-If an OS/antivirus alert appears, its exact wording and named file are needed to
-identify the cause. Do not assume a false positive or disable protection.
-Process isolation is crash containment, not a cure for a quarantined/detected file.
-The reported malware alert remains unconfirmed until its exact filename, wording
-and OS/version are supplied; this update does not declare it a false positive.
-
-Use the data request log first. The app distinguishes access blocking, rate
-limiting, secure-connection failure and timeouts where possible. A failed request
-does not prove a global Yahoo outage, and a successful VOO check does not prove
-that every symbol or search request works.
-Rate limiting pauses new requests for at least 60 seconds (longer when an exposed
-Retry-After header requires it). That cooldown survives restarting the app;
-cached queries and charts remain available.
-
-For a Terminal diagnostic, from the project folder:
+For an explicit live check:
 
 ```sh
-.venv/bin/python -m scripts.check_yahoo
 .venv/bin/python -m scripts.check_yahoo --query Apple --symbol AAPL
 ```
 
-The first command explicitly makes one availability operation. The second also
-searches/loads the selected security, using persistent caches where applicable.
-Use --refresh to repeat a cached query/history explicitly. Neither command
-schedules work nor sends notifications.
-
-In this implementation session the installed yfinance client was exercised, but
-the cloud proxy rejected Yahoo access. The live startup probe correctly reported
-access blocked and retained its cache. Automated adapter and running-widget
-tests therefore use synthetic transport fixtures. **Successful live price
-retrieval must still be confirmed on the owner's Mac/network.** A cloud policy
-denial is not evidence that the Mac's Wi-Fi or Yahoo itself is offline.
-
-## Desktop freshness and Android schedules
-
-The portable definitions in schedule.py record the requested Singapore times:
-
-| Listing market | Target, Asia/Singapore | Intended weekday close |
-| --- | --- | --- |
-| US stocks/ETFs | Tuesday–Saturday, 06:30 | Previous US weekday |
-| Singapore stocks/ETFs | Monday–Friday, 18:30 | Same Singapore weekday |
-
-On desktop these targets determine when an on-screen cached history is due for
-a refresh; they do not start closed-window work. Android 0.10.0 also invokes
-native daily checks for enabled saved SMAs. See the
-[Android notification guide](ANDROID_DAILY_NOTIFICATIONS.md).
-
-yfinance does not provide a dependable forward exchange-holiday calendar for
-arbitrary markets/dates. A missing bar is not proof of a holiday. The current
-app retains the last supplied completed close; future work can add maintained
-exchange schedules and handling of exceptional closures.
-
-On the installed Android APK, test Doze/sleep, background suspension, delayed
-execution and missed-slot behavior. The iOS native adapter remains separate.
-Android and iOS can delay or deny background work even if an app was not explicitly
-force-stopped. An iOS UI cannot be assumed to keep executing Python indefinitely
-after backgrounding. Target cross-platform data/job contracts now; validate each
-native adapter separately. iPhone installation still needs a separate signed
-iOS build; see [the private iPhone guide](PRIVATE_IPHONE_INSTALLATION.md).
-
-## Automated verification
+For offline fixture/UI checks:
 
 ```sh
-.venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python -m scripts.smoke_yahoo_ui
+.venv/bin/python -m scripts.smoke_mobile_yahoo_ui
 ```
 
-The second command opens a temporary Kivy test window, uses synthetic transport
-fixtures and exits. It does not contact Yahoo or use your personal cache. The
-existing smoke_ui script retains coverage of the previous demo/Android UI.
+Keep any malware/security block in place until its exact file/message has been
+investigated. Do not disable TLS, Gatekeeper or antivirus as a workaround.
 
-Verified for the startup follow-up on 5 November 2026: **142 unit tests**,
-**6 library-flow groups** and **13 Yahoo UI groups** passed. The previous desktop
-iteration also passed **46 existing UI groups**. Yahoo adapter/UI
-validation uses controlled transport fixtures; the live probe exercised the
-installed client and reported the cloud network access block described above.
-The isolated dependency-import check loaded the installed yfinance 1.8.0.
-The OS-kill UI check simulates a stopped helper; it does not diagnose the owner's
-security product or verify a fix for its specific alert.
-No successful live Yahoo retrieval, physical-phone background execution or
-notification delivery is claimed by these results.
+[Android installation](ANDROID_APK_GUIDE.md) and
+[scheduled phone alerts](ANDROID_DAILY_NOTIFICATIONS.md) are separate checks.
+The [iPhone Vercel/PWA route](PRIVATE_IPHONE_INSTALLATION.md) still requires a web
+frontend/backend implementation; these desktop tests do not deploy one.

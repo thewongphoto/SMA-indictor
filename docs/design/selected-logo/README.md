@@ -15,12 +15,12 @@ preview uses the packaged foreground:
 
 ![Android circular mask preview](android-circle.png)
 
-iPhone exports the required AppIcon sizes and the 1024px marketing icon from
-the same master. The downloadable Xcode kit preserves the compiled icon
-resources and metadata; its verifier checks their hashes after copying.
+The retained native iPhone exporter uses the same master, but native releases
+are paused. The future web app must export its manifest/Apple touch icons from
+this master as described in the Vercel guide.
 
 These are production asset exports from the selected generated proposal, not
-a screenshot of an installed phone. Install a successful **0.13.2** build to
+a screenshot of an installed phone. Install a successful current Android build to
 see the new launcher icon. Keep the installed app and its signing identity when
 upgrading so saved SMAs/cache remain intact.
 

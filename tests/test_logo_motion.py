@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from sma_analyzer.logo_motion import CROSSING_SECONDS, DRAW_SECONDS, LOGO_PERIOD, logo_frame
-from scripts.spinner_metrics import observe_logo
+from scripts.loading_metrics import observe_logo
 
 
 class LogoMotionTests(TestCase):

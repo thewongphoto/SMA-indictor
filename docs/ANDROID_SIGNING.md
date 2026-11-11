@@ -2,7 +2,7 @@
 
 The SHA-1 identifies the **signing key**, not the source code or APK version.
 Every update must use the original key and package `org.thewongphoto.smaanalyzer`.
-Changing UI/Python code does not require another Google Cloud fingerprint.
+No Google Cloud/OAuth setup is required. UI/Python updates retain the same signer.
 
 The old workflow generated a new debug key whenever GitHub's cache was missing.
 GitHub can evict caches, so that did not guarantee a stable identity. The updated
@@ -33,7 +33,7 @@ never printed or included in the downloadable APK artifact.
    - Secret **ANDROID_DEBUG_KEYSTORE_BASE64**, containing the existing key.
    - Variable **ANDROID_SIGNING_SHA1**, containing its public fingerprint.
 6. Compare `android-signing-info.txt` in the new artifact with your previous
-   successful APK's artifact/Google Cloud registration. The SHA-1 must match.
+   successful APK's artifact. The SHA-1 must match.
 7. Delete **SIGNING_ADMIN_TOKEN** from repository secrets and revoke the temporary
    fine-grained token in your personal GitHub settings. Future builds use only
    the saved signing secret; leave the one-time checkbox **unchecked**.
@@ -65,8 +65,7 @@ Paste into the **ANDROID_DEBUG_KEYSTORE_BASE64** Actions secret, and set
 paste this clipboard content into chat or source control.
 
 If neither the cache nor a backup exists, keeping the old SHA-1 is impossible.
-Creating a new key would then require a deliberate migration and another Google
-Cloud fingerprint. Uninstalling the old app removes its private local data;
+Creating a new key would then require a deliberate application/data migration. Uninstalling the old app removes its private local data;
 do not use uninstall/reinstall as a routine update method.
 
 This remains a personal debug/test identity. Play Store release-key management

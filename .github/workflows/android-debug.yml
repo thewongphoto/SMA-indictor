@@ -35,6 +35,7 @@ jobs:
           set -o pipefail
           mkdir -p artifacts
           python -m unittest discover -s tests -v 2>&1 | tee artifacts/unit-tests.log
+          python -m scripts.check_repository_docs 2>&1 | tee artifacts/docs-check.log
       - name: Run Kivy UI regression checks
         env:
           KIVY_HOME: ${{ github.workspace }}/.local/kivy
@@ -110,6 +111,7 @@ jobs:
             artifacts/android-build.log
             artifacts/android-native-sources.log
             artifacts/unit-tests.log
+            artifacts/docs-check.log
             artifacts/ui-smoke.log
             artifacts/ui-smoke.json
             artifacts/ui-library-flow.log

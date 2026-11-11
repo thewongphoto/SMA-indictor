@@ -1,89 +1,49 @@
-# UI motion and notification banners
+# Current UI motion and notification banners
 
-Current Android **0.10.3**, build tag **apk-v0.10.3**. See the
-[release notes](RELEASE_0_10_3.md) and [screenshots](design/ui-0.10.3/README.md).
+Current source: **0.13.4**. [Current captures](design/README.md) use controlled
+fixtures, not physical-phone validation or real market performance.
 
-The chart header keeps the saved SMA name and pencil on one row, with the pencil
-at the far right. Target crossings appear below the name. Generated period
-labels read **SMA (X days)** in cards, charts, saved lines, the archive, guides,
-crossing details and alerts. Days mean trading observations, not calendar days.
-Custom names, numeric periods and delivery identities are preserved.
+## Navigation, sheets and editors
 
-Custom target frequencies and custom backtesting years share one rounded dark
-numeric field. Backtesting accepts fractional years and keeps the Apply action.
-Changing the period does not need a market-data API call.
+Pages use a short directional fade. Saved-line groups expand/collapse smoothly
+on both library menus; hidden controls cannot receive touches. Settings remains
+top-right. The archive, help and saved-line drawer share a bottom-sheet style.
+Selectors fade briefly and Back closes them before leaving the page.
 
-Pages use a 200ms crossfade with a small directional offset; Back reverses it.
-This follows the brief transitions in the supplied reference video. The
-recently unsaved archive and both backtesting information sheets share the
-Saved SMAs drawer's surface, handle, dimmed backdrop and upward animation.
-Tap outside, swipe the handle or use native Back to dismiss. Confirmation and
-text-editing dialogs keep their existing keyboard-safe behavior.
+Naming uses a pencil at the right of the saved SMA name, with target/year below.
+The palette immediately left of it offers twelve colours. Chosen colours/names
+survive hide/show, restart, unsave/restore and refreshed market prices.
 
-Company groups in both saved menus reveal/collapse over 220ms. Hidden controls
-cannot receive touches; rapid reversals retain the final chosen state.
-Selector menus fade briefly and native Back closes them before leaving a page.
+An uncached optimization shows the actual upward-crossing logo paths drawing
+left to right above a dimmed background. The plus appears at the intersection;
+the loop holds/fades and repeats until completion or Back/Escape cancellation.
+GPU rendering uses elapsed time and explicit float uniforms. Mobile scoring
+yields CPU/GIL time; stale callbacks cannot replace a newer result or overlay.
+Saved/cached matches open immediately without artificial loading delays.
 
-An uncached optimization draws the app logo over a slightly dimmed
-modal background. Native Back, or Escape on desktop, cancels it and leaves the
-selected company/target visible. No extra on-screen Back button is added.
-The worker receives a cancellation event; stale callbacks cannot replace
-results or hide a newer overlay. Saved/cached targets still open immediately
-without the loading overlay or a price fetch.
+## Android notification presentation
 
-Since 0.13.2, the turquoise price and orange SMA draw left to right using the
-same paths as the app icon. The plus appears when they reach their crossing;
-the sequence holds briefly, fades and repeats until the calculation finishes.
-GPU rendering and an elapsed-time frame clock keep the loop independent of
-frame rate. Mobile scoring yields CPU/GIL time periodically. Rendered-image
-checks cover brightness, centering and repeated cycles. Native Back still
-cancels promptly without changing optimizer arithmetic. On a saved SMA, the
-palette icon left of the rename pencil offers 12 colours, retained through
-restart, hiding, unsave/restore and subsequent price refreshes. Automatic colour
-allocations remain separate from explicit overrides.
+Phone alerts and the manual test request a heads-up banner and sound, then stay
+in the notification drawer. The app preserves explicit disabled/quiet channel
+choices. Android permission, notification settings and Do Not Disturb determine
+actual presentation; an accepted post does not establish that a banner was seen.
 
-## Android pop-up banners
+Use Settings → Test Android phone notification, then the separate
+[Test background notification procedure](ANDROID_DAILY_NOTIFICATIONS.md).
+The latter exercises WorkManager's bound Python-service path without requesting
+prices. Neither is proof of a later market signal or exact-time execution.
 
-Research alerts and the manual test request a heads-up banner and sound, then
-remain in Android's notification drawer until dismissed or tapped. The app uses
-a high-importance **SMA signal alerts** channel. Android cannot raise an existing
-channel's importance, so upgrading the old default-importance channel creates
-a banner channel. Explicit disabled/quiet choices reported by Android are
-retained. An existing banner channel's settings are never overwritten.
+## iPhone route
 
-Permission, channel settings, Do Not Disturb and device settings control actual
-presentation. Use **Test Android phone notification** in Settings. Its result
-and the request log explain when a retained quiet channel needs pop-up banners
-enabled in Android Settings. Persistent signal/date keys still suppress
-duplicates; changing presentation does not replay earlier signals. The
-low-priority background-check status notification remains separate.
+Native iOS distribution is paused. Its retained adapters are compatibility
+fixtures, not an active release route. The [Vercel/PWA guide](PRIVATE_IPHONE_INSTALLATION.md)
+describes the future browser implementation, Home Screen installation and Web
+Push; it must use server-side scheduling while Safari is suspended.
 
-## Future iOS adapter
+## Verification
 
-`Alert.presentation` requests a banner, sound and retention in Notification
-Center without an OS-specific payload. The future iOS adapter must request
-alert/sound authorization with `UNUserNotificationCenter`, use the default
-notification sound and schedule local requests. Its foreground delegate should
-use `.banner`, `.sound` and `.list` on iOS 14+, with `.alert` on earlier supported
-versions. iOS handles background presentation. Respect user settings and Focus;
-successful posting does not prove that the user saw a banner. Native iOS
-scheduling/delivery is still pending and is not tested by Android mocks.
-
-## Automated checks
-
-```sh
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m scripts.smoke_ui_motion
-```
-
-UI checks use controlled mobile HTTP fixtures and verify intermediate animation
-frames, narrow layouts, dismissal, rapid reversals and cancellation races.
-Unit checks cover channel migration, OS opt-outs and presentation-independent
-delivery keys. Banners, sound, sleeping-phone delivery and iOS presentation
-require physical-device testing.
-
-Verified locally: **232 unit tests and 103 distinct UI checks passed**, including 46
-general UI checks, 6 library flow, 14 mobile transport, 12 chart refinements,
-and 25 colour/logo/motion/flow checks. The existing Android adapter compiles against Android
-15 and WorkManager 2.10.1 with the existing p4a service contract. This
-compatibility compile uses host stubs and is not a complete APK/device run.
+The release checklist runs offline startup/library checks, mobile transport/UI,
+chart refinements, builder flow, motion, slow-clock logo/colour checks and
+notification jobs. Logo checks inspect actual rendered brightness/centering,
+plus timing, repeated cycles and cancellation while real scoring runs.
+[Commands and physical-device checks](ANDROID_RELEASE_CHECKLIST.md).

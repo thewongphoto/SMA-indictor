@@ -25,6 +25,8 @@ class MobileBuildTests(unittest.TestCase):
         self.assertEqual(config["app"]["version"],APP_VERSION)
         self.assertEqual(config["app"]["package.name"],"smaanalyzer")
         self.assertEqual(config["app"]["package.domain"],"org.thewongphoto")
+        self.assertIn("androidx.work:work-runtime:",config["app"]["android.gradle_dependencies"])
+        self.assertNotIn("play-services-auth",config["app"]["android.gradle_dependencies"])
 
     def test_one_pass_mobile_scores_match_reference_arithmetic_gaps_and_equality(self):
         rng=random.Random(7)

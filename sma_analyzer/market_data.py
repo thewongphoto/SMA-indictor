@@ -1,8 +1,4 @@
-"""Provider boundary for explicit search and history-selection requests.
-
-This release deliberately makes no Twelve Data/network calls. A future provider
-can implement these two methods without putting transport work in Kivy widgets.
-"""
+"""Explicit offline preview provider, isolated from live market retrieval."""
 from .mock_data import Dataset, generate_mock_data
 from .securities import search_securities
 

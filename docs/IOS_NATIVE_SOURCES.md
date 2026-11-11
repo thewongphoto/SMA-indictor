@@ -1,4 +1,8 @@
-# Verified OpenSSL sources for the private iPhone build
+# Retained native iOS source provenance
+
+Native iOS releases are paused. This record and the referenced fixtures remain
+for the previous native experiment; they do not configure the future Vercel
+web app. Follow [the current iPhone guide](PRIVATE_IPHONE_INSTALLATION.md) for that route.
 
 Version 0.11.2 also verifies/caches Kivy and Pyobjus and routes the toolchain's
 temporary Kivy version probe through that cache. See

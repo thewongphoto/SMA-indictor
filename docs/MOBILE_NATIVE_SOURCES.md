@@ -1,9 +1,10 @@
 # Verified mobile build sources
 
-The 0.11.1 logs show HTTP 504 responses from GitHub's source-archive frontend for
-Android's PyJNIus and iPhone's Kivy. Version 0.11.2 fetches those archives directly
-from GitHub's official `codeload.github.com` server and verifies their SHA-256
-before either toolchain uses them. No third-party mirror or TLS exception is used.
+Android fetches pinned archives from GitHub's official `codeload.github.com`
+server and verifies their SHA-256 before compilation. This avoids source-archive
+frontend failures without using a third-party mirror or TLS exception.
+Native iOS releases are paused; its source/cache fixtures below are retained
+for compatibility/provenance, not the planned Vercel deployment.
 
 The [shared manifest](../scripts/native-archives.json) records the official
 repository, ref, resolved commit, URL, checksum, size and exact recipe cache

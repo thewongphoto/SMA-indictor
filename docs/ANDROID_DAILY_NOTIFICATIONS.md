@@ -1,17 +1,9 @@
-# Android 0.13.3 notification checks and troubleshooting
+# Android 0.13.4 notification checks and troubleshooting
 
-The supplied report was from **0.10.3**. It shows a successful manual phone
-notification and one native scheduler failure before any signal-check rows.
-The old message omitted the underlying Android exception, so it cannot identify
-that exception conclusively. The old worker depended on a foreground-service
-transition followed by starting a second service. Android background-start
-restrictions can reject that path.
-
-Version 0.13.0 uses a regular, bounded WorkManager job that **binds** its private
-Python service. It needs no Activity or foreground-service startup. The service
-has its own process (p4a terminates it on destruction), reports startup failures
-as well as signal results, and stops when the worker releases its binding.
-Native stage/cause classes and Python startup results now reach the request log.
+Android uses a bounded WorkManager job that binds its private Python service.
+The service has a dedicated process, reports native/Python startup failures and
+signal outcomes, and stops when the worker releases the binding. It does not
+require a foreground Activity or a Kivy timer left running in the background.
 
 ## Types, switches and schedules
 
@@ -66,12 +58,10 @@ not a paused Kivy timer.
 
 ## Test the fixed background path
 
-1. Install **apk-v0.13.3** over the existing app. **Do not uninstall**: retain
+1. Install **apk-v0.13.4** over the existing app. **Do not uninstall**: retain
    saved SMAs, cached prices and signing identity. Open Settings and confirm
-   **DATA CONNECTION · 0.13.3**. A report headed 0.10.3 is still the older app.
-   View/refresh saved securities once after the failed old-build closing check
-   so opening reminders have current closing data. Normal closing jobs maintain
-   that cache thereafter.
+   **DATA CONNECTION · 0.13.4**. View/refresh saved securities to establish
+   current closing data; normal closing jobs maintain that cache thereafter.
 2. Allow Android notifications. **Test Android phone notification** checks the
    existing foreground/OS notification path. An OS/channel/DND choice still
    controls banners, sound and notification-drawer presentation.
@@ -100,8 +90,8 @@ retrieves older entries without another API request. OS acceptance confirms a
 post, not that a person saw its banner. Local tests use controlled data; validate
 sleeping-phone behavior using the installed APK and the new background test.
 
-The shared rules/slots/preferences also support iPhone. Its BGTaskScheduler
-adapter is best effort and can skip a narrow opening window; it does not promise
-exact execution. See [the private iPhone guide](PRIVATE_IPHONE_INSTALLATION.md).
+Native iOS distribution is paused. Its retained adapter is best effort; the
+planned browser route needs server scheduling and Web Push instead. See the
+[Vercel/iPhone guide](PRIVATE_IPHONE_INSTALLATION.md).
 Desktop remains an interactive data/UI test and has no persistent background
 fetcher or notification scheduler.

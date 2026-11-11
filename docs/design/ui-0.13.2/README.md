@@ -1,7 +1,11 @@
 # Chart comparison and upward-crossing logo — 0.13.2
 
+PNG captures refreshed from source **0.13.4**. The directory name is retained
+for shared-link compatibility; the unchanged logo GIF retains its original render.
+
 These are captures from the Kivy implementation using controlled test prices,
-not a record of live market performance. Android and iPhone share this UI.
+not a record of live market performance. These Kivy features remain current
+in Android source 0.13.4. They are not captures of the planned iPhone web app.
 
 ## Visible-range comparison
 
@@ -36,5 +40,5 @@ Back/Escape cancellation, with no artificial delay for cached results.
 The same corrected master supplies Android/iOS launcher and static launch
 images. [View or download the app icon](../selected-logo/README.md).
 
-Native installation checks still run in GitHub's mobile workflows. These
-screenshots demonstrate the shared Kivy rendering, not physical-device validation.
+The Android workflow validates the app before packaging. Native iOS releases
+are paused. These captures demonstrate Kivy rendering, not device validation.

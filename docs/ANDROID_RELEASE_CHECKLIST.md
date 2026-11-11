@@ -1,71 +1,55 @@
-# Android regression checklist — run before every test release
+# Android release checklist
 
-This saved checklist tracks the issues reported on **29 October 2026
-(Singapore)**. It supplements automated tests; a desktop keyboard or injected
-insets do not prove that a phone's IME works correctly.
+Current source: **0.13.4**. Automatically publish completed, validated Android
+changes unless the user asks to hold them. Native iOS releases are paused.
 
-Record the APK commit/version, signing SHA-1, phone model, Android version,
-keyboard app and gesture/three-button navigation mode with each test run.
-Use **Pass / Fail / Not tested**, with a short observation. Do not mark an
-unexecuted device check as passed.
+## Before publishing
 
-## Device checks
-
-| ID | Steps | Expected result |
-| --- | --- | --- |
-| AND-01 | Launch, analyze through Search/Parameters, open Settings and press native Android Back. Repeat with the full crossover table, then open a saved line from Library. | Settings/full table return to the prior screen with the same chart/result. A new analysis returns through Parameters/Search/Library; saved View returns to Library. Only Back on Library with no overlay/editor open exits. |
-| AND-02 | Open a history/validation popup or saved-lines sheet, then press native Back. | Dismiss the top overlay first; retain the underlying screen. |
-| AND-03 | Inspect Settings and expanded saved-SMA groups after installing 0.4.0. | Phone controls remain; email switches, recipient field, Connect Gmail and email-test actions are absent. |
-| AND-04 | Tap Test an end-of-day session; enter 273 and then 272. Open/close/reopen the keyboard. Press Preview. | Numeric input remains editable and visible above the keyboard. Preview uses the typed value and sends nothing. Test with DEMO-SGX/Sideways/saved SMA 254 for the documented Buy/Monitor fixtures. |
-| AND-05 | Save multiple SMAs for one scenario. On Results tap the menu icon, then close and tap the Saved SMAs text. Scroll the sheet and dismiss by handle, backdrop and native Back. | Both menu targets open the visible list. Every saved row is reachable. Hide/Show and heart remain functional. Chart state is preserved. |
-| AND-06 | Save across both fictional counters and multiple scenarios, including a custom target. Return to Library or restart. | Library is populated with all saved company groups and their scenario/period/target rows. Each row offers View. |
-| AND-07 | Tap View or a saved row's title on Library, including a previously hidden line. | Open Results for that counter/scenario with the exact saved period and target. Selected overlay is visible. No new optimization or silent retuning. Results retains Hide/Show; other saved flags are preserved. |
-| AND-08 | Compare all page headings, Back buttons, top toolbar controls and the saved sheet against the phone's status bar/camera cutout/navigation bar. Repeat with the keyboard open. | UI stays within the usable surface; Back/menu/settings controls remain tappable. The saved sheet leaves the top toolbar accessible. No duplicate extra padding on already inset surfaces. |
-| AND-09 | Save at least three rows across scenarios, toggle visibility/phone notifications. Force-stop through Android App info, then launch again. | All rows and preferences remain. Launch opens populated Library without optimizing. Test a second restart and reboot if available. Do not clear storage or uninstall during this test. |
-| AND-10 | Install the next APK **over** the prior APK and repeat AND-09. | Update installs without a signing mismatch. Same package and SHA-1; previous local data is retained. |
-| AND-11 | Build with the durable signing secret present and the disposable cache absent. Compare artifact SHA-1 against the previous successful APK/Google OAuth registration. | SHA-1 is identical. Missing or mismatched signing material must stop the build instead of creating another identity. |
-| AND-12 | Press Test Android phone notification; allow permission if requested; check the notification shade and tap the notification. Repeat after denying/disabling the channel. | Native local alert appears with the icon and opens the app. Denial/disabled channel yields a helpful message. No duplicate EOD alert for the same already-delivered event. |
-| AND-13 | Update from a prior build with email enabled on saved lines. Preview and send an EOD alert. | Only phone alerts appear/send. Legacy email flags never cause a Google prompt or email dispatch; saved lines remain intact. |
-| AND-14 | Type a partial ticker/company name, then press keyboard Enter or Submit. Select a logo/ticker/name match; try another query while a response is pending. | Typing alone never searches or changes security. Enter/Submit shows local preview matches. Selection loads simulated history; late responses cannot overwrite a newer selection. Keyboard keeps the search field visible. |
-| AND-15 | Select Apple and OCBC; inspect Parameters, both saved menus and the unsaved archive on a narrow phone. Expand multiple securities, then restore an unsaved line. | Selected security shows logo/name only. Saved headings show logo/name/ticker with whole-word ellipses and an intact ticker. Each company and its expanded SMAs share a separate soft enclosure. Archive logos are smaller, followed by company names; exact restoration works. |
-| AND-16 | Launch without saved lines, open the guided example, change its frequency, then choose your own security. | The revised introductory card is first. The guide shows three simulated years, recovery/false-signal explanations and matching-frequency comparisons. Leaving it does not change the real analysis or add saves. |
-| AND-17 | Select a company, expand/collapse Custom, optimize, inspect the chart and unsave the last saved line. Restore it from history. | Custom contains the fictional-pattern choice. The chart heading is logo/name only. The last unsave switches Library to empty; restoration switches it back to populated. No Home/Saved/Learn bottom bar appears. |
-| AND-18 | During a pending history load or calculation, use Back/Library, then wait for completion. | The old work does not reopen a page or replace a newer selection. Controls recover and allow another analysis. |
-
-Run AND-03/04/08 on the actual affected phone first. When devices are available,
-also test Android 8–10, Android 13+ notification permissions and Android 15+
-edge-to-edge behavior, using both gesture and three-button navigation. These
-are coverage goals, not claims that those devices have been tested.
-
-## Automated coverage and commands
+1. Match `sma_analyzer/version.py` and `buildozer.spec`. Preserve package
+   `org.thewongphoto.smaanalyzer`, signing identity and saved-data compatibility.
+2. Run unit tests with host validation requirements, then every UI gate below.
+   Do not omit the offline/default startup test just because live fixtures pass.
+3. Run `python -m scripts.check_repository_docs` and `git diff --check`.
+4. Commit and push main with a fresh `apk-v*` tag. Confirm Git reports the
+   successful remote update before describing it as published. Never overwrite
+   released tags or create an `ios-v*` tag while native iOS releases are paused.
+5. Check Actions for native compilation success. Only then describe its APK as
+   ready to download. Source/tag publication alone is not that confirmation.
 
 ```sh
 python -m unittest discover -s tests -v
 python -m scripts.smoke_ui
-```
-
-For the focused running Kivy checks:
-
-```sh
-python -m scripts.smoke_ui --android-regressions-only
 python -m scripts.smoke_ui --library-flow-only
+python -m scripts.smoke_mobile_yahoo_ui
+python -m scripts.smoke_ui_refinements
+python -m scripts.smoke_ui_flow
+python -m scripts.smoke_ui_motion
+KCFG_GRAPHICS_MAXFPS=12 python -m scripts.smoke_ui_color_logos
+python -m scripts.smoke_notification_jobs
 ```
 
-Use the headless environment flags in the README when there is no desktop.
-The focused checks cover real widget taps, Back dispatch, field focus/text,
-injected safe-area/keyboard geometry, saved-menu opening, fresh screen creation
-and View. Unit checks include a child process that saves SQLite state and calls
-`os._exit(0)` before a new process/store reads it, plus signing restore/fail-closed
-policy. Native Java compilation is a separate Android build checkpoint.
+Install `requirements-android.txt`, `requirements.txt` and
+`requirements-validation.txt` in a separate Python 3.11 Linux environment for
+APK host validation. The workflow supplies Xvfb/X11 and software GL. A headless
+local run can use `SDL_VIDEODRIVER=offscreen LIBGL_ALWAYS_SOFTWARE=1` with writable
+KIVY_HOME and XDG_CACHE_HOME directories. These are fixture tests, not live API
+or phone delivery tests. [Native source pins](MOBILE_NATIVE_SOURCES.md).
 
-## Physical-phone observations
+## Physical phone checks
 
-| Build/report | Observation | Status |
-| --- | --- | --- |
-| User's installed build, reported 29 October 2026 | Test Android phone notification posts successfully | **Pass — user reported** |
-| Same report | Native Back exits; email/EOD keyboard disappears; menu/restart discovery fail; UI overlaps status bar | **Fail — reported on previous build** |
-| Source version 0.2.1 | Corrections and regression checks implemented | Device retest pending |
-| Gmail authorization/real sending | No confirming device result supplied | Not tested |
+| Area | Expected behaviour |
+| --- | --- |
+| Upgrade | Install over the existing app; saved periods, colours, names, cache and alert choices survive. |
+| Search | No keystroke requests; Enter/Submit searches; selection loads real adjusted history; stale responses cannot replace newer selections. |
+| Parameters | Selection and target share one page; keyboard stays usable; matching saved/cached choices open immediately. |
+| Calculation | Continuous logo paths/plus, dimmed background, responsive native Back cancellation. |
+| Library | All companies/SMAs appear, start collapsed, and retain colours/visibility/preferences; View uses the exact period. |
+| Chart | Smooth pinch, EOD inspector, nonoverlapping month/year ticks, ranges and endpoint changes stay consistent. |
+| Backtest/guide | Independent horizons, Custom input, contribution/ending comparisons, VOO default 4/year and Max. |
+| Sheets/navigation | Settings top-right; archive/help/saved drawer animation; Back dismisses editor/sheet before page navigation. |
+| Persistence | Restart and offline saved View retain data; explicit market-cache clear keeps saved parameters. |
+| Notifications | All three types, manual test, bound-service background test and four SGT schedules; disabled settings respected. |
+| Diagnostics | Scroll/copy old and new data/notification rows; no raw secrets; duplicate/failure/expiry paths logged. |
 
-Install the newly built 0.7.0 APK and fill in AND-01 through AND-18 for that
-exact artifact. See [signing preservation](ANDROID_SIGNING.md) before building.
+Record the actual artifact version, device/Android version and observed results.
+Do not carry a result from an older APK forward as if the new build was tested.

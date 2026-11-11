@@ -44,5 +44,6 @@ Validation includes leap-year/window boundaries, weekend and holiday time,
 warm-up/gaps, exact calendar-objective selection, mobile/NumPy equivalence,
 annual average versus per-year quota, and cache/saved-line preservation.
 
-Install a successful **apk-v0.13.1** or **ios-v0.13.1** build to use the change
-on a phone. Publishing source does not modify an already installed 0.13.0 app.
+Use a successful current Android build from the [APK guide](ANDROID_APK_GUIDE.md).
+The policy has been retained since 0.13.1. Native iOS releases are paused; the
+[Vercel/PWA plan](PRIVATE_IPHONE_INSTALLATION.md) must preserve the same rules.

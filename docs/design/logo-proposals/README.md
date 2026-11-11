@@ -1,5 +1,8 @@
 # Four app logo proposals
 
+**Selected:** proposal 01, Crosspoint. It is applied to Android and iPhone in
+0.13.1. See the [approved icon and platform exports](../selected-logo/README.md).
+
 ![Four app logo proposals](four-logo-proposals.png)
 
 [Open or download the full-size comparison sheet](four-logo-proposals.png).
@@ -15,6 +18,7 @@ price line, and the app's navy/bright-colour direction.
 | 04 Momentum | A bold rising ribbon with a bright plus and periwinkle accent. |
 
 Palette targets taken from the running app: navy **#131F31**, default SMA amber
-**#FFBD5C**, price turquoise **#4DDEC4**. These are generated concept previews;
-final vector geometry, exact colours and Android/iPhone icon exports can follow
-the chosen direction. The proposals have not replaced the installed app icon.
+**#FFBD5C**, price turquoise **#4DDEC4**. These are generated concept previews.
+The comparison sheet remains the original concept review. The selected
+Crosspoint design has a separate opaque master and platform-specific exports;
+the new installed icon requires the 0.13.1 build.

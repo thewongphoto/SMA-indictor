@@ -1,3 +1,4 @@
 # Host-side packaging/workflow checks, never included in either mobile app.
 pbxproj==4.3.3
 PyYAML==6.0.3
+Pillow==13.0.0

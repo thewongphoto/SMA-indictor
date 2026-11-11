@@ -1,4 +1,4 @@
-# Android 0.13.0: data, UI and scheduled notification test
+# Android 0.13.1: data, UI and scheduled notification test
 
 This private test APK enables real Yahoo company search, daily history, MAX,
 persistent caches, visible failures and a copyable diagnostic report.
@@ -34,17 +34,22 @@ type: **Impending buy signal (Start of trading)**. The existing monitor is now
 **Impending buy signal (End of trading)**. Use the
 [background test guide](ANDROID_DAILY_NOTIFICATIONS.md) after installing.
 
+Version 0.13.1 applies **Crosspoint (logo 1)** as the launcher icon and uses
+actual **365-calendar-day years** for live target matching, observed frequency
+and yearly view/investment horizons. Target X/year is a closest historical
+average, not a guarantee of X events in every individual year.
+
 ## Get the APK from GitHub
 
 1. Sign in to your GitHub account and open
    [Build Android test APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Open the run for tag **apk-v0.13.0** / version **0.13.0**. A queued/running
+2. Open the run for tag **apk-v0.13.1** / version **0.13.1**. A queued/running
    workflow is not a finished APK. Wait for a green check.
 3. Scroll to **Artifacts**, download **sma-android-test**, and extract the ZIP.
 4. Tap the APK in Android Files/Downloads and install it over the existing app.
    The package/signing identity is preserved. If Android reports a signature
    mismatch, keep the existing app installed and report that error.
-5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.13.0**.
+5. Open the app, tap the Settings gear and confirm **DATA CONNECTION · 0.13.1**.
    If it shows another version, you installed a different artifact.
 
 The GitHub server builds the APK; your laptop can be closed while it runs.

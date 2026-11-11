@@ -76,7 +76,8 @@
   reuse the lesson's data and SMA without fetching or optimizing again; use the
   same presets, animated Custom input and keyboard handling as real backtesting.
 - Chart presets include 3M/6M/9M before 1Y. Live ranges use actual calendar months
-  with month-end/leap-day clamping, then the first session on/after the cutoff.
+  for month presets, with month-end/leap-day clamping. Year presets use exactly
+  365 days per year; both start at the first session on/after the cutoff.
   Chart zoom and investment horizons remain independent of full-history scoring.
   Chart descriptive copy is currency plus adjusted daily close and dividend/split
   inclusion; the old usable-comparisons paragraph above backtesting is removed.
@@ -102,6 +103,13 @@
   Run the verified native-source preflight before kivy-ios. Its legacy OpenSSL
   HTTP endpoint failed with 504; use the immutable official source commit and
   pinned checksums in ios/native-sources.json. Never disable TLS/checksums.
+- The approved app icon is Crosspoint (proposal 1). Its shared master is the
+  opaque 1024px RGB PNG at sma_analyzer/assets/app-icon.png. Native platforms
+  apply their own masks; keep master corners navy, and Android adaptive artwork
+  inside the safe circle. Export iPhone AppIcon sizes at build time. Preserve
+  compiled CFBundleIcons metadata and icon-resource hashes through the Personal
+  Team signing kit. All Info.plist/verifier background task identifiers derive
+  from schedule.JOB_IDS; never hardcode the old two closing-only identifiers.
 - Both mobile workflows prefetch verified GitHub source archives from the
   official codeload host; the archive frontend returned HTTP 504 for PyJNIus and
   Kivy. Keep versions/commits/checksums in scripts/native-archives.json aligned

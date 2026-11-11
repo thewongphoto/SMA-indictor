@@ -9,7 +9,9 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 from scripts.make_iphone_kit import make_kit
-from scripts.prepare_ios import ROOT, configure_info, configure_project, stage_app, APP_VERSION
+from scripts.prepare_ios import (ROOT, configure_info, configure_project, stage_app, APP_VERSION,
+                                 BUNDLE_ID, background_task_identifiers, project_reference_path)
+from scripts.verify_iphone_kit import verify
 
 
 class IOSPackagingTests(TestCase):
@@ -39,23 +41,29 @@ class IOSPackagingTests(TestCase):
         self.assertEqual(info["CFBundleShortVersionString"],APP_VERSION)
         self.assertEqual(info["UIBackgroundModes"],["fetch"])
         self.assertEqual(info["CFBundleIdentifier"],"$(PRODUCT_BUNDLE_IDENTIFIER)")
-        self.assertTrue(all(value.startswith("$(PRODUCT_BUNDLE_IDENTIFIER).refresh.") for value in info["BGTaskSchedulerPermittedIdentifiers"]))
+        self.assertEqual(info["BGTaskSchedulerPermittedIdentifiers"],[
+            "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US","$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG",
+            "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US_START","$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG_START"])
         self.assertEqual(info["UISupportedInterfaceOrientations"],["UIInterfaceOrientationPortrait"])
         self.assertNotIn("NSAppTransportSecurity",info)
 
     def fake_app(self, platform="iPhoneOS"):
         app = self.directory/"app.app"
         app.mkdir()
-        (app/"Info.plist").write_bytes(plistlib.dumps({"CFBundleExecutable":"smaanalyzer","CFBundleSupportedPlatforms":[platform]}))
+        (app/"Info.plist").write_bytes(plistlib.dumps({"CFBundleExecutable":"smaanalyzer","CFBundleSupportedPlatforms":[platform],
+            "CFBundleIcons":{"CFBundlePrimaryIcon":{"CFBundleIconName":"AppIcon","CFBundleIconFiles":["AppIcon60x60"]}}}))
         (app/"smaanalyzer").write_bytes(b"unsigned compiled fixture; not an installable binary")
         (app/"smaanalyzer").chmod(0o755)
         (app/"embedded.mobileprovision").write_text("private profile must be excluded")
         (app/"YourApp").mkdir()
         (app/"YourApp/main.pyc").write_bytes(b"fixture")
+        (app/"Assets.car").write_bytes(b"compiled icon resource fixture; not a device asset catalog")
         return app
 
     def test_kit_preserves_compiled_payload_without_shipping_signing_credentials(self):
-        kit = make_kit(self.fake_app(),self.directory/"kit")
+        app=self.fake_app()
+        original_icons=plistlib.loads((app/"Info.plist").read_bytes())["CFBundleIcons"]
+        kit = make_kit(app,self.directory/"kit")
         self.assertTrue((kit/"UnsignedApp.app/YourApp/main.pyc").is_file())
         self.assertFalse((kit/"UnsignedApp.app/embedded.mobileprovision").exists())
         self.assertFalse(json.loads((kit/"BUILD_INFO.json").read_text())["signed"])
@@ -64,6 +72,39 @@ class IOSPackagingTests(TestCase):
         self.assertEqual(scheme.find(".//BuildableReference").attrib["ReferencedContainer"],"container:SMA-iPhone.xcodeproj")
         self.assertIn("--exclude /Info.plist",(kit/"copy-payload.sh").read_text())
         self.assertIn("--exclude /embedded.mobileprovision",(kit/"copy-payload.sh").read_text())
+        self.assertEqual(plistlib.loads((kit/"Info.plist").read_bytes())["CFBundleIcons"],original_icons)
+        self.assertIn("Assets.car",json.loads((kit/"BUILD_INFO.json").read_text())["icon_resources_sha256"])
+
+    def test_signing_kit_verifier_accepts_all_four_jobs_and_rejects_missing_or_extra_ids(self):
+        app=self.fake_app()
+        kit=make_kit(app,self.directory/"kit")
+        info=configure_info(plistlib.loads((app/"Info.plist").read_bytes()))
+        info["CFBundleIdentifier"]=BUNDLE_ID
+        # Exact four-entry processed plist seen in the failed native 0.13.0 build.
+        info["BGTaskSchedulerPermittedIdentifiers"]=[BUNDLE_ID+".refresh.US",BUNDLE_ID+".refresh.SG",
+                                                   BUNDLE_ID+".refresh.US_START",BUNDLE_ID+".refresh.SG_START"]
+        (app/"Info.plist").write_bytes(plistlib.dumps(info))
+        verify(app,kit/"BUILD_INFO.json")  # Regression: 0.13.0 rejected the two opening identifiers.
+        for invalid in (background_task_identifiers(BUNDLE_ID)[:2],
+                        background_task_identifiers(BUNDLE_ID)+[BUNDLE_ID+".refresh.UNKNOWN"]):
+            info["BGTaskSchedulerPermittedIdentifiers"]=invalid
+            (app/"Info.plist").write_bytes(plistlib.dumps(info))
+            with self.assertRaisesRegex(ValueError,"Background task identifiers"):
+                verify(app,kit/"BUILD_INFO.json")
+
+    def test_signing_kit_verifier_rejects_a_dropped_or_modified_icon(self):
+        app=self.fake_app()
+        kit=make_kit(app,self.directory/"kit")
+        info=configure_info(plistlib.loads((app/"Info.plist").read_bytes()))
+        info["CFBundleIdentifier"]=BUNDLE_ID
+        info["BGTaskSchedulerPermittedIdentifiers"]=background_task_identifiers(BUNDLE_ID)
+        (app/"Info.plist").write_bytes(plistlib.dumps(info))
+        (app/"Assets.car").write_bytes(b"wrong payload")
+        with self.assertRaisesRegex(ValueError,"icon resources"):
+            verify(app,kit/"BUILD_INFO.json")
+        (app/"Assets.car").unlink()
+        with self.assertRaisesRegex(ValueError,"missing its AppIcon resources"):
+            verify(app,kit/"BUILD_INFO.json")
 
     def test_kit_rejects_a_simulator_app(self):
         with self.assertRaisesRegex(ValueError,"device binary"):
@@ -77,15 +118,57 @@ class IOSPackagingTests(TestCase):
         (base/"SMA-iPhone.xcodeproj").rename(base/"smaanalyzer.xcodeproj")
         (base/"smaanalyzer-Info.plist").write_bytes(plistlib.dumps({}))
         (base/"main.m").write_text('putenv("IOS_IS_WINDOWED=False");\nputenv("KIVY_BUILD=ios");')
-        project = XcodeProject.load(str(configure_project(base)/"project.pbxproj"))
+        catalog=base/"smaanalyzer/Images.xcassets"
+        catalog.mkdir(parents=True)
+        # A second catalog with the same basename must not hide the app catalog.
+        unrelated=base/"legacy/Images.xcassets"
+        unrelated.mkdir(parents=True)
+        project=XcodeProject.load(str(base/"smaanalyzer.xcodeproj/project.pbxproj"))
+        project.add_file(str(unrelated))
+        project.save()
+        with patch("scripts.prepare_ios.install_app_icons",return_value=catalog) as icons:
+            project = XcodeProject.load(str(configure_project(base)/"project.pbxproj"))
+        icons.assert_called_once_with(base,ROOT/"sma_analyzer/assets/app-icon.png")
         bridge = next(item for item in project.objects.get_objects_in_section("PBXFileReference") if item.path.endswith("SMAIOSBridge.m"))
         buildfile = next(item for item in project.objects.get_objects_in_section("PBXBuildFile") if item.fileRef==bridge.get_id())
         self.assertEqual(buildfile.settings["COMPILER_FLAGS"].strip(),"-fobjc-arc")
         for config in project.objects.get_objects_in_section("XCBuildConfiguration"):
             self.assertEqual(config.buildSettings["CODE_SIGN_STYLE"],"Automatic")
             self.assertEqual(config.buildSettings["IPHONEOS_DEPLOYMENT_TARGET"],"15.0")
+            self.assertEqual(config.buildSettings["ASSETCATALOG_COMPILER_APPICON_NAME"],"AppIcon")
+        icons=[item for item in project.objects.get_objects_in_section("PBXFileReference")
+               if project_reference_path(project,item,base)==catalog.resolve()]
+        self.assertEqual(len(icons),1)
+        resource_ids={project.get_object(build).fileRef
+                      for phase in project.objects.get_objects_in_section("PBXResourcesBuildPhase")
+                      for build in phase.files}
+        self.assertIn(icons[0].get_id(),resource_ids)
         self.assertIn("IOS_IS_WINDOWED=True",(base/"main.m").read_text())
         self.assertIn("KIVY_NO_ARGS=1",(base/"main.m").read_text())
+
+    @skipUnless(importlib.util.find_spec("pbxproj"),"Install requirements-validation.txt for Xcode project checks")
+    def test_official_group_catalog_reference_resolves_to_the_generated_icon_directory(self):
+        from pbxproj import XcodeProject
+        base=self.directory/"smaanalyzer-ios"
+        shutil.copytree(ROOT/"ios/signing-template",base)
+        project=XcodeProject.load(str(base/"SMA-iPhone.xcodeproj/project.pbxproj"))
+        catalog=base/"smaanalyzer/Images.xcassets"
+        catalog.mkdir(parents=True)
+        project.add_file(str(catalog))
+        reference=next(item for item in project.objects.get_objects_in_section("PBXFileReference")
+                       if str(getattr(item,"path","")).endswith("Images.xcassets"))
+        # These are the exact path/sourceTree fields in the pinned kivy-ios template.
+        reference.path="smaanalyzer/Images.xcassets"
+        reference.sourceTree="<group>"
+        self.assertEqual(project_reference_path(project,reference,base),catalog.resolve())
+        # Also support a real subgroup directory instead of its display name.
+        group=project.add_group("Icon resources",path="smaanalyzer")
+        for parent in project.objects.get_objects_in_section("PBXGroup"):
+            if reference.get_id() in parent.children:
+                parent.remove_child(reference)
+        group.add_child(reference)
+        reference.path="Images.xcassets"
+        self.assertEqual(project_reference_path(project,reference,base),catalog.resolve())
 
     @skipUnless(importlib.util.find_spec("yaml"),"Install requirements-validation.txt for workflow checks")
     def test_ci_builds_device_and_simulator_before_publishing_unsigned_kit(self):

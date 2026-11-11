@@ -7,6 +7,18 @@ import plistlib
 import shutil
 
 from .prepare_ios import ROOT, APP_VERSION, BUNDLE_ID, configure_info, scheme_xml
+from .ios_icons import ICON_NAME
+
+
+def compiled_icon_resources(app, info):
+    primary = info.get("CFBundleIcons", {}).get("CFBundlePrimaryIcon", {})
+    if primary.get("CFBundleIconName") != ICON_NAME:
+        raise ValueError("The compiled iPhone app is missing its approved AppIcon metadata.")
+    resources = sorted(path for path in app.iterdir() if path.is_file() and
+                       (path.name == "Assets.car" or path.name.startswith("AppIcon") and path.suffix == ".png"))
+    if not resources:
+        raise ValueError("The compiled iPhone app is missing its AppIcon resources.")
+    return {path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in resources}
 
 
 def make_kit(app, destination):
@@ -16,6 +28,7 @@ def make_kit(app, destination):
         raise ValueError("Expected the compiled smaanalyzer device app.")
     if info.get("CFBundleSupportedPlatforms") != ["iPhoneOS"]:
         raise ValueError("The signing kit must contain an iPhone device binary, not a simulator app.")
+    icon_resources = compiled_icon_resources(app, info)
     if destination.exists():
         raise ValueError("Use a new kit output directory; existing files are preserved.")
     shutil.copytree(ROOT / "ios/signing-template", destination)
@@ -26,7 +39,8 @@ def make_kit(app, destination):
     scheme.write_text(scheme_xml("999999999999999999999999", "SMA-iPhone"))
     digest = hashlib.sha256((app / "smaanalyzer").read_bytes()).hexdigest()
     (destination / "BUILD_INFO.json").write_text(json.dumps({"version":APP_VERSION, "bundle_id":BUNDLE_ID,
-        "executable_sha256":digest, "platform":"iPhoneOS arm64", "signed":False},indent=2))
+        "executable_sha256":digest, "platform":"iPhoneOS arm64", "signed":False,
+        "icon_name":ICON_NAME,"icon_resources_sha256":icon_resources},indent=2))
     shutil.copy2(ROOT / "docs/PRIVATE_IPHONE_INSTALLATION.md", destination / "START_HERE.md")
     return destination
 

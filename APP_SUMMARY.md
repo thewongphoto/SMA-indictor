@@ -1,12 +1,13 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
-**Current release: 0.13.0.** The app uses real dividend/split-adjusted daily
+**Current release: 0.13.1.** The app uses real dividend/split-adjusted daily
 history, persistent caches, saved names/colours and native Android daily checks.
-This release replaces Android's background startup path with a private bound
-Python service and adds a background-path test and detailed diagnostics.
-The third signal type reminds users at US/SGX opening targets using the last
-adjusted close; closing-monitor preferences/identities are retained. See the
-[release notes](docs/RELEASE_0_13_0.md),
+This release applies the selected Crosspoint app icon, uses actual 365-day
+calendar exposure for live annual-frequency matching, and fixes the iPhone
+signing-kit background-identifier verifier. Saved SMA periods and notification
+preferences are preserved. X/year is a closest historical average, not a quota
+guaranteed in every individual year. See the
+[release notes](docs/RELEASE_0_13_1.md),
 [Android guide](docs/YAHOO_ANDROID_TESTING.md) and
 [free iPhone installation guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 Apple signing and physical-device iPhone behavior still require validation.

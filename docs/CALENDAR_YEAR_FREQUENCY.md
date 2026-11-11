@@ -4,7 +4,7 @@ The live app previously annualized crossings with **252 trading observations
 per year**. That was an approximation to a civil year, rather than a calculation
 from the actual elapsed dates.
 
-The source for **0.13.1** now uses the actual closing-session dates and exactly
+Version **0.13.1** uses the actual closing-session dates and exactly
 **365 calendar days**, including weekends and exchange holidays:
 
 ```text
@@ -12,6 +12,12 @@ observable calendar days = sum of elapsed days between usable adjacent closes
 observable years = observable calendar days / 365
 crossings per year = upward crossing count × 365 / observable calendar days
 ```
+
+**X/year means a target historical annualized average.** The optimizer picks
+the eligible SMA closest to that rate across its usable history. It does not
+require exactly X crossings in each January–December calendar year, or promise
+that rate in future. For example, six crossings over 730 observable calendar
+days equal 3/year even if the crossings are unevenly distributed between years.
 
 Warm-up and genuinely missing-price/SMA intervals retain their existing
 exclusions. Normal Friday-to-Monday observations contribute **three days**, not
@@ -35,10 +41,8 @@ retuning saved lines. Derived unsaved optimizer choices from the old policy are
 invalidated; this does not clear downloaded prices or saved SMA parameters.
 
 Validation includes leap-year/window boundaries, weekend and holiday time,
-warm-up/gaps, exact calendar-objective selection, mobile/NumPy equivalence and
-cache/saved-line preservation. Both 308-test suites passed (one desktop-only
-check skipped in the mobile dependency environment).
+warm-up/gaps, exact calendar-objective selection, mobile/NumPy equivalence,
+annual average versus per-year quota, and cache/saved-line preservation.
 
-This is a source update for the next build. It does not change an already
-installed 0.13.0 APK or iPhone app, and no APK/iPhone build tag has been added
-for this source update.
+Install a successful **apk-v0.13.1** or **ios-v0.13.1** build to use the change
+on a phone. Publishing source does not modify an already installed 0.13.0 app.

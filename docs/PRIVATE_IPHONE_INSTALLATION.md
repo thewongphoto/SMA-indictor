@@ -20,7 +20,11 @@ provisioning profiles.
 The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
 compiles the native app on GitHub's Mac runner. After a **successful** run:
 
-Use **ios-v0.13.0** for the three notification types and shared opening schedules.
+Use **ios-v0.13.1** for the selected app icon, 365-day frequency calculation and
+the signing-kit verifier fix. The 0.13.0 log confirms the native app and kit
+compiled; its final verifier still expected two background-job identifiers
+instead of the four registered for closing/opening checks. Version 0.13.1
+derives that check from the shared job list and retains strict verification.
 The build retains the verified source caching introduced in 0.11.2. Rerunning
 an old tag still uses its original code.
 

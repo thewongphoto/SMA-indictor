@@ -1,10 +1,12 @@
 # SMA Stock Analyzer
 
-**Next-build source update (0.13.1):** live “per year” now means exactly
-**365 calendar days**, including weekends and holidays. See the
-[calculation and compatibility notes](docs/CALENDAR_YEAR_FREQUENCY.md).
-The [four logo proposals](docs/design/logo-proposals/README.md) are also available
-for review; the app icon has not been changed.
+**0.13.1:** applies the selected **Crosspoint (logo 1)** app icon on Android and
+iPhone, uses **365 calendar days per year** for live analysis, and fixes the
+iPhone signing-kit verifier's outdated background-job check. A target of X/year
+means the closest historical annualized average, including non-trading days;
+it does not guarantee X crossings in every individual year. Read the
+[release notes](docs/RELEASE_0_13_1.md) and
+[calculation details](docs/CALENDAR_YEAR_FREQUENCY.md).
 
 **0.13.0:** replaces Android's fragile background-service startup path, adds
 detailed scheduler diagnostics and a real background-path test button, and adds
@@ -40,7 +42,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.13.0 is
+keeps desktop fetching interactive. Android 0.13.1 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

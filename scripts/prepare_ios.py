@@ -13,7 +13,9 @@ import subprocess
 import sys
 
 from sma_analyzer.version import APP_VERSION
+from sma_analyzer.schedule import JOB_IDS
 from .prepare_ios_sources import prepare_ios_sources
+from .ios_icons import ICON_NAME, install_app_icons
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_NAME = "smaanalyzer"
@@ -49,20 +51,40 @@ def stage_app(destination, source=ROOT, smoke=False):
         (destination / "simulator_check.py").unlink()
 
 
+def background_task_identifiers(bundle_id="$(PRODUCT_BUNDLE_IDENTIFIER)"):
+    return [f"{bundle_id}.refresh.{job}" for job in JOB_IDS]
+
+
 def configure_info(values, bundle_id=BUNDLE_ID):
     values.update({"CFBundleDisplayName":"SMA Stock Analyzer", "CFBundleIdentifier":"$(PRODUCT_BUNDLE_IDENTIFIER)",
                    "CFBundleShortVersionString":APP_VERSION, "CFBundleVersion":APP_VERSION,
                    "UIStatusBarHidden":False, "UIUserInterfaceStyle":"Dark",
                    "UISupportedInterfaceOrientations":["UIInterfaceOrientationPortrait"],
                    "UIBackgroundModes":["fetch"],
-                   "BGTaskSchedulerPermittedIdentifiers":["$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US",
-                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG",
-                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.US_START",
-                                                          "$(PRODUCT_BUNDLE_IDENTIFIER).refresh.SG_START"],
+                   "BGTaskSchedulerPermittedIdentifiers":background_task_identifiers(),
                    "ITSAppUsesNonExemptEncryption":False})
     # Standard HTTPS only. No arbitrary-load or invalid-certificate exceptions.
     values.pop("NSAppTransportSecurity", None)
     return values
+
+
+def project_reference_path(project, reference, source_root, seen=()):
+    """Resolve a local PBX reference, including the template's group hierarchy."""
+    if reference.get_id() in seen:
+        return None
+    path = Path(str(getattr(reference, "path", "")))
+    if path.is_absolute():
+        return path.resolve()
+    tree = str(getattr(reference, "sourceTree", "<group>"))
+    if tree == "SOURCE_ROOT":
+        return (source_root / path).resolve()
+    if tree != "<group>":
+        return None
+    parent = next((group for group in project.objects.get_objects_in_section("PBXGroup")
+                   if reference.get_id() in group.children), None)
+    base = (project_reference_path(project, parent, source_root, (*seen, reference.get_id()))
+            if parent is not None else source_root)
+    return (base / path).resolve() if base is not None else None
 
 
 def configure_project(project_dir, bundle_id=BUNDLE_ID):
@@ -70,6 +92,17 @@ def configure_project(project_dir, bundle_id=BUNDLE_ID):
     project_dir = Path(project_dir)
     filename = project_dir / f"{PROJECT_NAME}.xcodeproj/project.pbxproj"
     project = XcodeProject.load(str(filename))
+    catalog = install_app_icons(project_dir, ROOT / "sma_analyzer/assets/app-icon.png")
+    # The pinned template has a <group> reference at smaanalyzer/Images.xcassets.
+    # Match its resolved path and resource phase, not another catalog's basename.
+    references = {item.get_id() for item in project.objects.get_objects_in_section("PBXFileReference")
+                  if project_reference_path(project, item, project_dir) == catalog.resolve()}
+    resources = {project.get_object(build).fileRef
+                 for phase in project.objects.get_objects_in_section("PBXResourcesBuildPhase")
+                 for build in phase.files}
+    if not references.intersection(resources):
+        # pbxproj's force=False deduplicates by basename, even for different paths.
+        project.add_file(str(catalog), force=True)
     source = project_dir / "SMAIOSBridge.m"
     shutil.copy2(ROOT / "ios/SMAIOSBridge.m", source)
     references = project.add_file(str(source), force=False)
@@ -91,6 +124,7 @@ def configure_project(project_dir, bundle_id=BUNDLE_ID):
         settings["ENABLE_USER_SCRIPT_SANDBOXING"] = "NO"
         settings["ENABLE_BITCODE"] = "NO"
         settings["STRIP_INSTALLED_PRODUCT"] = "NO"
+        settings["ASSETCATALOG_COMPILER_APPICON_NAME"] = ICON_NAME
     project.save()
     info = project_dir / f"{PROJECT_NAME}-Info.plist"
     info.write_bytes(plistlib.dumps(configure_info(plistlib.loads(info.read_bytes()), bundle_id)))

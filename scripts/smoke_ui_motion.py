@@ -173,9 +173,9 @@ class MotionSmoke(FlowSmoke):
             ui.on_optimize()
             yield lambda:starts[0].is_set()
             overlay=ui.optimization_overlay
-            angle=overlay.spinner.angle
+            elapsed=overlay.logo.elapsed
             yield from self.frames(5)
-            assert overlay.parent is ui and overlay.spinner.angle!=angle
+            assert overlay.parent is ui and overlay.logo.elapsed>elapsed
             assert tuple(overlay.scrim.size)==tuple(ui.size) and overlay.card.center==ui.center
             assert not any(getattr(widget,"text","").lower()=="back" for widget in overlay.walk())
             self.capture("optimization-loading")
@@ -196,7 +196,7 @@ class MotionSmoke(FlowSmoke):
             releases[1].set()
             yield from self.frames(5)
             assert not ui.busy and overlay.parent is None and ui.model.result is None
-        self.checked("spinner moves above a dimmed modal background; native Back cancels in place and stale completion cannot dismiss a newer optimization")
+        self.checked("logo paths animate above a dimmed modal background; native Back cancels in place and stale completion cannot dismiss a newer optimization")
         ui.on_optimize()
         yield lambda:not ui.busy
         yield from self.settled()

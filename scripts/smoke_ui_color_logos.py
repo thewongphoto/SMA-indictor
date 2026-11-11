@@ -12,7 +12,8 @@ from sma_analyzer.engine import optimize_sma
 from sma_analyzer.palette import COLOR_CHOICES,line_color
 from scripts.smoke_ui_motion import MotionSmoke,temporary
 from scripts.yahoo_test_data import bars_ending
-from scripts.spinner_metrics import observe_spinner
+from scripts.spinner_metrics import observe_logo
+from sma_analyzer.logo_motion import LOGO_PERIOD
 
 
 class ColorLogoSmoke(MotionSmoke):
@@ -135,10 +136,10 @@ class ColorLogoSmoke(MotionSmoke):
         ui.target.text="Custom";ui.custom_target.text="23"
         ui.refresh()
         samples=[]
-        def record(_,angle):
-            samples.append((time.perf_counter(),angle))
-        spinner=ui.optimization_overlay.spinner
-        spinner.bind(angle=record)
+        def record(_,elapsed):
+            samples.append((time.perf_counter(),elapsed))
+        logo=ui.optimization_overlay.logo
+        logo.bind(elapsed=record)
         with patch("sma_analyzer.app.optimize_sma",side_effect=lambda *args,**kwargs:optimize_sma(*args,use_fast=False,**kwargs)):
             ui.on_optimize()
             started=time.perf_counter()
@@ -146,18 +147,31 @@ class ColorLogoSmoke(MotionSmoke):
                 assert ui.busy,"The mobile-sized workload should still be running during the motion sample"
                 yield lambda:True
             # Hosted software rendering may be slower than a developer laptop.
-            # Verify sustained motion, no pauses and clock-correct rotation;
+            # Verify sustained motion, no pauses and clock-correct drawing;
             # a fixed frame count incorrectly rejected a healthy 55-frame run.
-            self.performance,problems=observe_spinner(samples,started,time.perf_counter())
+            self.performance,problems=observe_logo(samples,started,time.perf_counter(),period=LOGO_PERIOD)
             assert not problems,{"problems":problems,**self.performance}
-            assert spinner._spin_event is not None
-            self.capture("continuous-spinner")
+            assert logo._motion_event is not None
+            # Inspect real GPU output, including endpoint uniforms (GLSL float
+            # uniforms must never receive Python ints at opacity 0 or 1).
+            center=(128*256+128)*4
+            logo._frame(.25)
+            logo.effect.draw()
+            assert max(logo.effect.texture.pixels[center:center+3])<100
+            for phase in (1.05, 1.25, LOGO_PERIOD+1.05):
+                logo._frame(phase)
+                logo.effect.draw()
+                pixel=logo.effect.texture.pixels[center:center+3]
+                assert min(pixel)>230 if phase!=1.25 else max(pixel)<180
+            edge=min(logo.width,logo.height)
+            assert tuple(logo.mark.pos)==(logo.x+(logo.width-edge)/2,logo.y+(logo.height-edge)/2)
+            self.capture("continuous-logo")
             assert ui.handle_back()
-            assert not ui.busy and spinner._spin_event is None
-        spinner.unbind(angle=record)
+            assert not ui.busy and logo._motion_event is None
+        logo.unbind(elapsed=record)
         ui.model.apply_dataset(old_data)
         ui.refresh()
-        self.checked("GPU-rotated spinner continues beyond three revolutions during real 6800-day mobile scoring, then cancels cleanly")
+        self.checked("GPU-rendered logo stays centered, reveals a bright plus after crossing, repeats after fading during real 6800-day mobile scoring, then cancels cleanly")
 
     def on_stop(self):
         for release in self.releases:

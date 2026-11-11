@@ -65,9 +65,11 @@
   names and numeric saved identities are unchanged. Page transitions are brief;
   archive/help sheets share the saved drawer. Native Back cancels optimization
   in place; stale completions must never dismiss a newer calculation overlay.
-- Loading spinners use a frame-clock loop and a GPU-rotated fixed arc. A plain
-  Kivy Animation does not honor sequence repeat. Mobile scoring yields CPU/GIL
-  time periodically and checks cancellation without changing arithmetic/results.
+- Optimization draws the shared logo's actual strokes left to right on a
+  continuous frame clock, revealing its plus at the upward price/SMA crossing.
+  Keep GLSL uniforms floats even at 0/1 and effect matrices isolated from modal
+  and capture canvases. Check rendered pixels, centering, loop continuation and
+  cancellation. Mobile scoring yields CPU/GIL time without changing results.
 - A saved SMA offers 12 colour presets. Keep automatic allocation separate from
   custom colour overrides; retain choices through archive/restore and upgrades.
 - Startup availability probes use VOO once per provider lifetime. The live guide
@@ -103,13 +105,24 @@
   Run the verified native-source preflight before kivy-ios. Its legacy OpenSSL
   HTTP endpoint failed with 504; use the immutable official source commit and
   pinned checksums in ios/native-sources.json. Never disable TLS/checksums.
-- The approved app icon is Crosspoint (proposal 1). Its shared master is the
+- Chart changes use the first/last finite adjusted closes inside the fractional
+  visible bounds, without interpolation or network calls. Percent is relative
+  to the left close; use quote currency. Match both arrows/values to direction,
+  with neutral flat/empty states. Presets say PAST 3M/etc; pinch uses actual EOD
+  endpoint dates. Keep full dates readable on narrow phones.
+- The approved app icon is Crosspoint (proposal 1), corrected so the turquoise
+  price rises from below to above the orange SMA with a steeper recovery. Its shared master is the
   opaque 1024px RGB PNG at sma_analyzer/assets/app-icon.png. Native platforms
   apply their own masks; keep master corners navy, and Android adaptive artwork
   inside the safe circle. Export iPhone AppIcon sizes at build time. Preserve
+  regenerated PNG dimensions, mode and decoded pixels across hosts; compressed
+  PNG bytes can differ with the host encoder. Keep strict resource hashes when
+  verifying copies of the same compiled app in the signing kit. Preserve
   compiled CFBundleIcons metadata and icon-resource hashes through the Personal
   Team signing kit. All Info.plist/verifier background task identifiers derive
   from schedule.JOB_IDS; never hardcode the old two closing-only identifiers.
+  Launcher icons and launch images are separate: explicitly set Android's
+  presplash and replace the iOS template's icon.png/launch storyboard as well.
 - Both mobile workflows prefetch verified GitHub source archives from the
   official codeload host; the archive frontend returned HTTP 504 for PyJNIus and
   Kivy. Keep versions/commits/checksums in scripts/native-archives.json aligned
@@ -118,9 +131,9 @@
   use scripts/ios_toolchain.py so even Kivy's temporary SDL version probe reads
   the verified cache. Do not replace release assets with Git snapshots: their
   generated contents can differ. Save verified sources before native compilation.
-- Sustained-spinner checks use elapsed-time rotation and update gaps, not a
-  minimum FPS/frame count. Exercise a slow CI frame clock too; preserve checks
-  for one-revolution stops, pauses and incorrect speed while real scoring runs.
+- Sustained loading checks use elapsed-time drawing cycles and update gaps,
+  not a minimum FPS/frame count. Exercise a slow CI frame clock too; preserve
+  checks for one-cycle stops, pauses and incorrect speed during real scoring.
 - Mobile uses the portable Yahoo JSON transport for the yfinance search/chart
   subset; it does not import pandas/curl_cffi or launch desktop helpers.
   p4a installs generic modules with --no-deps, so buildozer.spec must list the

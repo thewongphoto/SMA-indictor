@@ -1,14 +1,16 @@
 # Four app logo proposals
 
 **Selected:** proposal 01, Crosspoint. It is applied to Android and iPhone in
-0.13.1. See the [approved icon and platform exports](../selected-logo/README.md).
+0.13.1, with the crossing corrected in 0.13.2 so the **price rises above the
+SMA**. See the [approved icon and platform exports](../selected-logo/README.md).
 
 ![Four app logo proposals](four-logo-proposals.png)
 
 [Open or download the full-size comparison sheet](four-logo-proposals.png).
 
-Each option includes a plus sign, an orange SMA crossing above a turquoise
-price line, and the app's navy/bright-colour direction.
+These original concepts include a plus sign, orange SMA, turquoise price line
+and the app's navy/bright-colour direction. The approved master linked above
+has the corrected upward **price** crossing; this sheet is historical.
 
 | Option | Direction |
 | --- | --- |
@@ -21,4 +23,4 @@ Palette targets taken from the running app: navy **#131F31**, default SMA amber
 **#FFBD5C**, price turquoise **#4DDEC4**. These are generated concept previews.
 The comparison sheet remains the original concept review. The selected
 Crosspoint design has a separate opaque master and platform-specific exports;
-the new installed icon requires the 0.13.1 build.
+the corrected installed icon requires the 0.13.2 build.

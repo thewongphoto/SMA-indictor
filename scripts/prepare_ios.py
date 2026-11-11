@@ -58,6 +58,7 @@ def background_task_identifiers(bundle_id="$(PRODUCT_BUNDLE_IDENTIFIER)"):
 def configure_info(values, bundle_id=BUNDLE_ID):
     values.update({"CFBundleDisplayName":"SMA Stock Analyzer", "CFBundleIdentifier":"$(PRODUCT_BUNDLE_IDENTIFIER)",
                    "CFBundleShortVersionString":APP_VERSION, "CFBundleVersion":APP_VERSION,
+                   "UILaunchStoryboardName":"Launch Screen",
                    "UIStatusBarHidden":False, "UIUserInterfaceStyle":"Dark",
                    "UISupportedInterfaceOrientations":["UIInterfaceOrientationPortrait"],
                    "UIBackgroundModes":["fetch"],
@@ -89,20 +90,36 @@ def project_reference_path(project, reference, source_root, seen=()):
 
 def configure_project(project_dir, bundle_id=BUNDLE_ID):
     from pbxproj import XcodeProject
+    from pbxproj.pbxextensions.ProjectFiles import FileOptions
     project_dir = Path(project_dir)
     filename = project_dir / f"{PROJECT_NAME}.xcodeproj/project.pbxproj"
     project = XcodeProject.load(str(filename))
     catalog = install_app_icons(project_dir, ROOT / "sma_analyzer/assets/app-icon.png")
+    # The official template's launch image is otherwise the Kivy logo, which
+    # is independent of AppIcon. Replace it and its storyboard explicitly.
+    launch_image = project_dir / "icon.png"
+    shutil.copy2(ROOT / "sma_analyzer/assets/app-icon.png", launch_image)
+    launch_screen = project_dir / "Storyboards/Launch Screen.storyboard"
+    launch_screen.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ROOT / "ios/LaunchScreen.storyboard", launch_screen)
     # The pinned template has a <group> reference at smaanalyzer/Images.xcassets.
     # Match its resolved path and resource phase, not another catalog's basename.
-    references = {item.get_id() for item in project.objects.get_objects_in_section("PBXFileReference")
-                  if project_reference_path(project, item, project_dir) == catalog.resolve()}
     resources = {project.get_object(build).fileRef
                  for phase in project.objects.get_objects_in_section("PBXResourcesBuildPhase")
                  for build in phase.files}
-    if not references.intersection(resources):
-        # pbxproj's force=False deduplicates by basename, even for different paths.
-        project.add_file(str(catalog), force=True)
+    for resource in (catalog, launch_image, launch_screen):
+        references = {item.get_id() for item in project.objects.get_objects_in_section("PBXFileReference")
+                      if project_reference_path(project, item, project_dir) == resource.resolve()}
+        if not references.intersection(resources):
+            # pbxproj's force=False deduplicates by basename, even for different paths.
+            # The pinned pbxproj knows .xib but omits .storyboard from its
+            # inference table. Give this one known resource its explicit type.
+            project.add_file(str(resource), force=True,
+                             file_options=FileOptions(ignore_unknown_type=resource.suffix == ".storyboard"))
+        if resource.suffix == ".storyboard":
+            for reference in project.objects.get_objects_in_section("PBXFileReference"):
+                if project_reference_path(project, reference, project_dir) == resource.resolve():
+                    reference.lastKnownFileType = "file.storyboard"
     source = project_dir / "SMAIOSBridge.m"
     shutil.copy2(ROOT / "ios/SMAIOSBridge.m", source)
     references = project.add_file(str(source), force=False)

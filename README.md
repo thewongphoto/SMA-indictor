@@ -1,5 +1,13 @@
 # SMA Stock Analyzer
 
+**0.13.2:** adds visible-range price/percentage changes that follow chart
+presets and pinch zoom, corrects the logo to show the price crossing upwards,
+replaces the default launch branding, and draws the logo while optimizing.
+It also fixes the iPhone workflow's cross-platform PNG comparison.
+See the [screenshots and animation](docs/design/ui-0.13.2/README.md) and
+[release notes](docs/RELEASE_0_13_2.md). Build tags:
+**apk-v0.13.2** and **ios-v0.13.2**.
+
 **0.13.1:** applies the selected **Crosspoint (logo 1)** app icon on Android and
 iPhone, uses **365 calendar days per year** for live analysis, and fixes the
 iPhone signing-kit verifier's outdated background-job check. A target of X/year
@@ -42,7 +50,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.13.1 is
+keeps desktop fetching interactive. Android 0.13.2 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

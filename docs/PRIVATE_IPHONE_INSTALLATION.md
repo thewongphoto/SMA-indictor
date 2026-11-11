@@ -20,8 +20,14 @@ provisioning profiles.
 The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
 compiles the native app on GitHub's Mac runner. After a **successful** run:
 
-Use **ios-v0.13.1** for the selected app icon, 365-day frequency calculation and
-the signing-kit verifier fix. The 0.13.0 log confirms the native app and kit
+Use **ios-v0.13.2** for visible-range chart comparisons, the upward-crossing
+logo/launch screen and animated calculation logo, the 365-day calculation and
+both build-check fixes. The 0.13.1 Mac run stopped at an icon unit test that
+compared compressed PNG bytes with a Linux-generated file. Version 0.13.2
+compares exact image pixels, size and mode instead; different PNG compression
+does not change the icon. See the [0.13.2 release notes](RELEASE_0_13_2.md).
+
+The 0.13.0 log confirms the native app and kit
 compiled; its final verifier still expected two background-job identifiers
 instead of the four registered for closing/opening checks. Version 0.13.1
 derives that check from the shared job list and retains strict verification.

@@ -24,16 +24,19 @@ Company groups in both saved menus reveal/collapse over 220ms. Hidden controls
 cannot receive touches; rapid reversals retain the final chosen state.
 Selector menus fade briefly and native Back closes them before leaving a page.
 
-An uncached optimization displays a rotating indicator over a slightly dimmed
+An uncached optimization draws the app logo over a slightly dimmed
 modal background. Native Back, or Escape on desktop, cancels it and leaves the
 selected company/target visible. No extra on-screen Back button is added.
 The worker receives a cancellation event; stale callbacks cannot replace
 results or hide a newer overlay. Saved/cached targets still open immediately
 without the loading overlay or a price fetch.
 
-The 0.10.3 spinner uses a frame-clock loop rather than a one-shot animation's
-unsupported repeat flag. A fixed arc rotates on the GPU; mobile scoring yields
-CPU/GIL time periodically so frame updates can continue. Native Back still
+Since 0.13.2, the turquoise price and orange SMA draw left to right using the
+same paths as the app icon. The plus appears when they reach their crossing;
+the sequence holds briefly, fades and repeats until the calculation finishes.
+GPU rendering and an elapsed-time frame clock keep the loop independent of
+frame rate. Mobile scoring yields CPU/GIL time periodically. Rendered-image
+checks cover brightness, centering and repeated cycles. Native Back still
 cancels promptly without changing optimizer arithmetic. On a saved SMA, the
 palette icon left of the rename pencil offers 12 colours, retained through
 restart, hiding, unsave/restore and subsequent price refreshes. Automatic colour

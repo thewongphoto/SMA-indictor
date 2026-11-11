@@ -17,6 +17,119 @@ from kivy.animation import Animation
 
 from .chart import MUTED, draw_plus
 from .securities import security_by_key
+from .chart_comparison import currency_prefix
+
+
+GAIN_COLOR = (.27, .88, .57, 1)
+LOSS_COLOR = (1, .36, .40, 1)
+
+
+class ChangeArrow(Widget):
+    """Native triangles avoid missing emoji/font glyphs on either phone OS."""
+    direction = StringProperty("flat")
+    ink = ListProperty(MUTED)
+
+    def __init__(self, **kwargs):
+        super().__init__(size_hint=(None, None), size=(dp(10), dp(10)),
+                         pos_hint={"center_y":.5}, **kwargs)
+        self.bind(pos=self._paint, size=self._paint, direction=self._paint, ink=self._paint)
+        self._paint()
+
+    def _paint(self, *_):
+        self.canvas.clear()
+        with self.canvas:
+            Color(*self.ink)
+            if self.direction == "up":
+                Triangle(points=[self.x, self.y, self.right, self.y, self.center_x, self.top])
+            elif self.direction == "down":
+                Triangle(points=[self.x, self.top, self.right, self.top, self.center_x, self.y])
+            else:
+                Line(points=[self.x, self.center_y, self.right, self.center_y], width=dp(1))
+
+
+class ChangeValue(BoxLayout):
+    def __init__(self, highlighted=False, **kwargs):
+        super().__init__(size_hint=(None, None), height=dp(28), spacing=dp(4),
+                         padding=(dp(5) if highlighted else 0, 0), **kwargs)
+        self.highlighted = highlighted
+        with self.canvas.before:
+            self.tint = Color(0, 0, 0, 0)
+            self.surface = RoundedRectangle(radius=[dp(5)])
+        self.arrow = ChangeArrow()
+        self.value_label = Label(text="—", font_size=sp(15), bold=True,
+                                 size_hint_x=None, halign="left", color=MUTED)
+        self.add_widget(self.arrow)
+        self.add_widget(self.value_label)
+        self.bind(pos=self._paint, size=self._paint)
+        self.value_label.bind(texture_size=self._measure)
+        self.value_label.texture_update()
+
+    def _measure(self, *_):
+        self.value_label.width = self.value_label.texture_size[0]+dp(2)
+        self.width = self.arrow.width + self.spacing + self.value_label.width + sum(self.padding[::2])
+
+    def _paint(self, *_):
+        self.surface.pos, self.surface.size = self.pos, self.size
+
+    def show(self, text, direction, color):
+        self.value_label.text = text
+        self.value_label.color = color
+        self.arrow.direction, self.arrow.ink = direction, color
+        self.tint.rgba = (*color[:3], .12 if self.highlighted else 0)
+        self.value_label.texture_update()
+
+
+class ChartChangeSummary(BoxLayout):
+    """Responsive dollar/percent/range strip immediately beneath the security."""
+    def __init__(self, **kwargs):
+        super().__init__(orientation="vertical", size_hint_y=None, height=dp(28),
+                         spacing=dp(2), **kwargs)
+        self.change = None
+        self.value_row = BoxLayout(size_hint_y=None, height=dp(28), spacing=dp(10))
+        self.amount = ChangeValue()
+        self.percent = ChangeValue(highlighted=True)
+        self.period_label = Label(text="PAST 1Y", color=MUTED, font_size=sp(10),
+                                  size_hint=(None, None), height=dp(20),
+                                  halign="left", valign="middle", pos_hint={"center_y":.5})
+        self.period_label.bind(size=lambda widget,size:setattr(widget,"text_size",size))
+        self.value_row.add_widget(self.amount)
+        self.value_row.add_widget(self.percent)
+        self.add_widget(self.value_row)
+        self.bind(width=self._arrange)
+
+    def show(self, change, currency, period):
+        display = (change, currency, period)
+        if getattr(self, "_last_display", None) == display:
+            return
+        self._last_display = display
+        self.change = change
+        self.period_label.text = period
+        self.disabled = change is None
+        self.opacity = 0 if change is None else 1
+        direction = change.direction if change else "flat"
+        color = GAIN_COLOR if direction == "up" else LOSS_COLOR if direction == "down" else MUTED
+        self.amount.show(f"{currency_prefix(currency)}{abs(change.change):,.2f}" if change else "—", direction, color)
+        self.percent.show(f"{abs(change.percent):.2f}%" if change and change.percent is not None else "—",
+                          direction if change and change.percent is not None else "flat",
+                          color if change and change.percent is not None else MUTED)
+        self._arrange()
+
+    def _arrange(self, *_):
+        if self.change is None:
+            self.height = 0
+            return
+        # Reserve a second line for a date interval on narrow phones. Never
+        # shorten away one of the comparison dates or let labels overlap.
+        measure = CoreLabel(text=self.period_label.text, font_size=self.period_label.font_size)
+        measure.refresh()
+        self.period_label.width = measure.texture.size[0]+dp(2)
+        total = self.amount.width+self.percent.width+self.period_label.width+dp(20)
+        parent = self.value_row if total <= self.width else self
+        if self.period_label.parent is not parent:
+            if self.period_label.parent is not None:
+                self.period_label.parent.remove_widget(self.period_label)
+            parent.add_widget(self.period_label)
+        self.height = dp(28) if parent is self.value_row else dp(50)
 
 
 class PreferenceReveal(StencilView):

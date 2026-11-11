@@ -1,6 +1,14 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
-**Current release: 0.13.1.** The app uses real dividend/split-adjusted daily
+**Current release: 0.13.2.** Chart dollar/percentage changes compare the first
+and last visible adjusted closes, following presets and pinch zoom without
+network calls. The corrected logo shows the turquoise price rising through
+the orange SMA; launcher/launch-screen branding and the animated calculation
+overlay use it. This release also fixes cross-platform PNG comparison in the
+iPhone workflow: regenerated pixels must match, while compression can differ.
+See the [release notes](docs/RELEASE_0_13_2.md).
+
+**Included from 0.13.1:** The app uses real dividend/split-adjusted daily
 history, persistent caches, saved names/colours and native Android daily checks.
 This release applies the selected Crosspoint app icon, uses actual 365-day
 calendar exposure for live annual-frequency matching, and fixes the iPhone

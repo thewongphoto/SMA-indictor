@@ -6,10 +6,12 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 source.include_patterns = sma_analyzer/assets/logos/CREDITS.txt
 source.exclude_dirs = tests,scripts,experiments,docs,artifacts,.venv,.venv-android,.venv-ios,.build-ios,.local,.git,.github,android,ios,bin
-version = 0.13.1
+version = 0.13.2
 icon.filename = sma_analyzer/assets/app-icon.png
 icon.adaptive_foreground.filename = sma_analyzer/assets/app-icon-adaptive.png
 icon.adaptive_background.filename = sma_analyzer/assets/app-icon-background.png
+presplash.filename = sma_analyzer/assets/app-icon.png
+android.presplash_color = #131f31
 # p4a installs generic modules with --no-deps; list the HTTPS dependency closure.
 requirements = python3,kivy==2.3.1,pyjnius,openssl,sqlite3,certifi,requests==2.34.2,urllib3==2.8.0,idna==3.20,charset_normalizer==3.5.2,tzdata
 orientation = portrait

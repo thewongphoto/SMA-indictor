@@ -21,6 +21,8 @@ from sma_analyzer.model import AnalyzerModel
 from sma_analyzer.storage import LineStore
 from sma_analyzer.palette import line_color
 from sma_analyzer.backtest import period_sessions
+from sma_analyzer.chart_comparison import visible_price_change, comparison_period
+from sma_analyzer.widgets import GAIN_COLOR, LOSS_COLOR
 
 
 class RefinementSmoke(MobileYahooSmoke):
@@ -128,6 +130,8 @@ class RefinementSmoke(MobileYahooSmoke):
             ui.timeline_selector._dropdown.select(label)
             assert ui.chart.timeline==label
             assert ui.chart.viewport.end==len(ui.model.dataset.prices)-1
+            assert ui.chart_change.change==visible_price_change(ui.chart.prices,ui.chart.viewport.bounds)
+            assert ui.chart_change.period_label.text=="PAST "+label
             if label=="3M":
                 yield from self.frames()
                 self.capture("chart-3m")
@@ -222,6 +226,31 @@ class RefinementSmoke(MobileYahooSmoke):
         for left,right in zip(chart.axis_ticks,chart.axis_ticks[1:]):
             assert right.center-right.width/2>=left.center+left.width/2+dp(10)
         self.checked("pinch has continuous fractional ranges, stable mixed coordinates and no lift jump")
+        expected=visible_price_change(chart.prices,bounds)
+        assert ui.chart_change.change==expected
+        assert ui.chart_change.period_label.text==comparison_period(expected,chart.dates,chart.timeline,True)
+        assert ui.chart_change.amount.arrow.direction==expected.direction
+        for width in (320,440):
+            Window.size=(width,920)
+            yield from self.frames(5)
+            assert ui.chart_change.amount.right<=ui.chart_change.percent.x
+            assert ui.chart_change.percent.right<=ui.chart_change.right+dp(1)
+            assert ui.chart_change.period_label.right<=ui.chart_change.right+dp(1)
+            self.capture("comparison-pinch-"+str(width),ui.plot_panel)
+        calls=len(self.client.calls)
+        for prices,color,direction,name in (((100,110),GAIN_COLOR,"up","gain"),
+                                           ((100,90),LOSS_COLOR,"down","loss")):
+            ui.chart_change.show(visible_price_change(prices,(0,1)),"USD","PAST 3M")
+            yield from self.frames(3)
+            assert tuple(ui.chart_change.amount.value_label.color)==color
+            assert tuple(ui.chart_change.percent.value_label.color)==color
+            assert ui.chart_change.amount.arrow.direction==ui.chart_change.percent.arrow.direction==direction
+            self.capture("comparison-"+name,ui.chart_change)
+        ui._refresh_chart_header()
+        chart.reset_zoom()
+        assert ui.chart_change.period_label.text=="PAST 1Y"
+        assert len(self.client.calls)==calls
+        self.checked("visible endpoint dollar/percent changes follow presets, pinch and reset, with matching arrows/colours, full dates and no network calls")
         self.capture("pinch",chart.parent)
         for i in range(130):
             self.cache.operation("history","AAPL","cache_hit",f"Test event {i}")

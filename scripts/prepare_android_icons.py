@@ -4,6 +4,7 @@ The generated PNGs are committed, so Buildozer/p4a only copies them and needs no
 additional build or APK dependency. Re-export manually with a host that has
 Pillow (for example .venv/bin/python -m scripts.prepare_android_icons).
 This performs deterministic sizing/padding only, without changing the design.
+Decoded pixels are reproducible; compressed PNG bytes can vary by host encoder.
 """
 from pathlib import Path
 import math

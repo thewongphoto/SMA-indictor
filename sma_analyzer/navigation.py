@@ -1,7 +1,7 @@
 """Shared page motion, modal bottom sheets and cancelable calculation feedback."""
 from kivy.animation import Animation, AnimationTransition
 from kivy.clock import Clock
-from kivy.graphics import Color, Line, Rectangle, RoundedRectangle, PushMatrix, PopMatrix, Rotate
+from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
 from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, NumericProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -11,6 +11,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
+from .app_logo import CrossingLogoAnimation
 
 
 class SoftPageTransition(SlideTransition):
@@ -182,47 +183,6 @@ class SavedLinesSheet(BottomSheet):
         super().__init__(host,panel,results_only=True,**kwargs)
 
 
-class LoadingSpinner(Widget):
-    angle=NumericProperty(0)
-
-    def __init__(self,**kwargs):
-        super().__init__(size_hint_y=None,height=dp(44),**kwargs)
-        self._spin_event=None
-        self._elapsed=0
-        with self.canvas:
-            Color(.22,.32,.40,1)
-            self.track=Line(width=dp(2))
-            PushMatrix()
-            self.rotation=Rotate()
-            Color(1,.74,.36,1)
-            self.arc=Line(width=dp(2.5),cap="round")
-            PopMatrix()
-        self.bind(pos=self._paint,size=self._paint,angle=self._rotate)
-
-    def _paint(self,*_):
-        self.track.circle=(self.center_x,self.center_y,dp(15))
-        self.arc.circle=(self.center_x,self.center_y,dp(15),0,105)
-        self.rotation.origin=self.center
-
-    def _rotate(self,*_):
-        self.rotation.angle=self.angle
-
-    def _advance(self,dt):
-        self._elapsed+=max(0,dt)
-        self.angle=(self._elapsed*360/.9)%360
-
-    def start(self):
-        self.stop()
-        self._elapsed=0
-        self._spin_event=Clock.schedule_interval(self._advance,0)
-
-    def stop(self):
-        if self._spin_event is not None:
-            self._spin_event.cancel()
-            self._spin_event=None
-        self.angle=0
-
-
 class OptimizationOverlay(FloatLayout):
     """Modal progress feedback; cancellation is handled by native Back/Escape."""
     def __init__(self,host,**kwargs):
@@ -231,13 +191,13 @@ class OptimizationOverlay(FloatLayout):
         with self.canvas.before:
             Color(0,0,0,.42)
             self.scrim=Rectangle()
-        self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(160),
+        self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(232),
                            padding=dp(16),spacing=dp(8))
         with self.card.canvas.before:
             Color(.10,.15,.23,1)
             self.surface=RoundedRectangle(radius=[dp(16)])
-        self.spinner=LoadingSpinner()
-        self.card.add_widget(self.spinner)
+        self.logo=CrossingLogoAnimation()
+        self.card.add_widget(self.logo)
         self.card.add_widget(Label(text="Optimizing SMA…",bold=True,font_size=sp(18),color=(.92,.95,.98,1)))
         self.caption=Label(font_size=sp(12),color=(.58,.66,.75,1),halign="center",valign="middle")
         self.caption.bind(size=lambda widget,size:setattr(widget,"text_size",size))
@@ -265,11 +225,11 @@ class OptimizationOverlay(FloatLayout):
             self.host.add_widget(self)
             self.opacity=0
             Animation(opacity=1,duration=.12).start(self)
-            self.spinner.start()
+            self.logo.start()
 
     def dismiss(self):
         Animation.cancel_all(self)
-        self.spinner.stop()
+        self.logo.stop()
         self.host.unbind(pos=self._fit_host,size=self._fit_host)
         if self.parent is not None:
             self.parent.remove_widget(self)

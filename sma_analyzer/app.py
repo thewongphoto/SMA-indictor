@@ -60,6 +60,9 @@ from .line_names import sma_label
 from .palette import line_color as saved_color
 from .palette import COLOR_CHOICES, COLOR_NAMES
 from .reference_market import GUIDE_SYMBOL, GUIDE_NAME
+from .chart_comparison import visible_price_change, comparison_period
+from .widgets import ChartChangeSummary
+from .app_logo import APP_LOGO
 
 BG = (0.075, 0.122, 0.192, 1)
 PANEL = (0.122, 0.188, 0.282, 1)
@@ -393,6 +396,7 @@ class AnalyzerScreen(FloatLayout):
         self.content.add_widget(self.optimal_panel)
 
         plot_panel = Panel()
+        self.plot_panel = plot_panel
         self.content.add_widget(plot_panel)
         self.plot_header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
         self.plot_title = SecurityIdentity(security_by_key(model.dataset.counter),
@@ -403,6 +407,8 @@ class AnalyzerScreen(FloatLayout):
                                          pos_hint={"center_y": 0.5})
         self.zoom_out_button.height = dp(36)
         plot_panel.add_widget(self.plot_header)
+        self.chart_change = ChartChangeSummary()
+        plot_panel.add_widget(self.chart_change)
         self.timeline_selector = TimelineSelector(values=available_timelines(0))
         plot_panel.add_widget(self.timeline_selector)
         self.plot_subtitle = WrappedLabel(text="", color=MUTED, font_size=sp(11))
@@ -410,7 +416,8 @@ class AnalyzerScreen(FloatLayout):
         self.chart = PriceChart(size_hint_y=None, height=dp(245))
         self.scroll.chart = self.chart
         self.zoom_out_button.bind(on_release=self.chart.reset_zoom)
-        self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header)
+        self.chart.bind(is_zoomed=self._refresh_chart_header, view_range=self._refresh_chart_header,
+                        timeline=self._refresh_chart_header)
         plot_panel.add_widget(self.chart)
         self.timeline_selector.bind(on_select=lambda _, value: self.chart.set_timeline(value))
         legend_holder = AnchorLayout(size_hint_y=None, height=dp(24))
@@ -1366,6 +1373,9 @@ class AnalyzerScreen(FloatLayout):
                                     data.dates if not getattr(data, "is_simulated", True) else ())
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
+        change = visible_price_change(self.chart.prices, self.chart.viewport.bounds)
+        self.chart_change.show(change, data.currency,
+            comparison_period(change, self.chart.dates, self.chart.timeline, self.chart.is_zoomed))
         self.plot_subtitle.text = "Example daily close" if data.prices else ""
         if not getattr(data, "is_simulated", True) and data.prices:
             self.plot_subtitle.text = f"{data.currency} adjusted daily close\nDividends and splits included"
@@ -2316,6 +2326,7 @@ class AnalyzerScreen(FloatLayout):
 
 
 class SMAStockAnalyzerApp(App):
+    icon = str(APP_LOGO)
     title = "SMA Stock Analyzer"
 
     def build(self):

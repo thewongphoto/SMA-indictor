@@ -39,6 +39,7 @@ class IOSPackagingTests(TestCase):
     def test_info_allows_supported_free_capabilities_and_expands_the_selected_bundle_id(self):
         info = configure_info({"CFBundleExecutable":"smaanalyzer"})
         self.assertEqual(info["CFBundleShortVersionString"],APP_VERSION)
+        self.assertEqual(info["UILaunchStoryboardName"],"Launch Screen")
         self.assertEqual(info["UIBackgroundModes"],["fetch"])
         self.assertEqual(info["CFBundleIdentifier"],"$(PRODUCT_BUNDLE_IDENTIFIER)")
         self.assertEqual(info["BGTaskSchedulerPermittedIdentifiers"],[
@@ -145,6 +146,15 @@ class IOSPackagingTests(TestCase):
         self.assertIn(icons[0].get_id(),resource_ids)
         self.assertIn("IOS_IS_WINDOWED=True",(base/"main.m").read_text())
         self.assertIn("KIVY_NO_ARGS=1",(base/"main.m").read_text())
+        self.assertEqual((base/"icon.png").read_bytes(),(ROOT/"sma_analyzer/assets/app-icon.png").read_bytes())
+        launch=ET.parse(base/"Storyboards/Launch Screen.storyboard")
+        self.assertEqual(launch.find(".//imageView").attrib["image"],"icon.png")
+        self.assertEqual({item.attrib.get("firstAttribute") for item in launch.findall(".//constraint")},
+                         {"width","height","centerX","centerY"})
+        for resource in (base/"icon.png",base/"Storyboards/Launch Screen.storyboard"):
+            reference=next(item for item in project.objects.get_objects_in_section("PBXFileReference")
+                           if project_reference_path(project,item,base)==resource.resolve())
+            self.assertIn(reference.get_id(),resource_ids)
 
     @skipUnless(importlib.util.find_spec("pbxproj"),"Install requirements-validation.txt for Xcode project checks")
     def test_official_group_catalog_reference_resolves_to_the_generated_icon_directory(self):

@@ -1,4 +1,4 @@
-# Android 0.13.1 notification checks and troubleshooting
+# Android 0.13.2 notification checks and troubleshooting
 
 The supplied report was from **0.10.3**. It shows a successful manual phone
 notification and one native scheduler failure before any signal-check rows.
@@ -66,9 +66,9 @@ not a paused Kivy timer.
 
 ## Test the fixed background path
 
-1. Install **apk-v0.13.1** over the existing app. **Do not uninstall**: retain
+1. Install **apk-v0.13.2** over the existing app. **Do not uninstall**: retain
    saved SMAs, cached prices and signing identity. Open Settings and confirm
-   **DATA CONNECTION · 0.13.1**. A report headed 0.10.3 is still the older app.
+   **DATA CONNECTION · 0.13.2**. A report headed 0.10.3 is still the older app.
    View/refresh saved securities once after the failed old-build closing check
    so opening reminders have current closing data. Normal closing jobs maintain
    that cache thereafter.

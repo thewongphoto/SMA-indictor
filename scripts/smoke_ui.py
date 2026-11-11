@@ -33,6 +33,7 @@ from sma_analyzer.storage import LineStore
 from sma_analyzer.engine import crossover_events, simple_moving_average
 from sma_analyzer.palette import line_color
 from sma_analyzer.mock_data import Dataset
+from sma_analyzer.chart_comparison import visible_price_change
 from unittest.mock import Mock, patch
 from sma_analyzer.notifications import evaluate_eod, NotificationSettings, Alert
 from kivy.clock import Clock
@@ -155,6 +156,15 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.chart.viewport.bounds == (1008, 1259)
         assert ui.timeline_selector.text == "1Y"
         assert tuple(ui.timeline_selector.values) == ("3M", "6M", "9M", "1Y", "3Y", "5Y", "Max")
+        # Regression: legacy preview Dataset has no quote-currency metadata.
+        # Its endpoint comparison must load without assuming a live dataset or
+        # inventing a USD/SGD denomination for fictional prices.
+        change = visible_price_change(ui.model.dataset.prices, ui.chart.viewport.bounds)
+        assert ui.chart_change.change == change
+        assert ui.chart_change.amount.value_label.text == f"{abs(change.change):,.2f}"
+        assert ui.chart_change.percent.value_label.text == f"{abs(change.percent):.2f}%"
+        assert ui.chart_change.period_label.text == "PAST 1Y"
+        self.check("preview chart comparisons handle missing quote currency without inventing a denomination")
         assert "count" not in ui.card_values
         assert len(ui.cards.children) == 2
         assert ui.save_button.parent.parent is ui.optimal_panel
@@ -713,18 +723,25 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.scroll.scroll_y = 0.5
         for _ in range(6): yield
         before = ui.scroll.scroll_y
-        x = ui.scroll.x + dp(5)
-        finger = Pointer(x, ui.scroll.center_y)
+        x, y = ui.scroll.to_window(ui.scroll.x + dp(5), ui.scroll.center_y)
+        finger = Pointer(x, y)
         finger.down()
+        # Start a real drag before ScrollView's tap/long-press timeout. Three
+        # software-rendered frames can exceed 250ms on a busy CI runner.
+        finger.move_to(x, y + dp(35))
         for _ in range(3):
             yield
-        finger.move_to(x, ui.scroll.center_y + dp(70))
+        finger.move_to(x, y + dp(70))
         for _ in range(3):
             yield
         finger.up()
         for _ in range(3):
             yield
-        assert ui.scroll.scroll_y != before
+        assert ui.scroll.scroll_y != before, {
+            "screen":ui.manager.current, "scroll_size":tuple(ui.scroll.size),
+            "content_height":ui.content.height, "before":before, "after":ui.scroll.scroll_y,
+            "scroll_timeout":ui.scroll.scroll_timeout, "gesture_x":x,
+            "window":tuple(Window.size)}
         self.check("page scroll still works outside the plot")
 
         ui.scenario.text = "Oscillating"

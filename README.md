@@ -1,5 +1,10 @@
 # SMA Stock Analyzer
 
+**0.13.3:** fixes the Android build's offline chart-startup check when preview
+data has no currency metadata. Live charts retain their actual quote currency.
+See the [release notes](docs/RELEASE_0_13_3.md). Android build: **apk-v0.13.3**.
+**Native iOS releases are paused** while the planned iPhone route moves to Vercel.
+
 **0.13.2:** adds visible-range price/percentage changes that follow chart
 presets and pinch zoom, corrects the logo to show the price crossing upwards,
 replaces the default launch branding, and draws the logo while optimizing.
@@ -50,7 +55,7 @@ The current **Kivy desktop preview** is available from this repository’s main 
 **The current desktop main branch adds private Yahoo EOD retrieval** with
 persistent caches and full-history MAX. Follow the
 [Yahoo desktop testing guide](docs/YAHOO_DESKTOP_TESTING.md). This update
-keeps desktop fetching interactive. Android 0.13.2 is
+keeps desktop fetching interactive. Android 0.13.3 is
 requested separately through its APK build tag.
 
 **Previous Android version 0.7.0** released the approved library-first UI, three-year guided

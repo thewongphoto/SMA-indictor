@@ -1374,7 +1374,7 @@ class AnalyzerScreen(FloatLayout):
         self.timeline_selector.text = self.chart.timeline
         self.timeline_selector.disabled = not data.prices
         change = visible_price_change(self.chart.prices, self.chart.viewport.bounds)
-        self.chart_change.show(change, data.currency,
+        self.chart_change.show(change, getattr(data, "currency", ""),
             comparison_period(change, self.chart.dates, self.chart.timeline, self.chart.is_zoomed))
         self.plot_subtitle.text = "Example daily close" if data.prices else ""
         if not getattr(data, "is_simulated", True) and data.prices:

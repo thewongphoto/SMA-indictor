@@ -1,5 +1,18 @@
 # Project instructions
 
+## Release policy
+
+- Automatically publish completed, validated fixes/features to GitHub and
+  trigger a new Android APK build unless the user asks to hold a release.
+- iOS GitHub releases/builds are **paused at the user's request**. Do not push
+  ios-v tags or dispatch the iPhone workflow until explicitly asked to resume.
+  The planned iPhone route is Vercel; do not infer its implementation from a
+  shared-chat URL whose content has not been supplied.
+- Report publication only after a successful Git push; distinguish source/tag
+  publication from completed native builds and downloadable APK artifacts.
+- Run all Android workflow UI gates before publishing a UI fix, including the
+  offline preview and library flow as well as the live-data transport fixtures.
+
 ## Platform direction
 
 - The app targets **both Android and iPhone/iOS**. Design new tables, stored

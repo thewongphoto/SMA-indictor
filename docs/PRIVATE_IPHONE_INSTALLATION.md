@@ -1,5 +1,9 @@
 # Install SMA Stock Analyzer on your own iPhone for free
 
+**Native iOS GitHub releases are paused at the user's request.** The planned
+iPhone route is Vercel. The instructions below are retained for the existing
+native builds; Android 0.13.3 does not publish a new iPhone kit.
+
 This version adds an iPhone build of the same Kivy app. It uses the same real
 security search, dividend-adjusted history, persistent cache, saved SMA names,
 colours, charts and backtesting as Android. It targets **iOS 15 or later**.

@@ -1,6 +1,11 @@
 # SMA Stock Analyzer — app summary and calculation conditions
 
-**Current release: 0.13.2.** Chart dollar/percentage changes compare the first
+**Current Android release: 0.13.3.** Fixes chart startup for preview datasets
+without quote-currency metadata. Live data keeps its real currency. Native
+iOS releases are paused at the user's request; the planned iPhone route is
+Vercel. See the [release notes](docs/RELEASE_0_13_3.md).
+
+**Included from 0.13.2:** Chart dollar/percentage changes compare the first
 and last visible adjusted closes, following presets and pinch zoom without
 network calls. The corrected logo shows the turquoise price rising through
 the orange SMA; launcher/launch-screen branding and the animated calculation

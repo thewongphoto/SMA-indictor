@@ -22,7 +22,7 @@ preferences are preserved. X/year is a closest historical average, not a quota
 guaranteed in every individual year. See the
 [release notes](docs/RELEASE_0_13_1.md),
 [Android guide](docs/YAHOO_ANDROID_TESTING.md) and
-[free iPhone installation guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
+[Vercel/iPhone web-app guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 Apple signing and physical-device iPhone behavior still require validation.
 
 The older development records below describe the original **simulation** and

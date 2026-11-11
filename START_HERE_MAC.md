@@ -7,7 +7,7 @@ See [Yahoo desktop testing](docs/YAHOO_DESKTOP_TESTING.md) for the API/cache che
 For Android APK testing and request-log reporting, use
 [Android Yahoo testing](docs/YAHOO_ANDROID_TESTING.md).
 For installation on your own iPhone, use the separate
-[free Mac/Xcode iPhone guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
+[Vercel/iPhone web-app guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 
 These instructions assume you have never used Python or Kivy. Python runs the
 program; Kivy draws the app's screen. You do not need to edit any code.

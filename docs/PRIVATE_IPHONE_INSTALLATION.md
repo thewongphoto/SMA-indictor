@@ -1,196 +1,179 @@
-# Install SMA Stock Analyzer on your own iPhone for free
+# Deploy SMA Stock Analyzer to Vercel for iPhone
 
-**Native iOS GitHub releases are paused at the user's request.** The planned
-iPhone route is Vercel. The instructions below are retained for the existing
-native builds; Android 0.13.3 does not publish a new iPhone kit.
+Native iOS releases are paused. The new route is an HTTPS web app installed on
+an iPhone Home Screen. This needs no Xcode, TestFlight, jailbreak, paid Apple
+Developer membership or weekly signing renewal.
 
-This version adds an iPhone build of the same Kivy app. It uses the same real
-security search, dividend-adjusted history, persistent cache, saved SMA names,
-colours, charts and backtesting as Android. It targets **iOS 15 or later**.
+**Current status:** this repository contains Python/Kivy, not a deployable web
+frontend. It has no web package, manifest or service worker yet. This guide is
+the deployment and feature-preservation plan; uploading the unchanged repository
+to Vercel will not convert Kivy into a website. No production website is being
+created by this documentation update.
 
-Use your **Mac + Xcode + a free Apple Account (Personal Team)** to sign and
-install it on your own iPhone. No jailbreak or public App Store listing is
-needed. **Free signing normally expires after 7 days**: reconnect the phone
-and press Run in the same Xcode project to renew it. Keep the same team and
-bundle identifier, and keep the app installed, to retain its on-phone data.
+## 1. Prepare the web implementation
 
-An APK does not work on iPhone. An unsigned iPhone app also cannot be installed
-by downloading it in Safari. Xcode performs the required Apple signing locally.
-You do not need to give this repository your Apple password, certificates or
-provisioning profiles.
+Use a responsive Next.js frontend on Vercel, with a server-side API, durable
+PostgreSQL storage and an authenticated Python calculation/data worker. Reuse
+the existing pure Python calculation modules rather than rewriting their rules
+without equivalence tests. Long optimizations and scheduled work need a durable
+job queue/worker; do not run them in a browser timer or leave a serverless request
+running indefinitely. A Vercel Python Function can serve bounded requests, but
+its duration, memory and payload limits must be checked against MAX histories.
+The persistent worker can be hosted separately from Vercel.
 
-## Easiest route: download the compiled Xcode kit
+The proposed frontend directory is `web/`; it does not exist yet. Before import,
+it must contain a working package.json, build script, responsive pages, API
+integration, manifest, icons and service worker. Implement these first, then
+follow the dashboard steps below. Account configuration alone cannot provide
+feature parity.
 
-The [private iPhone build workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/ios-private.yml)
-compiles the native app on GitHub's Mac runner. After a **successful** run:
+| Existing feature | Web implementation required |
+| --- | --- |
+| Submitted partial ticker/company search | Same-origin authenticated API; search only on Enter/Submit, persistent query cache, bundled company/ETF logos. |
+| Real historical prices and MAX | Server-side market requests; retain all available adjusted daily history, dates and quote currency. Validate missing data; dividends/splits are already included, not added twice. |
+| Optimized SMA and backtesting | Reuse engine.py, policy.py and backtest.py. Preserve closest annualized frequency per 365 calendar days, warm-up/gap rules, crossing interpolation, DCA interval starts, and the representative modal result from 500 random samples. |
+| Chart interaction | Touch-capable chart with two-finger pinch, one-finger EOD inspection, nonoverlapping axes, existing ranges, saved overlays and endpoint currency/% comparisons. |
+| Saved library and archive | Grouped accordions, custom names, 12 persistent colours, hearts, visibility, notification switches and restore history. Default groups closed on launch. |
+| Guided example | Vanguard S&P 500 ETF (VOO), initial 4/year and Max; adjustable frequency and investment horizon. |
+| Loading and cancellation | Shared upward-crossing logo animation; cancellable worker jobs and browser navigation that ignores stale results. |
+| Persistent cache | IndexedDB on the phone plus durable server storage; cached browsing after relaunch and explicit cache-clear controls. |
+| Background alerts | Server scheduler evaluates saved enabled SMAs and sends visible Web Push notifications; the phone does not run scheduled price fetches while asleep. |
+| Request log | Correlated API/cache/job/signal/push records, scrollable and copyable, without tokens, cookies or raw private responses. |
 
-Use **ios-v0.13.2** for visible-range chart comparisons, the upward-crossing
-logo/launch screen and animated calculation logo, the 365-day calculation and
-both build-check fixes. The 0.13.1 Mac run stopped at an icon unit test that
-compared compressed PNG bytes with a Linux-generated file. Version 0.13.2
-compares exact image pixels, size and mode instead; different PNG compression
-does not change the icon. See the [0.13.2 release notes](RELEASE_0_13_2.md).
+Keep the app private while using the current Yahoo source. A private GitHub
+repository does not make a Vercel production URL private. Add application login
+and a user allowlist; authorize every API and database operation. Test market
+requests from the actual deployed host: cloud IPs can encounter provider blocks
+or rate limits even when requests work on Android. Vercel hosting grants no
+additional market-data redistribution rights.
 
-The 0.13.0 log confirms the native app and kit
-compiled; its final verifier still expected two background-job identifiers
-instead of the four registered for closing/opening checks. Version 0.13.1
-derives that check from the shared job list and retains strict verification.
-The build retains the verified source caching introduced in 0.11.2. Rerunning
-an old tag still uses its original code.
+## 2. Configure Vercel
 
-1. Open that run while signed in to GitHub. Under **Artifacts**, download
-   **sma-iphone-xcode-kit** to your Mac and unzip it. This contains an unsigned
-   device app and a small signing project; no local Python compilation is needed.
-2. Install **Xcode** free from the Mac App Store. Open it once and finish its
-   first-launch setup. Use an Xcode version that supports your iPhone's iOS
-   version. Your Mac must support that Xcode version too.
-3. Open **SMA-iPhone.xcodeproj** from the unzipped kit. Select the blue project
-   in the left sidebar, then the **smaanalyzer** target.
-4. Open **Signing & Capabilities**. Leave **Automatically manage signing** on.
-   Add your Apple Account through **Xcode → Settings → Accounts** if needed,
-   and choose your **Personal Team**. Apple handles the sign-in locally.
-5. If Xcode says the bundle identifier is unavailable, change it to a unique
-   value such as `com.yourname.smaanalyzer.personal`. Record the value and keep
-   using it for future installs and renewals. Changing it creates a separate app.
-6. Connect your iPhone by USB, unlock it and accept **Trust This Computer**.
-   Select the actual iPhone as the run destination beside the **smaanalyzer**
-   scheme. This kit contains a device binary; choose your phone, not a simulator.
-7. If Xcode asks, enable **Settings → Privacy & Security → Developer Mode** on
-   the phone and follow Apple's restart/confirmation instructions. This is
-   Apple's supported development setting.
-8. Click **▶ Run** in Xcode. Xcode signs and installs the compiled app with your
-   Personal Team. If the phone requests developer trust, use **Settings →
-   General → VPN & Device Management** and trust your own developer account.
-9. The app is now on your Home Screen. You can unplug the phone and use it.
-   Search needs internet; downloaded prices and saved SMAs persist across launches.
+Once the web implementation exists:
 
-The signing project copies the compiled Kivy payload into Xcode's app target
-**before** the normal CodeSign step. It preserves the bundle identifier you
-choose, Xcode's generated profile and its processed Info.plist. It requests no
-push-notification, iCloud or other paid-only capability.
+1. Sign in to Vercel and choose **Add New → Project → Import Git Repository**.
+2. Connect GitHub and grant access to `thewongphoto/SMA-indictor`.
+3. Select the web implementation branch and set Root Directory to `web/`
+   (or its actual directory). Choose Next.js and its package's build defaults.
+   Do not point Vercel at the Kivy launcher or Buildozer configuration.
+4. Connect a managed database and the calculation worker. Local SQLite files
+   and function `/tmp` storage are not durable Vercel application storage.
+5. Add the environment variables the implemented backend actually reads.
+   Typical names are shown below; they are proposed names, not existing code.
+6. Deploy a Preview with test data. Check authentication, APIs and calculations.
+7. Set the production branch, deploy Production and choose a stable HTTPS domain
+   under Project Settings → Domains. Vercel supplies HTTPS for configured domains.
+8. Set production application/auth callback URLs to that final origin, redeploy
+   after changing build-time variables, and install that production URL on iPhone.
 
-If the workflow is still running, wait for its result. A source commit or tag
-alone does not mean the native kit compiled successfully. A failed workflow
-uploads **sma-iphone-build-logs**; share the first failing step/error so it can
-be corrected. The installation kit is published only after the native builds
-and two simulator launches pass.
+| Proposed variable | Scope |
+| --- | --- |
+| NEXT_PUBLIC_APP_URL | Public stable website origin. |
+| DATABASE_URL, AUTH_SECRET | Server-only database/auth configuration. |
+| PYTHON_API_URL, PYTHON_API_TOKEN | Server-only worker connection. |
+| NEXT_PUBLIC_VAPID_PUBLIC_KEY | Public Web Push application key. |
+| VAPID_PRIVATE_KEY, VAPID_SUBJECT | Server-only signing key and contact URI. |
+| CRON_SECRET | Server-only scheduler endpoint credential. |
 
-## Renew the free installation each week
+Never put database credentials or private VAPID keys in NEXT_PUBLIC variables.
+Use separate Preview and Production databases, secrets and job settings.
+Previews must not send real alerts. Keep the production origin and VAPID keys
+stable: changing origins requires fresh installation/subscription and does not
+transfer browser storage automatically.
 
-Keep the unzipped kit. Reconnect/unlock your phone, open the **same** project,
-confirm the same Personal Team and bundle identifier, then press **Run** again.
-Do this again when the profile expires. You do not need to rebuild Python or
-download a new app version just to renew signing. Do not delete the installed
-app to fix expiry: deletion can remove the local database and cache.
+## 3. Enable the iPhone web-app experience
 
-When installing a newer kit, repeat signing with the **same team and bundle ID**
-to update the existing installation. Android and iPhone keep separate on-device
-libraries; this release does not add cloud sync or transfer Android saves.
+There is no Vercel switch that enables all iOS features. The frontend must supply:
 
-## Alternative: build from the repository on your Mac
+- A linked web manifest with stable id, name, start_url, scope, standalone display,
+  theme/background colours and suitable 192/512px icons from the new logo.
+- An Apple touch icon, responsive viewport and safe-area handling for the notch
+  and Home indicator; test the keyboard and portrait/landscape layouts.
+- A same-origin service worker, normally `/sw.js`, served as JavaScript with
+  appropriate update/revalidation headers. Cache the application shell for offline
+  opening; do not indiscriminately cache authenticated API responses or secrets.
+- IndexedDB for downloaded data and local preferences, and authenticated server
+  synchronization for durable saved parameters. Request persistent storage where
+  supported, but do not promise it: iOS may evict website data. Provide parameter
+  export/import and server recovery. Android's SQLite library does not transfer
+  automatically; cross-device sync requires an implemented account/import flow.
 
-Use this if you want to change source or the precompiled kit is unavailable.
-Download the repository ZIP using **Code → Download ZIP**, unzip it, then open
-Terminal in the extracted folder as explained in
-[START_HERE_MAC.md](https://github.com/thewongphoto/SMA-indictor/blob/main/START_HERE_MAC.md).
-The desktop launcher and the iPhone launcher are separate. For this full native
-build, put the source in a path without spaces, such as `~/SMA-indictor`.
+On iPhone, open the production URL in **Safari → Share → Add to Home Screen**
+(the placement may vary by iOS version), then launch its Home Screen icon.
+Use **iOS/iPadOS 16.4 or later** for Home Screen Web Push. A regular Safari tab
+alone does not provide the same iPhone push installation context.
 
-Install Xcode and its iOS platform first. In **Xcode → Settings → Locations**,
-select that Xcode's **Command Line Tools**. Install [Homebrew](https://brew.sh)
-if necessary, then run:
+Inside the installed app, tap an explicit **Enable notifications** button.
+Permission must follow a user gesture. Register the service worker, subscribe
+with PushManager and the public VAPID key, and securely save that subscription
+on the backend. Handle denied permission and expired subscriptions; the server
+must remove invalid endpoints. The worker must display notifications and route
+notification taps to the relevant saved SMA. No Apple signing certificate is
+required for standards-based Web Push.
 
-```sh
-brew install python@3.11 autoconf automake libtool pkg-config
-bash run-ios.command
-```
+## 4. Preserve scheduled signals when the app is closed
 
-The launcher creates `.venv-ios`, installs the pinned official `kivy-ios`
-toolchain, compiles Python/Kivy/OpenSSL and generates the Xcode project. The
-first build can take an hour or more; later builds reuse compiled libraries.
-Before compilation, the launcher fetches and verifies pinned OpenSSL, Kivy and
-Pyobjus sources over HTTPS. Its toolchain wrapper also covers temporary Kivy
-version probes during build, pip and project creation. A separate verified
-source cache survives later build failures in GitHub reruns. See the
-[shared source policy](MOBILE_NATIVE_SOURCES.md) and
-[OpenSSL provenance](IOS_NATIVE_SOURCES.md).
-Leave Terminal open. Xcode opens automatically on success. Follow steps 4–8
-above to sign and install. The generated project path is recorded in
-`.build-ios/current-project.txt`.
+WebKit can suspend the page. Background App Refresh, setInterval and a service
+worker are not substitutes for a server scheduler. Keep these existing SGT targets:
 
-For weekly renewal, reopen the existing Xcode project and Run; rerunning the
-source-generation command recreates the project and requires selecting your
-team again. After changing Python source, rerun `bash run-ios.command` to stage
-the new source. This never deletes the phone's saved SMA database.
+| Job | Singapore time |
+| --- | --- |
+| US closing checks | Tuesday–Saturday 06:30 |
+| SGX closing checks | Monday–Friday 18:30 |
+| US opening reminders | Monday–Friday 21:30, fixed SGT including US DST changes |
+| SGX opening reminders | Monday–Friday 09:00 |
 
-The iPhone app uses the portable HTTPS search/chart implementation, with no
-pandas, curl_cffi or desktop helper process. TLS certificate verification stays
-enabled. Bundled `tzdata` provides Singapore/exchange timezones, and iOS app
-storage retains the SQLite history and saved parameters until you explicitly
-clear them or delete the app.
+Reuse schedule.py and notification rules: closing buy signals use confirmed
+upward crossings; closing impending signals use close below SMA. Opening
+reminders use SMA strictly below the last eligible adjusted close, include the
+existing no-live-prices message, and expire after 30 minutes. Weekday targets
+are not proof of an exchange trading day. Verify freshness/reference dates,
+avoid duplicate sessions and preserve disabled settings. New SMA/type switches
+default on, but iPhone permission is always the user's choice.
 
-## Notifications and background checks on iPhone
+Choose a scheduler plan with minute-level dispatch, such as a suitable Vercel
+Cron plan or an external scheduler. Check current frequency, precision and usage
+limits: do not assume the free Hobby cron offering can meet these targets.
+A minutely UTC dispatcher can use schedule.py to find due SGT jobs, atomically
+claim each slot in the database and enqueue durable work. Protect its endpoint
+with CRON_SECRET; log retries, expiry and deduplication. Do not run alert jobs
+on a developer laptop or rely on a function continuing after its response.
 
-In the app, open **Settings → Test iPhone notification** and allow notifications.
-This posts a local test without a price request. Foreground alerts request a
-banner and sound, then remain in Notification Center. iPhone Settings, Focus,
-silent mode and the user's banner/sound preferences govern what appears.
-Local notifications do **not** need an APNs server or paid developer membership.
+The server can check prices while the phone sleeps and send Web Push. iOS,
+network availability, Focus and notification settings still control delivery;
+exact-time banners cannot be guaranteed. Log push-service acceptance separately
+from confirmed user receipt. Refresh the UI from server/cache state on reopening.
 
-Saved enabled SMAs request native **BGTaskScheduler** checks at the same
-Singapore-time targets as Android: US Tuesday–Saturday **06:30**, SGX
-Monday–Friday **18:30** for closing checks. The added opening reminders target
-US Monday–Friday **21:30** and SGX Monday–Friday **09:00**, fixed Singapore time.
-They use the last adjusted close, with the saved SMA strictly below it; no live
-price request is made. Opening jobs more than 30 minutes late are skipped and
-logged. **iOS decides when, or whether, to run them**; it cannot
-promise a daily alarm at those times. Background App Refresh must be enabled;
-Low Power Mode, infrequent use and force-quitting can prevent checks. This
-adapter uses native OS tasks, not a Kivy timer running during suspension.
-Cold background launches use a separate startup path that avoids creating a
-Kivy/OpenGL window; the UI starts when the app is brought to the foreground.
+## 5. Verify before calling the web release complete
 
-The shared job checks current saved switches, uses the latest eligible market
-close, suppresses duplicate daily runs/signals and records requests and
-notification outcomes in **Settings → Data request log**. Expired native tasks
-stop before another security fetch or notification delivery. A failed/expired
-slot is not silently replayed. The app imports no UI from the background job.
-The Android-only **Test background notification** button is not an iPhone
-BGTaskScheduler trigger; the iPhone local-notification test does not force a
-background run.
+Test on a physical iPhone installed from the production origin:
 
-## What to test on your physical iPhone
+- Search Apple/VOO/DBS, load genuine adjusted MAX history and inspect request logs.
+- Compare optimization/backtest outputs with the existing Python fixtures.
+- Test pinch/inspection, all ranges, custom inputs, names, colours and archive.
+- Close/reopen and test offline after a first successful load. Verify account
+  recovery/export before clearing website data or removing the Home Screen app.
+- Enable push through a tap; send a server test with the app foregrounded,
+  closed and the phone locked. Inspect both server logs and Notification Center.
+- Verify all three signal types, the four schedules, disabled switches,
+  duplicates, stale/holiday data and delayed opening-job expiry.
+- Deploy an update and roll back it; confirm saved data survives and service
+  worker updates do not mix incompatible frontend/API/cache versions.
 
-Native compilation and simulator checks run in the workflow; they do not prove
-Personal Team installation, real data connectivity or sleeping-phone delivery.
-Those checks remain pending until you install the kit on your own phone:
+A successful Vercel deployment establishes hosting, not these acceptance checks.
+This documentation change does not implement the web port or trigger native builds.
 
-- Search `Apple`, `VOO` and `DBS`; select a match and load real history.
-- Save/rename/recolour an SMA; check the centred palette, chart gestures,
-  keyboard, notch and Home indicator. Relaunch and check the library/cache.
-- Post the notification test while in the app; check the banner and
-  Notification Center, then test with your chosen Focus settings.
-- Enable a saved SMA's phone switch and Background App Refresh. After an
-  eligible close, check the request log for `notification-run`,
-  `notification-check`, `notification-trigger` and `notification-delivery`.
-- Renew signing through Xcode without deleting the app, and confirm saved data
-  remains. Preserve this exact bundle identifier for upgrades.
+## Official setup references
 
-## Why this does not use TestFlight
+Check current platform/plan limits before selecting services:
 
-The TestFlight app and accepting someone else's invitation are free. Uploading
-**your own** app to TestFlight requires the paid Apple Developer Program
-(usually US$99/year). A free Apple Account's Personal Team supports Xcode
-installation instead. TestFlight builds last up to 90 days; free Personal Team
-profiles normally last 7 days. This guide implements the free route you chose.
+- https://vercel.com/docs/frameworks/full-stack/nextjs
+- https://vercel.com/docs/environment-variables
+- https://vercel.com/docs/cron-jobs/usage-and-pricing
+- https://vercel.com/docs/functions/limitations
+- https://nextjs.org/docs/app/guides/progressive-web-apps
+- https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/
+- https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist
 
-Official references:
-
-- [Apple membership comparison and Personal Team limits](https://developer.apple.com/support/compare-memberships/)
-- [Run an app on a connected device](https://developer.apple.com/documentation/xcode/running-your-app-in-simulator-or-on-a-device)
-- [Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device)
-- [TestFlight](https://developer.apple.com/testflight/)
-- [Official Kivy iOS toolchain](https://github.com/kivy/kivy-ios)
-
-Yahoo data remains for private personal use; adding iPhone packaging does not
-change data-distribution permissions.
+For a previously downloaded native kit only, the historical Xcode instructions
+remain in Git history at the ios-v0.13.2 tag. Native releases stay paused.

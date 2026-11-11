@@ -25,7 +25,7 @@ it does not guarantee X crossings in every individual year. Read the
 detailed scheduler diagnostics and a real background-path test button, and adds
 **Impending buy signal (Start of trading)**. US reminders target 9:30pm and SGX
 9am on weekdays, Singapore time, using last closing data. Read the
-[iPhone download/install guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
+[Vercel/iPhone deployment guide](docs/PRIVATE_IPHONE_INSTALLATION.md),
 [Android testing/request-log guide](docs/YAHOO_ANDROID_TESTING.md) and
 [release notes](docs/RELEASE_0_13_0.md) and
 [notification settings screenshots](docs/design/notifications-0.13.0/README.md). See the
@@ -132,7 +132,7 @@ The earlier [security search guide](docs/SECURITY_SEARCH.md) records the origina
 The original design for the private-use Yahoo feed is documented in the
 [Yahoo Finance integration plan](docs/YAHOO_FINANCE_INTEGRATION_PLAN.md),
 including endpoint/request budgets, persistent caching, full-history MAX and
-owner preparation. See also [private iPhone installation](docs/PRIVATE_IPHONE_INSTALLATION.md).
+owner preparation. See also [Vercel deployment for iPhone](docs/PRIVATE_IPHONE_INSTALLATION.md).
 The [desktop implementation/test guide](docs/YAHOO_DESKTOP_TESTING.md) records
 what is implemented, live-connectivity limits and the deferred mobile work.
 

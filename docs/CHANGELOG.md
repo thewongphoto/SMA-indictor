@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.13.8** /
-**apk-v0.13.8**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.14.0** /
+**apk-v0.14.0**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.14.0 | Applies the November UI/UX handover to Android and a new iPhone web app: four tabs, cached watchlist status, frequency presets, editable saved lines, themes, readable backtests and cancel controls. Adds conditional opt-in signup, a private Python web worker, browser checks and deployment instructions. |
 | 0.13.8 | Fixes APK certificate parsing for SDK Build Tools 37 while retaining single-signer and retained-key checks; retains public certificate diagnostics even when verification fails. |
 | 0.13.7 | Corrects release lint by letting Gradle own debug mode. Native compilation passed, but the final-APK verifier rejected the new SDK certificate output format; no APK was uploaded. |
 | 0.13.6 | Introduces explicit retained-key release signing and validates the final APK certificate; enforces non-debuggable/private/no-backup/HTTPS package policy, removes unused foreground-service declarations, and uploads APKs only after verification. Documents the unresolved Play Protect warning and older signing mismatch. Its initial build failed release lint and produced no verified APK; superseded by 0.13.7. |
@@ -22,6 +23,14 @@ for the run matching the desired tag and its downloadable artifact.
 | 0.8–0.9.x | Real private market data, persistent caches, request logs and mobile chart refinements. |
 | 0.4–0.7.x | Phone-only UI, grouped saved lines, library-first flow and early offline search/design reviews. |
 | Earlier | Initial offline analysis and retired email prototype. |
+
+## 0.14.0 UI/UX redesign
+
+See the [handover](uiux-handover/README.md) and
+[implementation record](uiux-handover/IMPLEMENTATION.md). Existing saved identities,
+periods, colours, native alert rules, calendar-year calculations and APK signing
+remain compatible. Web hosting, SMTP configuration and iPhone Web Push delivery
+are separate from source/APK publication; no native iOS release is requested.
 
 ## 0.13.8 APK verification repair
 

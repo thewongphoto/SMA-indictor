@@ -1,13 +1,13 @@
 # Install and update the Android app
 
-Current source/build tag: **0.13.8 / apk-v0.13.8**. Android builds run on GitHub;
+Current source/build tag: **0.14.0 / apk-v0.14.0**. Android builds run on GitHub;
 your computer does not need to remain on. A queued or failed run is not an APK.
 
 ## Download
 
 1. Sign in to GitHub and open
    [Build Android APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Select the run for **apk-v0.13.8**. Wait for a successful result. If you are
+2. Select the run for **apk-v0.14.0**. Wait for a successful result. If you are
    testing an older successful build, record its version instead.
 3. Under **Artifacts**, download **sma-android-test** and extract its ZIP.
    Install the signed release `.apk` from the `bin` folder. The package report
@@ -15,9 +15,9 @@ your computer does not need to remain on. A queued or failed run is not an APK.
    GitHub's Releases page is not the download location for this workflow.
 4. On your Android phone, open the APK from Files/Downloads and allow that app
    to install unknown apps if Android asks. In-place updates require the same
-   signing identity; check the [0.13.8 signing audit](ANDROID_PACKAGE_SECURITY.md)
+   signing identity; check the [0.14.0 signing audit](ANDROID_PACKAGE_SECURITY.md)
    before updating an older installation with important saved data.
-5. Open Settings in SMA Stock Analyzer and check **DATA CONNECTION · 0.13.8**.
+5. Open Settings in SMA Stock Analyzer and check **DATA CONNECTION · 0.14.0**.
    If it shows another version, the installed artifact is different.
 
 Keep the same package/signing identity. Do not uninstall or clear app storage

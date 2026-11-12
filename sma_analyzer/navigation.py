@@ -13,6 +13,8 @@ from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.widget import Widget
 from .app_logo import CrossingLogoAnimation
 
+from .appearance import Color, Label, Button
+
 
 class SoftPageTransition(SlideTransition):
     """A short crossfade with a small directional offset, without shader FBOs."""
@@ -191,17 +193,21 @@ class OptimizationOverlay(FloatLayout):
         with self.canvas.before:
             Color(0,0,0,.42)
             self.scrim=Rectangle()
-        self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(232),
+        self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(292),
                            padding=dp(16),spacing=dp(8))
         with self.card.canvas.before:
             Color(.10,.15,.23,1)
             self.surface=RoundedRectangle(radius=[dp(16)])
         self.logo=CrossingLogoAnimation()
         self.card.add_widget(self.logo)
-        self.card.add_widget(Label(text="Optimizing SMA…",bold=True,font_size=sp(18),color=(.92,.95,.98,1)))
+        self.card.add_widget(Label(text="Finding your SMA line…",bold=True,font_size=sp(18),color=(.92,.95,.98,1)))
         self.caption=Label(font_size=sp(12),color=(.58,.66,.75,1),halign="center",valign="middle")
         self.caption.bind(size=lambda widget,size:setattr(widget,"text_size",size))
         self.card.add_widget(self.caption)
+        from .app import LabButton
+        self.cancel_button=LabButton(text="Cancel")
+        self.cancel_button.bind(on_release=lambda *_: self.host.cancel_optimization())
+        self.card.add_widget(self.cancel_button)
         self.add_widget(self.card)
         self.bind(pos=self._layout,size=self._layout)
         self.card.bind(pos=self._paint_card,size=self._paint_card)
@@ -235,4 +241,7 @@ class OptimizationOverlay(FloatLayout):
             self.parent.remove_widget(self)
 
     def on_touch_down(self,touch):
-        return self.collide_point(*touch.pos)
+        if self.collide_point(*touch.pos):
+            super().on_touch_down(touch)
+            return True
+        return False

@@ -45,10 +45,11 @@ class RefinementSmoke(MobileYahooSmoke):
             for page in ui.pages:
                 ui._navigate(page)
                 yield from self.frames(3)
-                gear=ui.page_settings_buttons[page]
-                assert gear.kind=="settings" and gear.center_x>ui.center_x
-                assert gear.right<=ui.right and gear.height>=dp(44)
-        self.checked("settings stays at the top right on all six screens at phone widths")
+                tab=ui.tab_buttons["settings"]
+                assert tab.text=="Settings" and tab.center_x>ui.center_x
+                assert tab.right<=ui.right and tab.height>=dp(44)
+                assert ui.manager.y>=ui.tab_bar.top-.5
+        self.checked("four labelled tabs stay accessible on every screen at phone widths")
         ui.show_library()
         ui.show_guide()
         yield lambda:not ui.guide_busy
@@ -178,7 +179,7 @@ class RefinementSmoke(MobileYahooSmoke):
         assert f"USD {report.crossings.invested:,.0f}" in ui.backtest_contribution.text
         assert f"{len(report.crossings.indices)} upward crossings" in ui.backtest_contribution.text
         assert ui.backtest_gain.text==f"{report.crossings.return_percent:+.2f}%"
-        assert all("vs a" in label.text for label in ui.backtest_differences.values())
+        assert all("vs crossings" in label.text for label in ui.backtest_differences.values())
         yield from self.frames()
         self.capture("backtesting",ui.table_panel)
         loss=replace(report,crossings=replace(report.crossings,ending_value=report.crossings.invested*.9))

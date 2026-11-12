@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&amp;display=swap" rel="stylesheet"><style>@keyframes smaSweep{0%{clip-path:inset(0 88% 0 0);opacity:1}71.4%{clip-path:inset(0 12% 0 0);opacity:1}84.3%{clip-path:inset(0 12% 0 0);opacity:1}92.9%,100%{clip-path:inset(0 12% 0 0);opacity:0}}@media (prefers-reduced-motion:reduce){[data-sma-anim]{animation:none!important}}</style><template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0B1116"/><polyline points="30,62 44,52 56,58 70,38" fill="none" stroke="#2DD4BF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></template></helmet>
+<div style="display:flex;flex-direction:column;gap:28px;padding:40px;background:#070B0F;font-family:Manrope,system-ui,sans-serif;color:#EEF3F7;min-height:100vh;box-sizing:border-box">
+<div style="max-width:1160px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#2DD4BF">Concept · fintech dark · annotated</div>
+<div style="font:800 32px/1.15 Manrope,sans-serif;margin:6px 0 6px">Home, SMA detail and alerts, built around one decision</div>
+<div style="font-size:14px;color:#8DA0AE;max-width:720px;line-height:1.5">Four tabs with text labels replace the gear-and-sheet navigation. Each SMA shows its status in words first. Save and alert are one tap each, and alerts are set per SMA.</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+<!-- 1 Home -->
+<div data-screen-label="01 Home" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">1 · Home</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 10px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:800 24px Manrope,sans-serif">Home</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;padding:7px 12px">+ Find SMA</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="background:#131C24;border-radius:18px;padding:16px">
+<div style="font:600 12px Manrope,sans-serif;color:#8DA0AE">Saved SMAs · 3 above line</div>
+<div style="font:800 22px Manrope,sans-serif;margin-top:4px">1 impending buy</div>
+<div style="font-size:13px;color:#8DA0AE;margin-top:4px">Apple is below its 50-day line.</div>
+</div>
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Watchlist</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer" style-hover="background:#18232D" onClick="{{ toggleAapl }}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div><div style="font:700 15px Manrope,sans-serif">AAPL</div><div style="font-size:12px;color:#8DA0AE">Apple Inc.</div></div>
+<div style="text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$231.10</div><div style="font:600 12px Manrope,sans-serif;color:#F87171">▼ 0.8%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+<span style="font:700 11px Manrope,sans-serif;background:#3A1F22;color:#F87171;padding:4px 8px;border-radius:999px">1 OF 2 LINES BELOW</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">{{ labelAapl }}</span>
+</div>
+<sc-if value="{{ openAapl }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;border-top:1px solid #1B2730;padding-top:8px">
+<div><div style="font:700 14px Manrope,sans-serif">SMA 50d</div><div style="font-size:12px;color:#8DA0AE">6 signals / year · Alert on</div></div>
+<span style="font:700 11px Manrope,sans-serif;background:#3A1F22;color:#F87171;padding:4px 8px;border-radius:999px">BELOW</span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;border-top:1px solid #1B2730;padding-top:8px">
+<div><div style="font:700 14px Manrope,sans-serif">SMA 200d</div><div style="font-size:12px;color:#8DA0AE">2 signals / year · Alert off</div></div>
+<span style="font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE</span>
+</div>
+</div>
+</sc-if>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer" style-hover="background:#18232D" onClick="{{ toggleVoo }}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div><div style="font:700 15px Manrope,sans-serif">VOO</div><div style="font-size:12px;color:#8DA0AE">Vanguard S&amp;P 500 ETF</div></div>
+<div style="text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div><div style="font:600 12px Manrope,sans-serif;color:#34D399">▲ 1.2%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+<span style="font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE BOTH LINES</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">{{ labelVoo }}</span>
+</div>
+<sc-if value="{{ openVoo }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;border-top:1px solid #1B2730;padding-top:8px">
+<div><div style="font:700 14px Manrope,sans-serif">SMA 100d</div><div style="font-size:12px;color:#8DA0AE">6 signals / year · Alert off</div></div>
+<span style="font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE</span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px;border-top:1px solid #1B2730;padding-top:8px">
+<div><div style="font:700 14px Manrope,sans-serif">SMA 200d</div><div style="font-size:12px;color:#8DA0AE">4 signals / year · Alert on</div></div>
+<span style="font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE</span>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 26px;background:#0B1116">
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Settings</div>
+</div>
+</div>
+</div>
+
+<!-- 2 SMA detail -->
+<div data-screen-label="02 SMA detail" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">2 · SMA detail</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE">‹ Back</div>
+<div style="font:700 14px Manrope,sans-serif">VOO · SMA 200d</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF">Save</div>
+</div>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1">
+<div>
+<div style="font:800 30px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div>
+<div style="font:600 13px Manrope,sans-serif;color:#34D399">▲ $6.10 (1.2%) past 3 months</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;font-size:14px;line-height:1.45">
+<div style="font:700 15px Manrope,sans-serif;margin-bottom:4px">Price is above its 200-day line</div>
+<div style="color:#8DA0AE">It crossed above on 3 Nov. This line has been crossed upward about 4 times a year.</div>
+</div>
+<div style="height:170px;border-radius:14px;border:1px dashed #2F4150;background:repeating-linear-gradient(135deg,#101820 0 10px,#0B1116 10px 20px);display:flex;align-items:center;justify-content:center;font:500 12px 'Courier New',monospace;color:#8DA0AE">[ price chart with SMA line ]</div>
+<div style="display:flex;gap:6px">
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;padding:8px 0;border-radius:999px;background:#131C24;color:#8DA0AE">3M</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;padding:8px 0;border-radius:999px;background:#131C24;color:#8DA0AE">1Y</div>
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;padding:8px 0;border-radius:999px;background:#0F3B36;color:#2DD4BF">3Y</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;padding:8px 0;border-radius:999px;background:#131C24;color:#8DA0AE">Max</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8DA0AE;margin-bottom:8px">Signals per year</div>
+<div style="display:flex;gap:6px">
+<div style="flex:1;text-align:center;font:600 13px Manrope,sans-serif;padding:9px 0;border-radius:10px;background:#0F3B36;color:#2DD4BF">4</div>
+<div style="flex:1;text-align:center;font:600 13px Manrope,sans-serif;padding:9px 0;border-radius:10px;background:#1A2630;color:#EEF3F7">6</div>
+<div style="flex:1;text-align:center;font:600 13px Manrope,sans-serif;padding:9px 0;border-radius:10px;background:#1A2630;color:#EEF3F7">12</div>
+<div style="flex:1;text-align:center;font:600 13px Manrope,sans-serif;padding:9px 0;border-radius:10px;background:#1A2630;color:#EEF3F7">Custom</div>
+</div>
+</div>
+</div>
+<div style="padding:12px 20px 26px;display:flex;flex-direction:column;gap:8px">
+<div style="text-align:center;font:800 15px Manrope,sans-serif;background:#2DD4BF;color:#06201C;padding:14px 0;border-radius:14px">Find best SMA for 4 signals / year</div>
+<div style="text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Matches signal frequency, not profit.</div>
+</div>
+</div>
+</div>
+
+<!-- 2b Backtest -->
+<div data-screen-label="02b Chart backtest" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">2b · Chart, scrolled to backtest</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE">‹ Back</div>
+<div style="font:700 14px Manrope,sans-serif">VOO · SMA 200d</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF">Save</div>
+</div>
+<div style="padding:4px 20px 20px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="flex:none;height:64px;border-radius:14px;border:1px dashed #2F4150;background:repeating-linear-gradient(135deg,#101820 0 10px,#0B1116 10px 20px);display:flex;align-items:center;justify-content:center;font:500 12px 'Courier New',monospace;color:#8DA0AE">[ chart continues above ]</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;flex:none">
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<div style="font:800 17px Manrope,sans-serif">Backtest</div>
+<div style="font:600 12px Manrope,sans-serif;color:#8DA0AE">$100 per buy</div>
+</div>
+<div style="font-size:13px;color:#8DA0AE;line-height:1.45;margin-top:-6px">Three ways to make the same number of buys over the same period.</div>
+<div style="display:flex;gap:6px">
+<sc-for list="{{ horizons }}" as="h" hint-placeholder-count="5">
+<div onClick="{{ h.pick }}" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;font:600 13px Manrope,sans-serif;border-radius:10px;cursor:pointer;background:{{ h.bg }};color:{{ h.fg }}">{{ h.label }}</div>
+</sc-for>
+</div>
+<sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}">
+<label style="display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px">
+<span>Years of history</span>
+<input type="number" min="1" max="16" value="{{ customYears }}" onChange="{{ setYears }}" style="width:84px;height:44px;box-sizing:border-box;background:#0B1116;border:1px solid #2F4150;border-radius:10px;color:#EEF3F7;font:700 15px Manrope,sans-serif;text-align:center;outline:none" style-focus="border-color:#2DD4BF">
+</label>
+</sc-if>
+<div style="font:600 12px Manrope,sans-serif;color:#8DA0AE;font-variant-numeric:tabular-nums">{{ bt.summary }}</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+<div><div style="font:700 14px Manrope,sans-serif">At upward crossings</div><div style="font-size:12px;color:#8DA0AE">Your SMA 200d signals</div></div>
+<div style="text-align:right;flex:none"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">{{ bt.a.value }}</div><div style="font:600 12px Manrope,sans-serif;font-variant-numeric:tabular-nums;color:{{ bt.a.diffColor }}">{{ bt.a.diff }}</div></div>
+</div>
+<div style="height:6px;border-radius:999px;background:#1A2630"><div style="height:6px;border-radius:999px;background:#2DD4BF;transition:width .25s;width:{{ bt.a.w }}"></div></div>
+<div style="font-size:11px;color:#8DA0AE;font-variant-numeric:tabular-nums">{{ bt.a.gain }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+<div><div style="font:700 14px Manrope,sans-serif">At equal intervals</div><div style="font-size:12px;color:#8DA0AE">Regular buys, evenly spaced</div></div>
+<div style="text-align:right;flex:none"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">{{ bt.b.value }}</div><div style="font:600 12px Manrope,sans-serif;font-variant-numeric:tabular-nums;color:{{ bt.b.diffColor }}">{{ bt.b.diff }}</div></div>
+</div>
+<div style="height:6px;border-radius:999px;background:#1A2630"><div style="height:6px;border-radius:999px;background:#5B7386;transition:width .25s;width:{{ bt.b.w }}"></div></div>
+<div style="font-size:11px;color:#8DA0AE;font-variant-numeric:tabular-nums">{{ bt.b.gain }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+<div><div style="font:700 14px Manrope,sans-serif">At random dates</div><div style="font-size:12px;color:#8DA0AE">Most common of 500 samples</div></div>
+<div style="text-align:right;flex:none"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">{{ bt.c.value }}</div><div style="font:600 12px Manrope,sans-serif;font-variant-numeric:tabular-nums;color:{{ bt.c.diffColor }}">{{ bt.c.diff }}</div></div>
+</div>
+<div style="height:6px;border-radius:999px;background:#1A2630"><div style="height:6px;border-radius:999px;background:#5B7386;transition:width .25s;width:{{ bt.c.w }}"></div></div>
+<div style="font-size:11px;color:#8DA0AE;font-variant-numeric:tabular-nums">{{ bt.c.gain }}</div>
+</div>
+<div style="background:#0E161D;border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center">
+<div style="font:800 22px Manrope,sans-serif;color:#2DD4BF;font-variant-numeric:tabular-nums;flex:none">{{ bt.rank }}</div>
+<div style="font-size:12px;line-height:1.4;color:#8DA0AE">of the 500 random samples paid a higher average price than the crossing buys.</div>
+</div>
+<div style="font-size:11px;line-height:1.4;color:#8DA0AE">Excludes fees, taxes and currency moves. An estimate from past prices, not a forecast.</div>
+</div>
+<div style="flex:none;background:#131C24;border-radius:16px;padding:0 14px;min-height:48px;display:flex;justify-content:space-between;align-items:center;font:600 14px Manrope,sans-serif">
+<span>All upward crossings</span><span style="color:#8DA0AE">›</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 3 Alerts -->
+<div data-screen-label="03 Alerts" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">3 · Alerts, per SMA</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 10px">
+<div style="font:800 24px Manrope,sans-serif">Alerts</div>
+<div style="font-size:13px;color:#8DA0AE;margin-top:2px">Choose what each saved SMA notifies you about.</div>
+</div>
+<div style="padding:8px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1">
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px">
+<div style="font:700 15px Manrope,sans-serif">VOO · SMA 200d</div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px">
+<span>Crosses above (buy signal)</span><span style="width:44px;height:26px;border-radius:999px;background:#2DD4BF;position:relative;display:inline-block"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#06201C"></span></span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px">
+<span>Crosses below (review)</span><span style="width:44px;height:26px;border-radius:999px;background:#243340;position:relative;display:inline-block"><span style="position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#8DA0AE"></span></span>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px">
+<div style="font:700 15px Manrope,sans-serif">AAPL · SMA 50d</div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px">
+<span>Crosses above (buy signal)</span><span style="width:44px;height:26px;border-radius:999px;background:#2DD4BF;position:relative;display:inline-block"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#06201C"></span></span>
+</div>
+<div style="font-size:12px;color:#8DA0AE">Delivery: once per trading day, after the close.</div>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 26px;background:#0B1116">
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Charts</div>
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Settings</div>
+</div>
+</div>
+</div>
+
+<!-- 4 Settings -->
+<div data-screen-label="04 Settings" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">4 · Settings, full page</div>
+<div style="width:360px;min-height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 10px">
+<div style="font:800 24px Manrope,sans-serif">Settings</div>
+</div>
+<div style="padding:4px 20px 14px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Your email</div>
+<sc-if value="{{ showSetSaved }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:600 14px Manrope,sans-serif;overflow-wrap:anywhere">{{ email }}</div>
+<div onClick="{{ startSetEdit }}" style="flex:none;font:700 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 14px;display:flex;align-items:center;cursor:pointer" style-hover="background:#0F3B36">Change</div>
+</div>
+</sc-if>
+<sc-if value="{{ showSetForm }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:8px">
+<input type="email" placeholder="name@example.com" value="{{ setDraft }}" onChange="{{ setSetDraft }}" onKeyDown="{{ setKey }}" style="flex:1;min-width:0;height:46px;box-sizing:border-box;background:#0B1116;border-radius:12px;color:#EEF3F7;font:600 15px Manrope,sans-serif;padding:0 12px;outline:none;border:1px solid {{ setBorder }}" style-focus="border-color:#2DD4BF">
+<div onClick="{{ saveSet }}" style="flex:none;font:800 14px Manrope,sans-serif;background:#2DD4BF;color:#06201C;border-radius:12px;min-height:46px;padding:0 16px;display:flex;align-items:center;cursor:pointer" style-hover="background:#5EEAD4">Save</div>
+</div>
+</sc-if>
+<sc-if value="{{ showSetCancel }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ cancelSet }}" style="align-self:flex-start;font:700 13px Manrope,sans-serif;color:#C5D2DB;text-decoration:underline;min-height:44px;display:flex;align-items:center;cursor:pointer">Cancel</div>
+</sc-if>
+<sc-if value="{{ hasSetErr }}" hint-placeholder-val="{{ false }}">
+<div style="font:600 12px Manrope,sans-serif;color:#F87171">{{ setErr }}</div>
+</sc-if>
+<sc-if value="{{ hasSetNote }}" hint-placeholder-val="{{ false }}">
+<div style="font:600 12px Manrope,sans-serif;color:#2DD4BF">{{ setNote }}</div>
+</sc-if>
+<div style="font-size:12px;line-height:1.4;color:#8DA0AE">Used only to send you release updates and to count downloads. Each save or change is emailed to the developer.</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;gap:6px;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Notification types</div>
+<div onClick="{{ sw.buy.toggle }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:52px;cursor:pointer">
+<div><div style="font:600 14px Manrope,sans-serif">Buy signal</div><div style="font-size:12px;line-height:1.35;color:#8DA0AE">Price crossed above a saved line.</div></div>
+<span style="flex:none;width:44px;height:26px;border-radius:999px;position:relative;background:{{ sw.buy.bg }}"><span style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;transition:left .15s;left:{{ sw.buy.left }};background:{{ sw.buy.knob }}"></span></span>
+</div>
+<div onClick="{{ sw.eod.toggle }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:52px;cursor:pointer">
+<div><div style="font:600 14px Manrope,sans-serif">Impending buy · end of trading</div><div style="font-size:12px;line-height:1.35;color:#8DA0AE">Price closed below a saved line. US 6:30 am, SG 6:30 pm SGT.</div></div>
+<span style="flex:none;width:44px;height:26px;border-radius:999px;position:relative;background:{{ sw.eod.bg }}"><span style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;transition:left .15s;left:{{ sw.eod.left }};background:{{ sw.eod.knob }}"></span></span>
+</div>
+<div onClick="{{ sw.open.toggle }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:52px;cursor:pointer">
+<div><div style="font:600 14px Manrope,sans-serif">Impending buy · start of trading</div><div style="font-size:12px;line-height:1.35;color:#8DA0AE">Reminder before the open. US 9:30 pm, SG 9:00 am SGT.</div></div>
+<span style="flex:none;width:44px;height:26px;border-radius:999px;position:relative;background:{{ sw.open.bg }}"><span style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;transition:left .15s;left:{{ sw.open.left }};background:{{ sw.open.knob }}"></span></span>
+</div>
+<div style="font-size:12px;line-height:1.4;color:#8DA0AE;border-top:1px solid #1B2730;padding-top:10px">Turn individual lines on or off in Alerts. Times are targets; your phone decides when background checks run.</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;gap:8px;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Background check</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font-size:13px;line-height:1.4;color:#8DA0AE">Sends a test through the same path as a real alert.</div>
+<div style="flex:none;font:700 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 14px;display:flex;align-items:center;cursor:pointer" style-hover="background:#0F3B36">Run test</div>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;gap:10px;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Appearance</div>
+<div style="display:flex;gap:6px">
+<sc-for list="{{ themes }}" as="t" hint-placeholder-count="3">
+<div onClick="{{ t.pick }}" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;font:600 13px Manrope,sans-serif;border-radius:10px;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</div>
+</sc-for>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;gap:0;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Market data</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;cursor:pointer">
+<span style="font:600 14px Manrope,sans-serif;color:#EEF3F7">Connection</span><span style="font-size:12px;color:#8DA0AE;text-align:right">Connected · prices to 11 Nov</span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;cursor:pointer">
+<span style="font:600 14px Manrope,sans-serif;color:#EEF3F7">Request log</span><span style="font-size:12px;color:#8DA0AE;text-align:right">View and copy ›</span>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;cursor:pointer">
+<span style="font:600 14px Manrope,sans-serif;color:#F87171">Clear downloaded data</span><span style="font-size:12px;color:#8DA0AE;text-align:right">Keeps saved SMAs ›</span>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;flex:none">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Legal</div>
+<div style="font-size:13px;line-height:1.5;color:#C5D2DB">This app is for personal use only and is not financial advice. It does not guarantee profits or future performance. Past results do not predict future results, and you are responsible for your own investment decisions.</div>
+</div>
+<div style="flex:none;font-size:12px;color:#8DA0AE;text-align:center">Version 0.13.6</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 26px;background:#0B1116">
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE">Alerts</div>
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF">Settings</div>
+</div>
+</div>
+</div>
+</div>
+<div style="font:800 20px Manrope,sans-serif;margin-top:12px">Searching for a security</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+<div data-screen-label="10 Search start" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">10 · Search, before searching</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;align-items:center;gap:12px">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE;min-height:44px;display:flex;align-items:center">‹ Back</div>
+<div style="font:800 20px Manrope,sans-serif">Find a security</div>
+</div>
+<div style="padding:4px 20px 16px;display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="flex:none;display:flex;gap:8px">
+<div style="flex:1;min-width:0;height:48px;box-sizing:border-box;background:#131C24;border-radius:12px;color:#EEF3F7;font:600 15px Manrope,sans-serif;padding:0 12px;outline:none;border:1px solid #2DD4BF;display:flex;align-items:center;color:#8DA0AE">Company name or ticker</div>
+<div style="flex:none;font:800 14px Manrope,sans-serif;background:#2DD4BF;color:#06201C;border-radius:12px;min-height:48px;padding:0 16px;display:flex;align-items:center;cursor:pointer">Search</div>
+</div>
+<div style="flex:none;font-size:13px;line-height:1.45;color:#8DA0AE">Covers US and Singapore listed stocks and ETFs. Press Search or Enter to look up matches.</div>
+<div style="flex:none;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;min-height:44px">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Recent</div>
+<span style="font:700 13px Manrope,sans-serif;color:#C5D2DB;cursor:pointer">Clear</span>
+</div>
+<div style="display:flex;align-items:center;gap:12px;min-height:64px;border-top:1px solid #1B2730;cursor:pointer" style-hover="background:#131C24">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#9B1C31;color:#FFFFFF">V</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vanguard S&amp;P 500 ETF</div><div style="font-size:12px;color:#8DA0AE">VOO · US</div></div>
+<span style="flex:none;font-size:12px;color:#8DA0AE">2 saved lines</span>
+</div>
+<div style="display:flex;align-items:center;gap:12px;min-height:64px;border-top:1px solid #1B2730;cursor:pointer" style-hover="background:#131C24">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#E9EDF0;color:#111111">A</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Apple Inc.</div><div style="font-size:12px;color:#8DA0AE">AAPL · US</div></div>
+<span style="flex:none;font-size:12px;color:#8DA0AE">2 saved lines</span>
+</div>
+<div style="display:flex;align-items:center;gap:12px;min-height:64px;border-top:1px solid #1B2730;cursor:pointer" style-hover="background:#131C24">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#1A1A1A;color:#FF3B30">D</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DBS Group Holdings Ltd</div><div style="font-size:12px;color:#8DA0AE">D05.SI · SG</div></div>
+<span style="flex:none;font-size:12px;color:#8DA0AE">No lines yet</span>
+</div>
+</div>
+<div style="flex:none;font-size:12px;line-height:1.4;color:#8DA0AE">Recent items open from saved data, with no new lookup.</div>
+<div style="flex:none;background:#131C24;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div><div style="font:700 14px Manrope,sans-serif">New to moving averages?</div><div style="font-size:12px;line-height:1.4;color:#8DA0AE">Walk through an example on Vanguard S&amp;P 500 ETF.</div></div>
+<div style="flex:none;font:700 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 14px;display:flex;align-items:center;cursor:pointer" style-hover="background:#0F3B36">Start</div>
+</div>
+</div>
+</div>
+</div>
+<div data-screen-label="11 Search results" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">11 · Search, after pressing Search</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;align-items:center;gap:12px">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE;min-height:44px;display:flex;align-items:center">‹ Back</div>
+<div style="font:800 20px Manrope,sans-serif">Find a security</div>
+</div>
+<div style="padding:4px 20px 16px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="flex:none;display:flex;gap:8px">
+<input type="search" placeholder="Company name or ticker" value="{{ q }}" onChange="{{ setQ }}" onKeyDown="{{ qKey }}" enterKeyHint="search" style="flex:1;min-width:0;height:48px;box-sizing:border-box;background:#131C24;border-radius:12px;color:#EEF3F7;font:600 15px Manrope,sans-serif;padding:0 12px;outline:none;border:1px solid #2F4150" style-focus="border-color:#2DD4BF">
+<div onClick="{{ runSearch }}" style="flex:none;font:800 14px Manrope,sans-serif;background:#2DD4BF;color:#06201C;border-radius:12px;min-height:48px;padding:0 16px;display:flex;align-items:center;cursor:pointer" style-hover="background:#5EEAD4">Search</div>
+</div>
+<div style="flex:none;font:600 12px Manrope,sans-serif;color:#8DA0AE">{{ resultText }}</div>
+<div style="flex:none;display:flex;flex-direction:column">
+<sc-for list="{{ results }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:12px;min-height:64px;border-top:1px solid #1B2730;cursor:pointer" style-hover="background:#131C24">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:{{ r.bg }};color:{{ r.fg }}">{{ r.mono }}</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</div><div style="font-size:12px;color:#8DA0AE">{{ r.sub }}</div></div>
+<sc-if value="{{ r.saved }}" hint-placeholder-val="{{ false }}">
+<span style="flex:none;font:700 11px Manrope,sans-serif;padding:4px 8px;border-radius:999px;background:#0F3B36;color:#2DD4BF">SAVED</span>
+</sc-if>
+<span style="flex:none;font:700 13px Manrope,sans-serif;color:#2DD4BF">{{ r.action }} ›</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;background:#131C24;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:6px">
+<div style="font:700 15px Manrope,sans-serif;overflow-wrap:anywhere">{{ noResultsTitle }}</div>
+<div style="font-size:13px;line-height:1.45;color:#8DA0AE">Check the spelling, or try the ticker symbol. Only US and Singapore listings are covered.</div>
+</div>
+</sc-if>
+<sc-if value="{{ isEdited }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;font-size:12px;color:#C5D2DB">Press Search to update these results.</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+<div style="font:800 20px Manrope,sans-serif;margin-top:12px">First open and loading</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+<div data-screen-label="05 Startup loading" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">5 · Startup loading</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:0 32px;text-align:center">
+<div style="flex:none;width:132px;height:132px;border-radius:30px;overflow:hidden;background:#131F31">{{ logoSplash }}</div>
+<div>
+<div style="font:800 22px Manrope,sans-serif">SMA Stock Analyzer</div>
+<div style="font-size:14px;color:#8DA0AE;margin-top:6px">Loading your saved lines…</div>
+</div>
+</div>
+<div style="padding:0 0 30px;text-align:center;font-size:12px;color:#8DA0AE">Version 0.13.6</div>
+</div>
+</div>
+<div data-screen-label="06 First open" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">6 · First open: email</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:48px 24px 8px;display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;scrollbar-width:none">
+<img src="../assets/app-icon.png" alt="SMA Stock Analyzer icon" style="flex:none;width:56px;height:56px;border-radius:14px;display:block">
+<div style="flex:none">
+<div style="font:800 26px/1.2 Manrope,sans-serif">Welcome to SMA Stock Analyzer</div>
+<div style="font-size:14px;line-height:1.5;color:#8DA0AE;margin-top:8px">Before you start, please leave your email. This is all it is used for.</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;flex:none">
+<div style="display:flex;gap:10px;align-items:flex-start">
+<span style="flex:none;width:8px;height:8px;border-radius:50%;background:#2DD4BF;margin-top:6px"></span>
+<div><div style="font:700 14px Manrope,sans-serif">Release updates</div><div style="font-size:13px;line-height:1.4;color:#8DA0AE">The developer emails you when a new version is ready.</div></div>
+</div>
+<div style="display:flex;gap:10px;align-items:flex-start">
+<span style="flex:none;width:8px;height:8px;border-radius:50%;background:#2DD4BF;margin-top:6px"></span>
+<div><div style="font:700 14px Manrope,sans-serif">A download count</div><div style="font-size:13px;line-height:1.4;color:#8DA0AE">It shows how many people have installed the app.</div></div>
+</div>
+<div style="display:flex;gap:10px;align-items:flex-start">
+<span style="flex:none;width:8px;height:8px;border-radius:50%;background:#2DD4BF;margin-top:6px"></span>
+<div><div style="font:700 14px Manrope,sans-serif">Nothing else</div><div style="font-size:13px;line-height:1.4;color:#8DA0AE">Your email is not used for any other purpose.</div></div>
+</div>
+</div>
+<sc-if value="{{ showLandForm }}" hint-placeholder-val="{{ true }}">
+<label style="flex:none;display:flex;flex-direction:column;gap:6px">
+<span style="font:600 13px Manrope,sans-serif">Email address</span>
+<input type="email" placeholder="name@example.com" value="{{ landDraft }}" onChange="{{ setLandDraft }}" onKeyDown="{{ landKey }}" style="height:48px;box-sizing:border-box;background:#0B1116;border-radius:12px;color:#EEF3F7;font:600 15px Manrope,sans-serif;padding:0 12px;outline:none;border:1px solid {{ landBorder }}" style-focus="border-color:#2DD4BF">
+<sc-if value="{{ hasLandErr }}" hint-placeholder-val="{{ false }}">
+<span style="font:600 12px Manrope,sans-serif;color:#F87171">{{ landErr }}</span>
+</sc-if>
+</label>
+</sc-if>
+<sc-if value="{{ landDone }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;background:#0F3B36;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px">
+<div style="font:700 14px Manrope,sans-serif;color:#2DD4BF">Email saved and sent to the developer</div>
+<div style="font:600 14px Manrope,sans-serif;overflow-wrap:anywhere">{{ email }}</div>
+<div onClick="{{ landChange }}" style="font:700 13px Manrope,sans-serif;color:#C5D2DB;text-decoration:underline;min-height:44px;display:flex;align-items:center;cursor:pointer">Use a different email</div>
+</div>
+</sc-if>
+</div>
+<div style="padding:8px 24px 30px;display:flex;flex-direction:column;gap:10px">
+<sc-if value="{{ showLandForm }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ submitLanding }}" style="text-align:center;font:800 15px Manrope,sans-serif;background:#2DD4BF;color:#06201C;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px;cursor:pointer" style-hover="background:#5EEAD4">Continue</div>
+<div style="text-align:center;font:700 14px Manrope,sans-serif;color:#C5D2DB;min-height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#EEF3F7">Skip for now</div>
+</sc-if>
+<sc-if value="{{ landDone }}" hint-placeholder-val="{{ false }}">
+<div style="text-align:center;font:800 15px Manrope,sans-serif;background:#2DD4BF;color:#06201C;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px;cursor:pointer" style-hover="background:#5EEAD4">Open the app</div>
+</sc-if>
+<div style="text-align:center;font-size:12px;color:#8DA0AE">You can add or change your email later in Settings.</div>
+</div>
+</div>
+</div>
+<div data-screen-label="07 Optimising" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">7 · Calculating an optimal SMA</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE">‹ Back</div>
+<div style="font:700 14px Manrope,sans-serif">VOO</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF">Save</div>
+</div>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px">
+<div style="flex:none">
+<div style="font:800 30px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div>
+<div style="font:600 13px Manrope,sans-serif;color:#34D399">▲ $6.10 (1.2%) past 3 months</div>
+</div>
+<div style="height:300px;border-radius:14px;border:1px dashed #2F4150;background:repeating-linear-gradient(135deg,#101820 0 10px,#0B1116 10px 20px)"></div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(4,8,11,.66)"></div>
+<div style="position:absolute;left:28px;right:28px;top:50%;transform:translateY(-50%);background:#131C24;border-radius:20px;padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.5)">
+<div style="flex:none;width:104px;height:104px;border-radius:24px;overflow:hidden;background:#131F31">{{ logoOptim }}</div>
+<div style="font:800 18px Manrope,sans-serif">Finding your SMA line…</div>
+<div style="font-size:13px;line-height:1.45;color:#8DA0AE">Matching about 4 upward crossings a year for VOO.</div>
+<div style="align-self:stretch;margin-top:4px;min-height:46px;display:flex;align-items:center;justify-content:center;font:700 14px Manrope,sans-serif;color:#EEF3F7;border:1px solid #2F4150;border-radius:12px;cursor:pointer" style-hover="background:#1A2630">Cancel</div>
+</div>
+</div>
+</div>
+</div>
+<div style="font:800 20px Manrope,sans-serif;margin-top:12px">Saved lines on the chart</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+<div data-screen-label="08 Several lines" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">8 · Several saved lines on one chart</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE">‹ Back</div>
+<div style="font:700 14px Manrope,sans-serif">VOO</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF">+ Add line</div>
+</div>
+<div style="padding:4px 20px 16px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;scrollbar-width:none">
+<div style="flex:none">
+<div style="font:800 30px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div>
+<div style="font:600 13px Manrope,sans-serif;color:#34D399">▲ $6.10 (1.2%) past 3 months</div>
+</div>
+<div style="flex:none;height:180px">{{ chartMain }}</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;flex:none">
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:4px">
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Saved lines</div>
+<span style="font-size:12px;color:#8DA0AE">{{ shownText }}</span>
+</div>
+<sc-for list="{{ lines }}" as="ln" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:10px;min-height:56px;border-top:1px solid #1B2730">
+<span style="flex:none;width:18px;height:4px;border-radius:2px;background:{{ ln.color }}"></span>
+<div style="flex:1;min-width:0"><div style="font:700 14px Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ln.label }}</div><div style="font-size:12px;color:#8DA0AE">{{ ln.sub }}</div></div>
+<div onClick="{{ ln.edit }}" style="flex:none;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font:700 13px Manrope,sans-serif;color:#2DD4BF;cursor:pointer">{{ ln.editLabel }}</div>
+<span onClick="{{ ln.toggle }}" style="flex:none;height:44px;display:flex;align-items:center;cursor:pointer"><span style="display:block;width:44px;height:26px;border-radius:999px;position:relative;background:{{ ln.swBg }}"><span style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;transition:left .15s;left:{{ ln.swLeft }};background:{{ ln.swKnob }}"></span></span></span>
+</div>
+</sc-for>
+<div style="font-size:12px;line-height:1.4;color:#8DA0AE;border-top:1px solid #1B2730;padding-top:10px">The switch shows or hides a line on the chart. Hidden lines can still send alerts.</div>
+</div>
+</div>
+</div>
+</div>
+<div data-screen-label="09 Rename and recolour" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">9 · Rename and recolour a line</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;justify-content:space-between;align-items:center">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE">‹ Back</div>
+<div style="font:700 14px Manrope,sans-serif">VOO</div>
+<div style="font:600 13px Manrope,sans-serif;color:#2DD4BF">+ Add line</div>
+</div>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px">
+<div style="flex:none">
+<div style="font:800 30px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div>
+<div style="font:600 13px Manrope,sans-serif;color:#34D399">▲ $6.10 (1.2%) past 3 months</div>
+</div>
+<div style="height:150px">{{ chartEdit }}</div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(4,8,11,.2)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#131C24;border-radius:24px 24px 0 0;padding:10px 20px 26px;display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 32px rgba(0,0,0,.45)">
+<div style="align-self:center;width:40px;height:4px;border-radius:2px;background:#3A4C5B"></div>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div><div style="font:800 17px Manrope,sans-serif">Edit line</div><div style="font-size:12px;color:#8DA0AE">{{ edit.title }}</div></div>
+<div style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-end;font:700 14px Manrope,sans-serif;color:#2DD4BF;cursor:pointer">Done</div>
+</div>
+<label style="display:flex;flex-direction:column;gap:6px">
+<span style="font:600 13px Manrope,sans-serif">Name</span>
+<input type="text" placeholder="{{ edit.placeholder }}" value="{{ edit.name }}" onChange="{{ edit.setName }}" style="height:46px;box-sizing:border-box;background:#0B1116;border-radius:12px;color:#EEF3F7;font:600 15px Manrope,sans-serif;padding:0 12px;outline:none;border:1px solid #2F4150" style-focus="border-color:#2DD4BF">
+<span style="font-size:12px;color:#8DA0AE">{{ edit.helper }}</span>
+</label>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font:600 13px Manrope,sans-serif">Colour</span>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+<sc-for list="{{ swatches }}" as="c" hint-placeholder-count="12">
+<div onClick="{{ c.pick }}" style="min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;border-radius:10px" style-hover="background:#1A2630">
+<span style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 14px Manrope,sans-serif;color:#06201C;background:{{ c.hex }};box-shadow:{{ c.ring }}">{{ c.mark }}</span>
+<span style="font:600 11px Manrope,sans-serif;color:#C5D2DB">{{ c.name }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<div style="font:800 20px Manrope,sans-serif;margin-top:12px">States and iPhone web<span style="font:700 10px Manrope,sans-serif;letter-spacing:.08em;background:#3A2E12;color:#FBBF24;padding:3px 7px;border-radius:999px;margin-left:8px;vertical-align:middle">PROPOSAL</span></div>
+<div style="font-size:13px;color:#8DA0AE;max-width:820px;line-height:1.5">Added for the developer handover. Not yet reviewed by the owner.</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+<div data-screen-label="12 Empty Home" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">12 · Home, nothing saved yet</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:800 24px Manrope,sans-serif">Home</div>
+<div style="flex:none;font:600 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 12px;display:flex;align-items:center">+ Find SMA</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+<div style="font:800 22px/1.25 Manrope,sans-serif">No saved SMA lines yet</div>
+<div style="font-size:14px;line-height:1.5;color:#8DA0AE">Find a stock or ETF, pick how often you want buy signals, and save the line. Saved lines appear here.</div>
+<div style="text-align:center;font:800 15px Manrope,sans-serif;background:#2DD4BF;color:#06201C;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px">Find a security</div>
+<div style="text-align:center;font:700 14px Manrope,sans-serif;color:#C5D2DB;min-height:44px;display:flex;align-items:center;justify-content:center">Try the guided example</div>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 26px;background:#0B1116">
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF;min-height:28px;display:flex;align-items:center;justify-content:center">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Settings</div>
+</div>
+</div>
+</div>
+<div data-screen-label="13 Offline Home" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">13 · Home, offline with cached data</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:800 24px Manrope,sans-serif">Home</div>
+<div style="flex:none;font:600 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 12px;display:flex;align-items:center">+ Find SMA</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div role="status" style="flex:none;background:#2A2412;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px">
+<div style="font:700 14px Manrope,sans-serif;color:#FBBF24">You are offline</div>
+<div style="font-size:13px;line-height:1.4;color:#E7D9B0">Showing prices saved at the 11 Nov close. Search and new calculations need a connection.</div>
+</div>
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Watchlist</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#E9EDF0;color:#111111">A</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Apple Inc.</div><div style="font-size:12px;color:#8DA0AE">AAPL · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$231.10</div><div style="font:600 12px Manrope,sans-serif;color:#F87171">▼ 0.8%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#3A1F22;color:#F87171;padding:4px 8px;border-radius:999px">1 OF 2 LINES BELOW</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#9B1C31;color:#FFFFFF">V</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vanguard S&amp;P 500 ETF</div><div style="font-size:12px;color:#8DA0AE">VOO · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div><div style="font:600 12px Manrope,sans-serif;color:#34D399">▲ 1.2%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE BOTH LINES</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 26px;background:#0B1116">
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF;min-height:28px;display:flex;align-items:center;justify-content:center">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Settings</div>
+</div>
+</div>
+</div>
+<div data-screen-label="14 Search error" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">14 · Search, data source unavailable</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;align-items:center;gap:12px">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE;min-height:44px;display:flex;align-items:center">‹ Back</div>
+<div style="font:800 20px Manrope,sans-serif">Find a security</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div style="flex:none;display:flex;gap:8px">
+<div style="flex:1;min-width:0;height:48px;box-sizing:border-box;background:#131C24;border-radius:12px;border:1px solid #2F4150;font:600 15px Manrope,sans-serif;padding:0 12px;display:flex;align-items:center">dbs</div>
+<div style="flex:none;font:800 14px Manrope,sans-serif;background:#2DD4BF;color:#06201C;border-radius:12px;min-height:48px;padding:0 16px;display:flex;align-items:center">Search</div>
+</div>
+<div role="alert" style="flex:none;background:#2A1719;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<div style="font:700 15px Manrope,sans-serif;color:#FCA5A5">Search is unavailable right now</div>
+<div style="font-size:13px;line-height:1.45;color:#E5C2C2">The market data source did not respond. Your saved lines and cached charts still work. Wait a minute, then try again.</div>
+<div style="align-self:flex-start;font:700 13px Manrope,sans-serif;color:#EEF3F7;border:1px solid #5B3236;border-radius:999px;min-height:44px;padding:0 14px;display:flex;align-items:center">Try again</div>
+</div>
+<div style="flex:none;font-size:12px;line-height:1.4;color:#8DA0AE">The app waits out rate limits instead of retrying repeatedly, to avoid extra requests.</div>
+</div>
+</div>
+</div>
+<div data-screen-label="15 Search keyboard" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">15 · Search with keyboard open</div>
+<div style="width:360px;height:760px;background:#0B1116;border:1px solid #243340;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:52px 20px 8px;display:flex;align-items:center;gap:12px">
+<div style="font:600 14px Manrope,sans-serif;color:#8DA0AE;min-height:44px;display:flex;align-items:center">‹ Back</div>
+<div style="font:800 20px Manrope,sans-serif">Find a security</div>
+</div>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:10px;flex:1;overflow:hidden">
+<div style="flex:none;display:flex;gap:8px">
+<div style="flex:1;min-width:0;height:48px;box-sizing:border-box;background:#131C24;border-radius:12px;border:1px solid #2DD4BF;font:600 15px Manrope,sans-serif;padding:0 12px;display:flex;align-items:center">apple<span style="width:2px;height:20px;background:#2DD4BF;margin-left:2px"></span></div>
+<div style="flex:none;font:800 14px Manrope,sans-serif;background:#2DD4BF;color:#06201C;border-radius:12px;min-height:48px;padding:0 16px;display:flex;align-items:center">Search</div>
+</div>
+<div style="flex:none;font-size:12px;line-height:1.4;color:#8DA0AE">Field and Search button stay above the keyboard. The tab bar hides while typing. The keyboard return key reads "Search".</div>
+</div>
+<div style="flex:none;height:300px;border-top:1px solid #2F4150;background:repeating-linear-gradient(135deg,#101820 0 10px,#0B1116 10px 20px);display:flex;align-items:center;justify-content:center;font:500 12px 'Courier New',monospace;color:#8DA0AE">[ on-screen keyboard ]</div>
+</div>
+</div>
+<div data-screen-label="16 Narrow phone" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">16 · Narrow phone, 320 × 640</div>
+<div style="width:320px;height:640px;background:#0B1116;border:1px solid #243340;border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="padding:40px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:800 24px Manrope,sans-serif">Home</div>
+<div style="flex:none;font:600 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 12px;display:flex;align-items:center">+ Find</div>
+</div>
+<div style="padding:6px 14px 10px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div style="flex:none;background:#131C24;border-radius:16px;padding:12px">
+<div style="font:600 12px Manrope,sans-serif;color:#8DA0AE">Saved SMAs · 3 above line</div>
+<div style="font:800 19px Manrope,sans-serif;margin-top:2px">1 needs attention</div>
+</div>
+<div style="font:700 11px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">Watchlist</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px Manrope,sans-serif;background:#E9EDF0;color:#111111">A</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Apple Inc.</div><div style="font-size:12px;color:#8DA0AE">AAPL · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$231.10</div><div style="font:600 12px Manrope,sans-serif;color:#F87171">▼ 0.8%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#3A1F22;color:#F87171;padding:4px 8px;border-radius:999px">1 OF 2 LINES BELOW</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px Manrope,sans-serif;background:#9B1C31;color:#FFFFFF">V</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vanguard S&amp;P 500 ETF</div><div style="font-size:12px;color:#8DA0AE">VOO · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div><div style="font:600 12px Manrope,sans-serif;color:#34D399">▲ 1.2%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE BOTH LINES</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 14px;background:#0B1116">
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF;min-height:28px;display:flex;align-items:center;justify-content:center">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Settings</div>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+<div data-screen-label="17 iPhone Safari tab" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">17 · iPhone web, in a Safari tab</div>
+<div style="width:375px;height:812px;background:#0B1116;border:1px solid #243340;border-radius:40px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="flex:none;padding:14px 20px 6px;display:flex;justify-content:space-between;font:700 12px Manrope,sans-serif;color:#C5D2DB"><span>9:41</span><span>status bar</span></div>
+<div style="padding:8px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:800 24px Manrope,sans-serif">Home</div>
+<div style="flex:none;font:600 13px Manrope,sans-serif;color:#2DD4BF;border:1px solid #1E4F49;border-radius:999px;min-height:44px;padding:0 12px;display:flex;align-items:center">+ Find SMA</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div style="flex:none;background:#131C24;border-radius:14px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+<div style="font-size:13px;line-height:1.4;color:#C5D2DB">Add to Home Screen to get alerts and a full-screen view.</div>
+<div style="flex:none;font:700 13px Manrope,sans-serif;color:#2DD4BF;min-height:44px;display:flex;align-items:center">How</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#E9EDF0;color:#111111">A</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Apple Inc.</div><div style="font-size:12px;color:#8DA0AE">AAPL · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$231.10</div><div style="font:600 12px Manrope,sans-serif;color:#F87171">▼ 0.8%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#3A1F22;color:#F87171;padding:4px 8px;border-radius:999px">1 OF 2 LINES BELOW</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+<div style="background:#131C24;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px">
+<div aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px Manrope,sans-serif;background:#9B1C31;color:#FFFFFF">V</div>
+<div style="flex:1;min-width:0"><div style="font:700 15px/1.3 Manrope,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vanguard S&amp;P 500 ETF</div><div style="font-size:12px;color:#8DA0AE">VOO · US</div></div>
+<div style="flex:none;text-align:right"><div style="font:700 15px Manrope,sans-serif;font-variant-numeric:tabular-nums">$512.40</div><div style="font:600 12px Manrope,sans-serif;color:#34D399">▲ 1.2%</div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<span style="flex:none;font:700 11px Manrope,sans-serif;background:#0F3B36;color:#2DD4BF;padding:4px 8px;border-radius:999px">ABOVE BOTH LINES</span>
+<span style="font:600 12px Manrope,sans-serif;color:#8DA0AE">2 saved lines ▾</span>
+</div>
+</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 10px;background:#0B1116">
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF;min-height:28px;display:flex;align-items:center;justify-content:center">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Charts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Settings</div>
+</div>
+<div style="flex:none;height:84px;border-top:1px solid #2F4150;background:repeating-linear-gradient(135deg,#101820 0 10px,#0B1116 10px 20px);display:flex;align-items:center;justify-content:center;font:500 12px 'Courier New',monospace;color:#8DA0AE">[ Safari address and toolbar ]</div>
+</div>
+</div>
+<div data-screen-label="18 iPhone Home Screen app" style="display:flex;flex-direction:column;gap:12px">
+<div style="font:700 12px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8DA0AE">18 · iPhone web, opened from Home Screen</div>
+<div style="width:375px;height:812px;background:#0B1116;border:1px solid #243340;border-radius:40px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+<div style="flex:none;padding:14px 20px 6px;display:flex;justify-content:space-between;font:700 12px Manrope,sans-serif;color:#C5D2DB"><span>9:41</span><span>status bar</span></div>
+<div style="padding:18px 20px 10px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font:800 24px Manrope,sans-serif">Alerts</div>
+</div>
+<div style="padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+<div style="flex:none;background:#131C24;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<div style="font:700 15px Manrope,sans-serif">Turn on alerts for this iPhone</div>
+<div style="font-size:13px;line-height:1.45;color:#8DA0AE">Alerts are checked on the server after each close and sent as notifications. iPhone controls when banners appear.</div>
+<div style="text-align:center;font:800 15px Manrope,sans-serif;background:#2DD4BF;color:#06201C;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px">Enable notifications</div>
+</div>
+<div style="flex:none;font-size:12px;line-height:1.45;color:#8DA0AE">Shown only in the Home Screen app on iOS 16.4 or later. In a Safari tab this card explains how to add the app instead.</div>
+</div>
+<div style="display:flex;border-top:1px solid #1B2730;padding:10px 8px 34px;background:#0B1116">
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Home</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Charts</div>
+<div style="flex:1;text-align:center;font:700 12px Manrope,sans-serif;color:#2DD4BF;min-height:28px;display:flex;align-items:center;justify-content:center">Alerts</div>
+<div style="flex:1;text-align:center;font:600 12px Manrope,sans-serif;color:#8DA0AE;min-height:28px;display:flex;align-items:center;justify-content:center">Settings</div>
+</div>
+</div>
+</div>
+</div>
+<div style="max-width:1160px;font-size:13px;color:#8DA0AE;line-height:1.55">
+<strong style="color:#EEF3F7">Notes.</strong> Chart lines are sample data. Emailing the developer on each email save or change needs one small server endpoint that both the Android app and the iPhone web app call; the apps should not hold mail credentials. Backtest amounts, dates and the connection status are sample values, not real results. Signal copy is plain and avoids profit claims, per the app's research-only disclaimer. Status badges pair words with colour. The Charts tab reuses the SMA detail screen. Dark is shown; a light variant follows the system setting once you confirm the layout.
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { aapl: true, voo: false, horizon: '3Y', customYears: 7, buy: true, eod: true, open: false, theme: 'System',
+    lines: [{ id: 'a', period: 50, name: '', color: 3, visible: true }, { id: 'b', period: 100, name: '', color: 4, visible: true }, { id: 'c', period: 200, name: 'Long-term trend', color: 0, visible: true }],
+    editId: 'c', email: '', landDraft: '', landErr: '', landEditing: false, setDraft: '', setErr: '', setEditing: false, setNote: '' };
+  palette = [['Amber', '#FFBD5C'], ['Periwinkle', '#96A3FF'], ['Rose', '#FF7D9E'], ['Sky', '#6BC2FF'], ['Violet', '#C794F5'], ['Lime', '#99D66B'], ['Coral', '#FF9E66'], ['Cyan', '#61D6EB'], ['Yellow', '#FFE640'], ['Mint', '#3DD694'], ['Magenta', '#F261E0'], ['Ivory', '#F0F0E8']];
+  signals = { 50: 12, 100: 6, 200: 4 };
+  prices = Array.from({ length: 560 }, (_, i) => 259 + 0.4 * i + 28 * Math.sin(i / 41) + 12 * Math.sin(i / 13 + 1) + 5 * Math.sin(i / 4.7 + 2));
+  smaCache = {};
+  logoSplash = this.logo();
+  logoOptim = this.logo();
+  logo() {
+    return React.createElement('img', { src: '../assets/app-icon.png', alt: 'App logo drawing from left to right', 'data-sma-anim': '', style: { width: '100%', height: '100%', display: 'block', animation: 'smaSweep 1.4s linear infinite' } });
+  }
+  sma(period) {
+    if (!this.smaCache[period]) {
+      const P = this.prices, out = []; let sum = 0;
+      for (let i = 0; i < P.length; i++) { sum += P[i]; if (i >= period) sum -= P[i - period]; out.push(sum / period); }
+      this.smaCache[period] = out;
+    }
+    return this.smaCache[period];
+  }
+  chart(h) {
+    const W = 320, n = 300, start = this.prices.length - n, el = React.createElement;
+    const series = [{ key: 'price', color: '#DCE5EC', w: 1.5, v: this.prices.slice(start) }].concat(
+      this.state.lines.filter(l => l.visible).map(l => ({ key: l.id, color: this.palette[l.color][1], w: 2.2, v: this.sma(l.period).slice(start) })));
+    let lo = Infinity, hi = -Infinity;
+    series.forEach(s => s.v.forEach(x => { if (x < lo) lo = x; if (x > hi) hi = x; }));
+    const y = x => (h - 8 - (x - lo) / (hi - lo) * (h - 16)).toFixed(1);
+    return el('svg', { viewBox: '0 0 ' + W + ' ' + h, width: '100%', height: h, role: 'img', 'aria-label': 'Price with saved SMA lines', style: { display: 'block' } },
+      [0.25, 0.5, 0.75].map(f => el('line', { key: 'g' + f, x1: 0, x2: W, y1: h * f, y2: h * f, stroke: '#1B2730', strokeWidth: 1 })),
+      series.map(s => el('polyline', { key: s.key, fill: 'none', stroke: s.color, strokeWidth: s.w, strokeLinejoin: 'round', strokeLinecap: 'round', points: s.v.map((x, i) => (i / (n - 1) * W).toFixed(1) + ',' + y(x)).join(' ') })));
+  }
+  stocks = [['VOO', 'Vanguard S&P 500 ETF', 'US', 1, '#9B1C31', '#FFFFFF'], ['VTI', 'Vanguard Total Stock Market ETF', 'US', 0, '#9B1C31', '#FFFFFF'], ['VXUS', 'Vanguard Total International Stock ETF', 'US', 0, '#9B1C31', '#FFFFFF'], ['V', 'Visa Inc.', 'US', 0, '#1A1F71', '#F7B600'], ['AAPL', 'Apple Inc.', 'US', 1, '#E9EDF0', '#111111'], ['MSFT', 'Microsoft Corporation', 'US', 0, '#2F2F2F', '#FFFFFF'], ['NVDA', 'NVIDIA Corporation', 'US', 0, '#76B900', '#0B0B0B'], ['TSLA', 'Tesla, Inc.', 'US', 0, '#CC0000', '#FFFFFF'], ['D05.SI', 'DBS Group Holdings Ltd', 'SG', 0, '#1A1A1A', '#FF3B30'], ['ES3.SI', 'SPDR Straits Times Index ETF', 'SG', 0, '#E5E7EA', '#B3121B'], ['O39.SI', 'Oversea-Chinese Banking Corporation Limited', 'SG', 0, '#D71920', '#FFFFFF']];
+  searchVals() {
+    const q = this.state.q === undefined ? 'vanguard' : this.state.q;
+    const ran = this.state.ran === undefined ? 'vanguard' : this.state.ran, k = ran.trim().toLowerCase();
+    const hits = !k ? [] : this.stocks.filter(x => x[0].toLowerCase().startsWith(k)).concat(this.stocks.filter(x => !x[0].toLowerCase().startsWith(k) && x[1].toLowerCase().includes(k)));
+    const runSearch = () => this.setState({ ran: q });
+    return {
+      q, setQ: e => this.setState({ q: e.target.value }), runSearch,
+      qKey: e => { if (e.key === 'Enter') runSearch(); },
+      isEdited: q.trim() !== ran.trim() && !!q.trim(),
+      results: hits.map(x => ({ name: x[1], sub: x[0] + ' · ' + x[2], saved: !!x[3], action: x[3] ? 'Open' : 'Analyse', bg: x[4], fg: x[5], mono: x[1][0] })),
+      resultText: !k ? 'Enter a name or ticker, then press Search.' : hits.length + (hits.length === 1 ? ' match' : ' matches') + ' for "' + ran.trim() + '"',
+      noResults: !!k && !hits.length, noResultsTitle: 'Nothing found for "' + ran.trim() + '"',
+    };
+  }
+  renderVals() {
+    const s = this.state;
+    const money = n => '$' + Math.round(n).toLocaleString('en-US');
+    const seg = on => ({ bg: on ? '#0F3B36' : '#1A2630', fg: on ? '#2DD4BF' : '#EEF3F7' });
+    const fixed = { '1Y': 1, '3Y': 3, '5Y': 5, Max: 16 };
+    const years = fixed[s.horizon] || Math.min(16, Math.max(1, Math.round(Number(s.customYears)) || 1));
+    const buys = 4 * years, paid = 100 * buys, gA = paid * (0.02 + 0.045 * years);
+    const gains = [gA, gA * (years === 1 ? 1.12 : 0.9), gA * 0.83], top = Math.max.apply(null, gains);
+    const row = (g, i) => {
+      const d = (g - gA) / (paid + gA) * 100;
+      return {
+        value: money(paid + g), gain: '+' + money(g) + ' gain on ' + money(paid) + ' contributed', w: (g / top * 100).toFixed(1) + '%',
+        diff: i ? (d >= 0 ? '+' : '−') + Math.abs(d).toFixed(1) + '% vs crossings' : '+' + (gA / paid * 100).toFixed(1) + '% on contributions',
+        diffColor: !i ? '#2DD4BF' : d >= 0 ? '#34D399' : '#F87171',
+      };
+    };
+    const knob = on => ({ bg: on ? '#2DD4BF' : '#243340', left: on ? '21px' : '3px', knob: on ? '#06201C' : '#8DA0AE' });
+    const sw = k => Object.assign({ toggle: () => this.setState(p => ({ [k]: !p[k] })) }, knob(s[k]));
+    const upd = (id, patch) => this.setState(p => ({ lines: p.lines.map(l => l.id === id ? Object.assign({}, l, patch) : l) }));
+    const def = l => 'SMA (' + l.period + ' days)';
+    const ed = s.lines.find(l => l.id === s.editId) || s.lines[0];
+    const valid = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+    const bad = 'Enter a valid email address, like name@example.com.';
+    const submitLanding = () => valid(s.landDraft)
+      ? this.setState({ email: s.landDraft.trim(), landErr: '', landEditing: false, setEditing: false, setErr: '', setNote: '' })
+      : this.setState({ landErr: bad });
+    const saveSet = () => valid(s.setDraft)
+      ? this.setState({ email: s.setDraft.trim(), setErr: '', setEditing: false, landEditing: false, setNote: 'Saved. The change was sent to the developer.' })
+      : this.setState({ setErr: bad, setNote: '' });
+    const showLandForm = !s.email || s.landEditing, showSetForm = !s.email || s.setEditing;
+    const shown = s.lines.filter(l => l.visible).length;
+    return {
+      openAapl: s.aapl, openVoo: s.voo,
+      labelAapl: s.aapl ? 'Hide lines ▴' : '2 saved lines ▾',
+      labelVoo: s.voo ? 'Hide lines ▴' : '2 saved lines ▾',
+      toggleAapl: () => this.setState(p => ({ aapl: !p.aapl })),
+      toggleVoo: () => this.setState(p => ({ voo: !p.voo })),
+      horizons: ['1Y', '3Y', '5Y', 'Max', 'Custom'].map(label => Object.assign({ label, pick: () => this.setState({ horizon: label }) }, seg(s.horizon === label))),
+      isCustom: s.horizon === 'Custom', customYears: s.customYears,
+      setYears: e => this.setState({ customYears: e.target.value }),
+      bt: {
+        summary: buys + ' buys each · Nov ' + (2026 - years) + ' – Nov 2026',
+        rank: (58 + years * 3 % 11) + '%', a: row(gains[0], 0), b: row(gains[1], 1), c: row(gains[2], 2),
+      },
+      sw: { buy: sw('buy'), eod: sw('eod'), open: sw('open') },
+      themes: ['System', 'Light', 'Dark'].map(label => Object.assign({ label, pick: () => this.setState({ theme: label }) }, seg(s.theme === label))),
+      ...this.searchVals(),
+      logoSplash: this.logoSplash, logoOptim: this.logoOptim,
+      chartMain: this.chart(180), chartEdit: this.chart(150),
+      shownText: shown + ' of ' + s.lines.length + ' shown',
+      lines: s.lines.map(l => {
+        const k = knob(l.visible), per = this.signals[l.period] + ' signals / year';
+        return {
+          color: this.palette[l.color][1], label: l.name.trim() || def(l), sub: l.name.trim() ? def(l) + ' · ' + per : per,
+          editLabel: l.id === ed.id ? 'Editing' : 'Edit', edit: () => this.setState({ editId: l.id }),
+          toggle: () => upd(l.id, { visible: !l.visible }), swBg: k.bg, swLeft: k.left, swKnob: k.knob,
+        };
+      }),
+      edit: { title: 'VOO · ' + def(ed), name: ed.name, placeholder: def(ed), helper: 'Leave blank to use ' + def(ed) + '.', setName: e => upd(ed.id, { name: e.target.value.slice(0, 24) }) },
+      swatches: this.palette.map((c, i) => ({
+        name: c[0], hex: c[1], mark: i === ed.color ? '✓' : '', pick: () => upd(ed.id, { color: i }),
+        ring: i === ed.color ? '0 0 0 2px #131C24, 0 0 0 4px #EEF3F7' : 'none',
+      })),
+      email: s.email, showLandForm, landDone: !showLandForm, landDraft: s.landDraft, landErr: s.landErr, hasLandErr: !!s.landErr && showLandForm,
+      landBorder: s.landErr ? '#F87171' : '#2F4150',
+      setLandDraft: e => this.setState({ landDraft: e.target.value, landErr: '' }),
+      landKey: e => { if (e.key === 'Enter') submitLanding(); }, submitLanding,
+      landChange: () => this.setState({ landEditing: true, landDraft: s.email }),
+      showSetForm, showSetSaved: !showSetForm, showSetCancel: !!s.email && s.setEditing,
+      setDraft: s.setDraft, setErr: s.setErr, hasSetErr: !!s.setErr && showSetForm, setNote: s.setNote, hasSetNote: !!s.setNote && !showSetForm,
+      setBorder: s.setErr ? '#F87171' : '#2F4150',
+      setSetDraft: e => this.setState({ setDraft: e.target.value, setErr: '' }),
+      setKey: e => { if (e.key === 'Enter') saveSet(); }, saveSet,
+      startSetEdit: () => this.setState({ setEditing: true, setDraft: s.email, setNote: '' }),
+      cancelSet: () => this.setState({ setEditing: false, setErr: '' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

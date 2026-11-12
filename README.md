@@ -6,9 +6,9 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.13.8**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.14.0**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone | Native releases paused. The Vercel/PWA guide is a plan; this repository does not yet contain the web frontend or a deployed website. |
+| iPhone | Next.js/PWA frontend and Python worker implemented; Vercel deployment and server configuration pending. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
@@ -19,9 +19,13 @@ for a successful run and download its **sma-android-test** artifact.
 - [Install or update the Android APK](docs/ANDROID_APK_GUIDE.md).
 - [APK signing, package security and Play Protect review](docs/ANDROID_PACKAGE_SECURITY.md).
 - [Run on a Mac](START_HERE_MAC.md).
-- [Deploy a future iPhone web app through Vercel](docs/PRIVATE_IPHONE_INSTALLATION.md).
+- [Deploy the iPhone web app through Vercel](docs/PRIVATE_IPHONE_INSTALLATION.md).
 - [All current guides](docs/1.Directory.md), [release history](docs/CHANGELOG.md),
   [validation status](docs/ANDROID_TEST_STATUS.md) and [cleanup record](docs/MAINTENANCE.md).
+
+The [UI/UX handover](docs/uiux-handover/README.md) and
+[implementation decisions](docs/uiux-handover/IMPLEMENTATION.md) explain the
+shared dark/teal design, Manrope typography and platform adaptations.
 
 ## Current features
 
@@ -30,7 +34,7 @@ for a successful run and download its **sma-android-test** artifact.
   ETFs have bundled company/issuer logos or an initials fallback.
 - Full available history, persistent search/price caches, visible connection
   errors and a copyable request log. Reopening the app does not clear data.
-- Library-first navigation with grouped saved SMAs, custom names, twelve
+- Home, Charts, Alerts and Settings tabs with grouped saved SMAs, custom names, twelve
   persistent colours, Hide/Show, notification switches and a ten-entry archive.
 - Live targets use **365 calendar days per year**, including weekends/holidays.
   This is the closest historical annualized average, not a guaranteed annual

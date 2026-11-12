@@ -1,0 +1,102 @@
+/* Web reference for the Vercel app. Not used by the Kivy app. */
+:root {
+  color-scheme: dark;
+  --bg-screen: #0b1116;
+  --surface: #131c24;
+  --surface-hover: #18232d;
+  --surface-sunken: #0e161d;
+  --control: #1a2630;
+  --border-frame: #243340;
+  --border-input: #2f4150;
+  --divider: #1b2730;
+  --text: #eef3f7;
+  --text-secondary: #c5d2db;
+  --text-muted: #8da0ae;
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --on-accent: #06201c;
+  --accent-tint: #0f3b36;
+  --accent-border: #1e4f49;
+  --up: #34d399;
+  --down: #f87171;
+  --down-tint: #3a1f22;
+  --warning-bg: #2a2412;
+  --warning-title: #fbbf24;
+  --warning-text: #e7d9b0;
+  --error-bg: #2a1719;
+  --error-title: #fca5a5;
+  --error-text: #e5c2c2;
+  --error-border: #5b3236;
+  --scrim: rgba(4, 8, 11, 0.66);
+  --chart-price: #dce5ec;
+  --line-0: #ffbd5c;
+  --line-1: #96a3ff;
+  --line-2: #ff7d9e;
+  --line-3: #6bc2ff;
+  --line-4: #c794f5;
+  --line-5: #99d66b;
+  --line-6: #ff9e66;
+  --line-7: #61d6eb;
+  --line-8: #ffe640;
+  --line-9: #3dd694;
+  --line-10: #f261e0;
+  --line-11: #f0f0e8;
+  --font: Manrope, system-ui, sans-serif;
+  --pad-screen: 20px;
+  --radius-card: 16px;
+  --radius-button: 14px;
+  --radius-input: 12px;
+  --radius-segment: 10px;
+  --touch: 44px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+@media (max-width: 359px) {
+  :root {
+    --pad-screen: 14px;
+  }
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg-screen);
+  color: var(--text);
+  font-family: var(--font);
+}
+input,
+textarea,
+select {
+  font-size: 16px;
+} /* prevents iPhone focus zoom */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+@keyframes sma-logo-draw {
+  0% {
+    clip-path: inset(0 88% 0 0);
+    opacity: 1;
+  }
+  71.4% {
+    clip-path: inset(0 12% 0 0);
+    opacity: 1;
+  }
+  84.3% {
+    clip-path: inset(0 12% 0 0);
+    opacity: 1;
+  }
+  92.9%,
+  100% {
+    clip-path: inset(0 12% 0 0);
+    opacity: 0;
+  }
+}
+.sma-logo-draw {
+  animation: sma-logo-draw 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sma-logo-draw {
+    animation: none;
+  }
+}

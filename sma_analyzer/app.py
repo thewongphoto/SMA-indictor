@@ -64,10 +64,9 @@ from .chart_comparison import visible_price_change, comparison_period
 from .widgets import ChartChangeSummary
 from .app_logo import APP_LOGO
 
-BG = (0.075, 0.122, 0.192, 1)
-PANEL = (0.122, 0.188, 0.282, 1)
-TEXT = (0.92, 0.95, 0.98, 1)
-ERROR = (1, 0.52, 0.52, 1)
+from .theme import BG, SURFACE as PANEL, TEXT, NEGATIVE as ERROR, ACCENT, CONTROL, ON_ACCENT, register_fonts
+from .experience import Experience
+register_fonts()
 
 
 def phone_notifier_class():
@@ -80,6 +79,8 @@ def phone_notifier_class():
 def phone_system_name():
     return "iOS" if platform == "ios" else "Android"
 
+from .appearance import Color, Label, Button
+
 
 class WrappedLabel(Label):
     def __init__(self, **kwargs):
@@ -90,6 +91,7 @@ class WrappedLabel(Label):
         super().__init__(size_hint_y=None, **kwargs)
         self.bind(width=self._wrap, texture_size=self._height)
         self._wrap()
+        self._height()
 
     def _wrap(self, *_):
         self.text_size = (self.width, None)
@@ -101,9 +103,9 @@ class WrappedLabel(Label):
 class LabButton(Button):
     def __init__(self, primary=False, **kwargs):
         super().__init__(background_normal="", background_down="", background_color=(0, 0, 0, 0),
-                         color=BG if primary else TEXT, font_size=sp(13), bold=True,
+                         color=ON_ACCENT if primary else TEXT, font_size=sp(13), bold=True,
                          size_hint_y=None, height=dp(44), **kwargs)
-        self.fill = PRICE_COLOR if primary else (0.12, 0.17, 0.23, 1)
+        self.fill = ACCENT if primary else CONTROL
         with self.canvas.before:
             self._color = Color(*self.fill)
             self._rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
@@ -112,7 +114,7 @@ class LabButton(Button):
     def _draw(self, *_):
         self._rect.pos, self._rect.size = self.pos, self.size
         factor = 0.55 if self.disabled else 0.8 if self.state == "down" else 1
-        self._color.rgba = (*[c * factor for c in self.fill[:3]], 1)
+        self._color.rgba = (*self.fill[:3], factor)
 
 
 class Panel(BoxLayout):
@@ -120,7 +122,7 @@ class Panel(BoxLayout):
         super().__init__(orientation="vertical", size_hint_y=None, spacing=dp(10), padding=dp(14), **kwargs)
         self.bind(minimum_height=self.setter("height"))
         with self.canvas.before:
-            Color(*PANEL)
+            self._panel_color = Color(*PANEL)
             self._rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(16)])
         self.bind(pos=self._draw, size=self._draw)
 
@@ -206,7 +208,7 @@ class DeviceFrame(FloatLayout):
         self.screen.keep_editor_visible()
 
 
-class AnalyzerScreen(FloatLayout):
+class AnalyzerScreen(Experience, FloatLayout):
     def __init__(self, model, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.before:
@@ -291,7 +293,7 @@ class AnalyzerScreen(FloatLayout):
                                           color=MUTED, font_size=sp(11))
         self.search_panel.add_widget(self.search_status)
         if self.yahoo_enabled:
-            self.search_status.text = "Search US/SG stocks and ETFs. Enter or Submit searches; selecting a match loads daily history."
+            self.search_status.text = "US and Singapore stocks and ETFs. Press Search or Enter to find a company."
         self.search_matches = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
         self.search_matches.bind(minimum_height=self.search_matches.setter("height"))
         self.search_results_scroll = ScrollView(size_hint_y=None, height=0, do_scroll_x=False)
@@ -382,10 +384,11 @@ class AnalyzerScreen(FloatLayout):
         self.optimal_panel.add_widget(self.optimal_value)
         actions = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(6))
         self.optimal_actions = actions
-        self.save_button = IconButton(kind="heart")
+        self.save_button = LabButton(text="Save", size_hint_x=None, width=dp(76))
         self.hide_button = LabButton(text="Hide SMA", size_hint_x=None, width=dp(88))
         self.change_parameters_button = LabButton(text="Change parameters")
         self.change_parameters_button.font_size = sp(11)
+        self.change_parameters_button.bind(size=lambda widget,_:setattr(widget,"text_size",(widget.width-dp(8),None)))
         self.change_parameters_button.bind(on_release=self.show_parameters)
         self.save_button.bind(on_release=self.on_save)
         self.hide_button.bind(on_release=self.on_active_visibility)
@@ -498,6 +501,7 @@ class AnalyzerScreen(FloatLayout):
         self.custom_target.bind(text=self.on_custom_target)
         self.scroll.bind(width=self._layout_for_width)
         self._layout_for_width()
+        self.build_experience()
         self.refresh()
         self._builder_stage(False)
         self.manager.current = "library"
@@ -529,13 +533,13 @@ class AnalyzerScreen(FloatLayout):
                                             spacing=dp(4),padding=(dp(16),dp(6)))
             self.results_footer.bind(minimum_height=self.results_footer.setter("height"))
             bar = BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-            self.saved_menu_label = LabButton(text="Saved SMAs", halign="left")
+            self.saved_menu_label = LabButton(text="Saved lines", halign="left")
             self.saved_menu_label.bind(on_release=self.toggle_saved_sheet)
             bar.add_widget(self.saved_menu_label)
             self.settings_button = IconButton(kind="settings")
             self.page_settings_buttons["results"] = self.settings_button
             self.settings_button.bind(on_release=self.show_settings)
-            bar.add_widget(self.settings_button)
+            # Settings is reached through the persistent tab bar.
             self.results_footer.add_widget(bar)
             self.results_feedback = WrappedLabel(text="",color=MUTED,font_size=sp(11))
             # Fixed top toolbar; no bottom tab bar in the library-first flow.
@@ -558,7 +562,7 @@ class AnalyzerScreen(FloatLayout):
         row.add_widget(heading)
         settings = IconButton(kind="settings")
         settings.bind(on_release=self.show_settings)
-        row.add_widget(settings)
+        # Settings is reached through the persistent tab bar.
         self.page_settings_buttons[page_name] = settings
         column = self.pages[page_name].children[0]
         column.add_widget(row,index=len(column.children))
@@ -583,7 +587,7 @@ class AnalyzerScreen(FloatLayout):
 
     def _builder_stage(self,selected,animate=False):
         self.builder_selected=selected
-        self.page_titles["search"].text="Set your preference" if selected else "Choose a security"
+        self.page_titles["search"].text="Set your preference" if selected else "Find a security"
         if selected and self.controls.parent is None:
             self.search_content.add_widget(self.controls)
         elif not selected and self.controls.parent is not None:
@@ -844,6 +848,7 @@ class AnalyzerScreen(FloatLayout):
         self.search_status.text="Optimization cancelled. Adjust the target and try again."
 
     def _editor_focus(self, editor, focused):
+        self.layout_tabs()
         if focused:
             self.keep_editor_visible()
 
@@ -891,7 +896,7 @@ class AnalyzerScreen(FloatLayout):
             widget.font_size = sp(16 if wide else 13)
             widget.height = dp(52 if wide else 44)
         self.optimize_cell.height = dp(78 if wide else 65)
-        self.save_button.width = dp(44)
+        self.save_button.width = dp(76)
         self.hide_button.width = dp(88)
         self.change_parameters_button.font_size = sp(13 if wide else 11)
         self.optimal_actions.height = dp(52 if wide else 44)
@@ -906,9 +911,9 @@ class AnalyzerScreen(FloatLayout):
         for panel in (self.controls, self.optimal_panel, self.chart.parent):
             panel.padding = dp(20 if wide else 14)
         side_by_side = self.scroll.width >= dp(620)
-        self.optimal_panel.orientation = "horizontal" if side_by_side else "vertical"
-        self.optimal_value.size_hint_x = 0.48 if side_by_side else 1
-        self.optimal_actions.size_hint_x = 0.52 if side_by_side else 1
+        self.optimal_panel.orientation = "vertical"
+        self.optimal_value.size_hint_x = 1
+        self.optimal_actions.size_hint_x = 1
         self.optimal_actions.pos_hint = {"center_y": 0.5}
         # BoxLayout.minimum_height adds vertically only in vertical orientation.
         self.chart.height = dp(max(245, min(320, self.scroll.width * 0.33)))
@@ -1118,7 +1123,8 @@ class AnalyzerScreen(FloatLayout):
 
     def _set_busy(self, busy):
         self.busy = busy
-        self.optimize_button.text = "Calculating…" if busy else "Optimize SMA"
+        self.optimize_button.text = "Calculating…" if busy else f"Find best SMA for {self.model.target_frequency} signals / year"
+        self.optimize_button.text_size = (self.optimize_button.width-dp(16), None)
         for widget in [self.optimize_button, self.counter, self.scenario, self.target, self.custom_target]:
             widget.disabled = busy or self.history_loading
         if self.yahoo_enabled and not self.model.dataset.prices:
@@ -1361,6 +1367,7 @@ class AnalyzerScreen(FloatLayout):
         self.hide_button.text = "Hide SMA" if self.model.active_visible else "Show SMA"
         self._refresh_saved()
         self._refresh_table()
+        self.refresh_experience()
 
     def _refresh_chart_header(self, *_):
         if self.chart.is_zoomed:
@@ -1386,16 +1393,18 @@ class AnalyzerScreen(FloatLayout):
             self.landing_saved_panel, self.model.library_lines(), landing=True)
         self.library_content.clear_widgets()
         self.library_state = "populated" if self.model.library_lines() else "empty"
-        widgets = ([self.new_analysis_button,self.landing_saved_panel,self.library_intro] if self.library_state == "populated"
-                   else [self.library_intro,self.new_analysis_button,self.library_archive_button])
+        widgets = ([self.home_summary,self.landing_saved_panel] if self.library_state == "populated"
+                   else [self.library_intro,self.library_archive_button])
         if self.yahoo_enabled and self.library_state == "empty":
-            widgets = [self.new_analysis_button, self.library_intro, self.library_archive_button]
+            widgets = [self.library_intro, self.library_archive_button]
         if self.source_warning.text:
             widgets.insert(0, self.source_warning)
         for widget in widgets:
             self.library_content.add_widget(widget)
 
     def _populate_saved_panel(self, panel, saved, landing=False):
+        if landing and hasattr(self,"home_summary"):
+            return self.populate_home(panel)
         panel.clear_widgets()
         header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
         header.add_widget(WrappedLabel(text="02  /  SAVED SMA LINES", font_size=sp(11), bold=True, color=MUTED))
@@ -2147,8 +2156,8 @@ class AnalyzerScreen(FloatLayout):
         except (ValueError,sqlite3.Error) as error:
             self.color_status.text=str(error)
 
-    def show_rename_line(self,*_):
-        saved=self.model.current_saved_line()
+    def show_rename_line(self,*_,line=None):
+        saved=line or self.model.current_saved_line()
         if saved is None:
             return
         self.finish_editing()
@@ -2163,15 +2172,31 @@ class AnalyzerScreen(FloatLayout):
         fields.add_widget(self.rename_editor)
         self.rename_status=WrappedLabel(text="",color=ERROR,font_size=sp(12))
         fields.add_widget(self.rename_status)
+        fields.add_widget(WrappedLabel(text="Colour",bold=True))
+        grid=GridLayout(cols=4,spacing=dp(8),size_hint_y=None)
+        grid.bind(minimum_height=grid.setter('height'))
+        self.edit_line_color = None
+        current=saved_color(self.model.store.color_index(saved.counter,saved.scenario,saved.period))
+        self.edit_line_colors={}
+        def choose_color(index):
+            self.edit_line_color=index
+            for key,button in self.edit_line_colors.items():
+                button.selected=key==index
+        for index,(name,rgba) in enumerate(zip(COLOR_NAMES,COLOR_CHOICES)):
+            button=ColorOption(text=name,swatch=rgba,selected=tuple(rgba)==tuple(current))
+            button.bind(on_release=lambda _,index=index:choose_color(index))
+            self.edit_line_colors[index]=button
+            grid.add_widget(button)
+        fields.add_widget(grid)
         scroll.add_widget(fields)
         content.add_widget(scroll)
         buttons=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
         cancel=LabButton(text="Cancel")
-        self.rename_save_button=LabButton(text="Save name",primary=True)
+        self.rename_save_button=LabButton(text="Done",primary=True)
         buttons.add_widget(cancel)
         buttons.add_widget(self.rename_save_button)
         content.add_widget(buttons)
-        self.rename_popup=ScreenPopup(self,title="Name saved SMA",content=content,size_hint=(None,None))
+        self.rename_popup=ScreenPopup(self,title="Edit line",content=content,size_hint=(None,None))
         self.bind(size=self._position_rename_popup,pos=self._position_rename_popup)
         def dismiss(*_):
             self.rename_editor.focus=False
@@ -2181,6 +2206,8 @@ class AnalyzerScreen(FloatLayout):
         def save_name(*_):
             try:
                 self.model.store.rename(saved.id,self.rename_editor.text)
+                if self.edit_line_color is not None:
+                    self.model.store.set_color(saved.id,self.edit_line_color)
                 self.rename_popup.dismiss()
                 self.refresh()
             except (ValueError,sqlite3.Error) as error:
@@ -2194,7 +2221,7 @@ class AnalyzerScreen(FloatLayout):
     def _position_rename_popup(self,*_):
         popup=getattr(self,"rename_popup",None)
         if popup is not None:
-            popup.size=(min(dp(500),self.width*.94),min(dp(290),max(dp(180),self.height-dp(24))))
+            popup.size=(min(dp(500),self.width*.94),min(dp(580),max(dp(180),self.height-dp(24))))
             popup.pos=(self.center_x-popup.width/2,self.center_y-popup.height/2)
 
     def _refresh_backtest(self, *_):
@@ -2242,25 +2269,25 @@ class AnalyzerScreen(FloatLayout):
             else:
                 self.backtest_gain.text = "N/A"
             self.backtest_note.text = (
-                f"Scenario a's moving average strategy outperforms {report.outperformance_percent:.1f}% of all 500 random buy scenarios."
+                f"{report.outperformance_percent:.1f}% of the 500 random samples paid a higher average price than the crossing buys."
                 if report.outperformance_percent is not None else
-                "Scenario a's moving average strategy outperformance is N/A: no upward crossings in this period.")
+                "No upward crossings in this period; no purchase comparison is available.")
             for key, value in self.backtest_values.items():
                 scenario = getattr(report, key)
                 value.text = f"{prefix}{scenario.ending_value:,.2f}"
                 if key in self.backtest_differences:
                     percent = scenario.difference_percent(report.crossings)
-                    self.backtest_differences[key].text = ("(N/A vs a)" if percent is None
-                        else f"({percent:+.2f}% vs a)")
+                    self.backtest_differences[key].text = ("(N/A vs crossings)" if percent is None
+                        else f"({percent:+.2f}% vs crossings)")
         except ValueError as error:
             self.backtest_details.text = str(error)
             self.backtest_note.text = ""
             self._set_backtest_captions("—")
 
     def _set_backtest_captions(self, count):
-        self.backtest_captions["crossings"].text = f"a. at {count} upward crossings."
-        self.backtest_captions["dca"].text = f"b. at {count} equal periods."
-        self.backtest_captions["random"].text = f"c. At {count} random points (most common scenario)."
+        self.backtest_captions["crossings"].text = f"At upward crossings · {count} buys"
+        self.backtest_captions["dca"].text = f"At equal intervals · {count} buys"
+        self.backtest_captions["random"].text = f"At random dates · {count} buys (most common of 500 samples)"
 
     def show_backtest_help(self, scenario):
         if scenario == "dca":
@@ -2382,6 +2409,8 @@ class SMAStockAnalyzerApp(App):
         return True
 
     def on_resume(self):
+        from .appearance import refresh_system
+        refresh_system()
         if platform=="ios" and hasattr(self,"window_adapter"):
             self.window_adapter.start(self._apply_window_metrics)
         if hasattr(self,"screen"):

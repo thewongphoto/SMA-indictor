@@ -1,7 +1,7 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.13.8**. Android and desktop are active. Native iPhone
-releases are paused; [Vercel/PWA implementation is planned](docs/PRIVATE_IPHONE_INSTALLATION.md).
+Current source: **0.14.0**. Android and desktop are active. Native iPhone
+releases are paused; [the Vercel/PWA app is implemented and awaiting deployment](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
 Android distribution uses an explicitly signed release variant. CI verifies the
@@ -67,7 +67,7 @@ it does not redefine a live calendar year.
 
 ```mermaid
 flowchart TD
-    L[My SMA library] --> N[Choose a security]
+    L[Home watchlist] --> N[Choose a security]
     N --> P[Set your preference on the same screen]
     P --> O[Optimize SMA or reuse cached result]
     O --> C[Chart and backtesting]
@@ -90,7 +90,7 @@ session. Saving, restoring, naming, colouring and hiding lines retain their
 identities. Viewing a saved SMA opens its exact period without retuning it.
 Hidden lines can still alert when enabled. The archive keeps ten recent unsaves.
 
-Settings stays top-right. The chart's magnifier-plus starts a new security
+Home, Charts, Alerts and Settings are persistent bottom tabs. The chart's magnifier-plus starts a new security
 selection. Back dismisses the keyboard/sheets before traversing pages and exits
 only from Library. The guided example uses **Vanguard S&P 500 ETF (VOO)**,
 initially 4/year and Max, independently of the selected security.
@@ -144,7 +144,7 @@ control presentation and execution.
 
 [The notification guide](docs/ANDROID_DAILY_NOTIFICATIONS.md) defines the four
 SGT jobs, stale/holiday handling, duplicate suppression and tests. Desktop runs
-interactive data requests only. A future iPhone web app requires a server
+interactive data requests only. The iPhone web app still requires a server
 scheduler and Web Push; browser timers cannot preserve native background work.
 
 The copyable request log separates logical APP operations, actual HTTP calls,
@@ -152,6 +152,6 @@ CACHE hits and notification checks/triggers/delivery outcomes. Tokens, cookies,
 raw response bodies and private paths are excluded. An OS/push acceptance
 record is not proof that a user saw a banner.
 
-Email delivery and Google authorization are removed. Legacy SQLite email
+Legacy email market-alert delivery and Google authorization remain removed. Optional release-update signup is separate and hidden until the server is configured. Legacy SQLite email
 columns/preferences remain solely for upgrade compatibility; old email events
 cannot be dispatched. [Validation status](docs/ANDROID_TEST_STATUS.md).

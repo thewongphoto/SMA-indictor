@@ -23,6 +23,8 @@ from .chart_comparison import currency_prefix
 GAIN_COLOR = (.27, .88, .57, 1)
 LOSS_COLOR = (1, .36, .40, 1)
 
+from .appearance import Color, Label, Button
+
 
 class ChangeArrow(Widget):
     """Native triangles avoid missing emoji/font glyphs on either phone OS."""
@@ -224,23 +226,30 @@ class SecurityIdentity(BoxLayout):
     """Company logo, whole-word name, and an optionally reserved ticker column."""
     font_size = NumericProperty(sp(13))
 
-    def __init__(self, security, show_ticker=False, logo_size=dp(28), **kwargs):
+    def __init__(self, security, show_ticker=False, logo_size=dp(28), stacked=False, **kwargs):
         defaults = dict(size_hint_y=None, height=dp(44), spacing=dp(8))
         defaults.update(kwargs)
         super().__init__(**defaults)
         self.security = security
+        self.stacked = stacked
         self.logo = CompanyLogo(security, edge=logo_size)
         self.add_widget(self.logo)
         self.name_label = WordEllipsisLabel(full_text=security.name, font_size=self.font_size,
                                             color=(.92,.95,.98,1), bold=True)
-        self.add_widget(self.name_label)
+        text_column = BoxLayout(orientation='vertical') if stacked else self
+        if stacked:
+            self.add_widget(text_column)
+        text_column.add_widget(self.name_label)
         self.ticker_label = None
         if show_ticker:
-            self.ticker_label = Label(text=security.ticker, size_hint_x=None, font_size=sp(11),
-                                      color=MUTED, halign="right", valign="middle")
-            self.ticker_label.bind(texture_size=lambda widget, size:setattr(widget, "width", size[0]+dp(2)))
+            self.ticker_label = Label(text=security.ticker, size_hint_x=1 if stacked else None, font_size=sp(11),
+                                      color=MUTED, halign="left" if stacked else "right", valign="middle")
+            if stacked:
+                self.ticker_label.bind(size=lambda widget,size:setattr(widget,'text_size',size))
+            else:
+                self.ticker_label.bind(texture_size=lambda widget, size:setattr(widget, "width", size[0]+dp(2)))
             self.ticker_label.texture_update()
-            self.add_widget(self.ticker_label)
+            text_column.add_widget(self.ticker_label)
         self.bind(font_size=lambda _, value:setattr(self.name_label, "font_size", value))
 
     def set_security(self, security):
@@ -288,12 +297,10 @@ class SavedSecurityGroup(BoxLayout):
     def _paint_group(self, *_):
         self.canvas.before.clear()
         with self.canvas.before:
-            Color(.18,.32,.35,.48 if self.expanded else .20)
+            from .theme import SURFACE, BORDER
+            Color(*SURFACE)
             RoundedRectangle(pos=self.pos,size=self.size,radius=[dp(12)])
-            Color(.44,.68,.70,.30 if self.expanded else .12)
-            Line(rounded_rectangle=(*self.pos,*self.size,dp(12)),width=dp(.7))
-            if self.expanded:
-                Line(points=[self.x+dp(10),self.top-dp(54),self.right-dp(10),self.top-dp(54)],width=dp(.6))
+            Color(*BORDER)
 
 
 class TimelineOption(SpinnerOption):

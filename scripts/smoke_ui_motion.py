@@ -136,21 +136,15 @@ class MotionSmoke(FlowSmoke):
 
         ui.show_parameters()
         yield from self.settled()
-        ui.search_scroll.scroll_to(ui.target,animate=False)
+        ui.search_scroll.scroll_to(ui.frequency_chips,animate=False)
         yield from self.frames()
-        samples=[]
-        ui.target._dropdown.bind(opacity=lambda _,value:samples.append(value))
-        self.tap(ui.target)
-        yield lambda:ui.target._dropdown.opacity==1
-        assert ui.target.is_open and any(0<value<1 for value in samples)
-        ui.target._dropdown.select(ui.target.text)
-        ui.target.is_open=True  # Reopen before the selection fade-out completes.
-        yield from self.frames(5)
-        assert ui.target.is_open and ui.target._dropdown.parent is not None
-        assert ui.handle_back()
-        yield lambda:not ui.target.is_open
-        assert ui.manager.current=="search" and ui.builder_selected
-        self.checked("selector menus fade smoothly and native Back closes the menu before leaving preferences")
+        self.tap(ui.frequency_buttons[4])
+        yield from self.frames()
+        assert ui.model.target_frequency==4
+        self.tap(ui.frequency_buttons['Custom'])
+        yield from self.frames()
+        assert ui.target.text=='Custom' and ui.custom_target.parent is not None
+        self.checked("frequency chips select the target and expose Custom without a hidden menu")
         ui.target.text="Custom"
         ui.custom_target.text="17"
         original=ui.model.result

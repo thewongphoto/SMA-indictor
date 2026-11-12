@@ -17,10 +17,11 @@ from .axis import date_ticks
 from .line_names import sma_label
 from .palette import line_color as palette_color
 
-PRICE_COLOR = (0.30, 0.87, 0.77, 1)
+from .theme import MUTED, rgba
+PRICE_COLOR = rgba("#DCE5EC")
 ACTIVE_COLOR = (1.0, 0.74, 0.36, 1)
 SAVED_COLORS = ((0.59, 0.64, 1, 1), (1, 0.49, 0.62, 1), (0.42, 0.76, 1, 1))
-MUTED = (0.58, 0.66, 0.75, 1)
+
 START_COLOR = (0.22, 0.94, 0.43, 1)
 END_COLOR = (1, 0.28, 0.32, 1)
 
@@ -36,6 +37,8 @@ def draw_plus(x, y, radius, color):
                  x+r, y-arm, x+arm, y-arm, x+arm, y-r, x-arm, y-r,
                  x-arm, y-arm, x-r, y-arm, x-r, y+arm, x-arm, y+arm],
          close=True, width=dp(0.45))
+
+from .appearance import Color, Label, Button
 
 
 class ChartScrollView(ScrollView):

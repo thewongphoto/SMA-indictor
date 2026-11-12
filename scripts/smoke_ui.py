@@ -171,7 +171,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.hide_button.parent.parent is ui.optimal_panel
         assert ui.optimal_panel.top > ui.chart.parent.top
         assert ui.save_button.disabled
-        assert not ui.save_button.selected and ui.save_button.text == ""
+        assert not ui.save_button.selected and ui.save_button.text == "Save"
         assert ui.manager.current == "library" and ui.library_state == "empty"
         ui.show_parameters()
         assert ui.controls.parent is ui.parameter_content
@@ -203,7 +203,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert label.text == f"${getattr(report, key).ending_value:,.2f}"
                 if key in ui.backtest_differences:
                     delta = getattr(report, key).difference_percent(report.crossings)
-                    assert ui.backtest_differences[key].text == f"({delta:+.2f}% vs a)"
+                    assert ui.backtest_differences[key].text == f"({delta:+.2f}% vs crossings)"
             assert "contributed" not in ui.backtest_details.text.lower()
             assert ui.manager.current == "results"
             self.check(f"target {target}: button, engine, cards, chart markers and investment values")
@@ -281,7 +281,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.card_values["period"].text == "SMA (254 days)"
         assert ui.card_values["actual"].text == "31.31 / yr"
         ui.backtest_period._dropdown.select("Max")
-        assert "125 upward crossings" in ui.backtest_captions["crossings"].text
+        assert "125 buys" in ui.backtest_captions["crossings"].text
         assert ui.model.result.comparisons==1006
         assert ui.model.result.frequency_error>0
         assert not hasattr(ui,"explanation")
@@ -336,14 +336,14 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         assert ui.saved_sheet.body.top < ui.height
         assert ui.saved_sheet.body.y >= ui.y-dp(1)
-        assert ui.saved_sheet.top <= ui.results_toolbar.y+dp(1)
+        assert ui.saved_sheet.top <= ui.results_toolbar.to_window(0,ui.results_toolbar.y)[1]+dp(1)
         original_bounds = ui.chart.viewport.bounds
         # The persistent bottom-left menu toggles the sheet down, then up.
         pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
         for _ in range(10): yield
         assert not ui.saved_sheet.is_open and ui.saved_sheet.parent is None
-        assert ui.saved_menu_label.text == "Saved SMAs"
+        assert ui.saved_menu_label.text == "Saved lines"
         pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
         for _ in range(10): yield
@@ -359,7 +359,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.chart.viewport.bounds == original_bounds
         # Settings and back are real native buttons, not callback-only tests.
         result = ui.model.result
-        pointer = Pointer(*ui.settings_button.to_window(*ui.settings_button.center))
+        pointer = Pointer(*ui.tab_buttons["settings"].to_window(*ui.tab_buttons["settings"].center))
         pointer.down(); pointer.up()
         for _ in range(6): yield
         assert ui.manager.current == "settings"
@@ -525,31 +525,31 @@ class SmokeApp(SMAStockAnalyzerApp):
             wide = size[0] >= 760
             assert ui.control_grid.cols == 1
             if wide:
-                assert ui.counter.y > ui.target.top
-                assert ui.target.y > ui.optimize_button.top
-                assert abs(ui.counter.x-ui.target.x)<dp(1)
-                assert abs(ui.target.x-ui.optimize_button.x)<dp(1)
+                assert ui.counter.y > ui.frequency_chips.top
+                assert ui.frequency_chips.y > ui.optimize_button.top
+                assert abs(ui.counter.x-ui.frequency_chips.x)<dp(1)
+                assert abs(ui.frequency_chips.x-ui.optimize_button.x)<dp(1)
                 assert ui.controls.height < dp(450), "Merged controls stay compact while stacked"
-                assert ui.optimal_panel.orientation == "horizontal"
-                assert ui.card_values["period"].right <= ui.save_button.x
+                assert ui.optimal_panel.orientation == "vertical"
+                assert ui.card_values["period"].y >= ui.save_button.top
             elif ui.control_grid.cols == 1:
-                assert ui.counter.y > ui.target.y > ui.optimize_button.y
+                assert ui.counter.y > ui.frequency_chips.y > ui.optimize_button.y
                 assert ui.controls.height < dp(360)
             else:
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
-                assert ui.counter.y > ui.target.y
+                assert ui.counter.y > ui.frequency_chips.y
                 assert ui.controls.height < dp(185)
-            for widget in [ui.counter, ui.target, ui.optimize_button]:
+            for widget in [ui.counter, ui.frequency_chips, ui.optimize_button]:
                 assert widget.width >= dp(110)
                 assert widget.x >= ui.content.x and widget.right <= ui.content.right
                 assert widget.height >= dp(44)
             ui.show_results()
             for _ in range(4): yield
             assert ui.hide_button.width == dp(88)
-            assert ui.change_parameters_button.width >= dp(110)
+            assert ui.change_parameters_button.width >= dp(44)
             assert ui.saved_menu_label.height >= dp(44)
             assert ui.settings_button.right <= ui.width
-            assert ui.save_button.width == dp(44) and ui.save_button.height >= dp(44)
+            assert ui.save_button.width == dp(76) and ui.save_button.height >= dp(44)
             ui.expanded_saved_securities.update(line.counter for line in ui.model.store.list_all_lines())
             ui._refresh_saved()
             ui.saved_sheet.open()
@@ -588,7 +588,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         if ui.custom_panel.parent is None:
             ui.custom_toggle.dispatch("on_release")
         ui.counter.text = "DEMO-SGX"
-        for selector, option in [(ui.scenario,"Trending"), (ui.target,"12 / year")]:
+        for selector, option in [(ui.scenario,"Trending")]:
             ui.parameter_scroll.scroll_y = 1
             for _ in range(6):
                 yield
@@ -601,6 +601,10 @@ class SmokeApp(SMAStockAnalyzerApp):
             selector._dropdown.select(option)
             for _ in range(4):
                 yield
+        ui.parameter_scroll.scroll_to(ui.frequency_chips,animate=False)
+        for _ in range(6): yield
+        pointer=Pointer(*ui.frequency_buttons[12].to_window(*ui.frequency_buttons[12].center))
+        pointer.down();pointer.up()
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
         assert ui.model.result.target_frequency == 12
@@ -623,7 +627,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.target.text = "6"
         ui.optimize_button.dispatch("on_release")
         yield from self.wait_for_calculation()
-        self.check("scenario/target dropdown arrows respond to real clicks; annual target labels parse; mockup screenshots captured")
+        self.check("scenario menu and frequency chips respond to real clicks; annual target labels parse; mockup screenshots captured")
 
         # Scroll first so the real event pipeline must transform coordinates.
         ui.scroll.scroll_to(ui.chart, animate=False)
@@ -828,9 +832,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.manager.current=="library" and ui.library_state=="empty"
         assert ui.library_intro.parent is ui.library_content
         assert not any('Your first line' in getattr(w,'text','') for w in ui.walk())
-        assert ui.library_intro.children[-1].text=='New to moving averages and upward crossing buy signals?'
+        assert ui.library_intro.children[-1].text=='No saved SMA lines yet'
         capture('01-empty')
-        self.check('library flow: empty launch shows revised guide card first and no bottom tab bar')
+        self.check('library flow: empty launch shows the guide card and persistent four-tab navigation')
         original=ui.model.dataset
         ui.guide_button.dispatch('on_release')
         yield from settle()
@@ -872,7 +876,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.manager.current=='results'
         assert ui.plot_title.security.name=='Apple Inc.' and ui.plot_title.ticker_label is None
         assert ui.plot_title.logo.image.texture is not None
-        assert ui.results_toolbar.top==ui.top
+        assert abs(ui.results_toolbar.to_window(0,ui.results_toolbar.top)[1]-ui.top)<dp(1)
         ui.scroll.scroll_y=1
         for _ in range(8): yield
         capture('04-results')
@@ -890,11 +894,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.save_button.dispatch('on_release')
         for _ in range(12): yield
         assert ui.saved_sheet.is_open
-        assert ui.saved_sheet.top<=ui.results_toolbar.y+dp(1)
+        assert ui.saved_sheet.top<=ui.results_toolbar.to_window(0,ui.results_toolbar.y)[1]+dp(1)
         capture('10-saved-sheet')
         ui.saved_sheet.dismiss(animate=False)
         ui.show_library()
-        assert ui.library_state=='populated' and ui.new_analysis_button.parent is ui.library_content
+        assert ui.library_state=='populated' and ui.new_analysis_button.parent is ui.page_titles["library"].parent
         for _ in range(10): yield
         capture('05-populated')
         self.check('library flow: submitted search → Custom parameters → result/logo → comparisons/details → save/populated library')
@@ -917,7 +921,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(10): yield
         assert ui.manager.current=='library' and ui.library_state=='populated'
         assert line.id in ui.landing_saved_rows
-        ui.landing_saved_rows[line.id]['heart'].dispatch('on_release')
+        ui.on_delete(line)
         assert ui.library_state=='empty'
         ui.library_archive_button.dispatch('on_release')
         for _ in range(8): yield
@@ -1003,7 +1007,10 @@ class SmokeApp(SMAStockAnalyzerApp):
                     name, ticker = identity.name_label,identity.ticker_label
                     assert ticker.text == identity.security.ticker
                     assert ticker.width >= ticker.texture_size[0]
-                    assert name.right <= ticker.x and ticker.right <= identity.right+dp(.1)
+                    if identity.stacked:
+                        assert name.y >= ticker.top-dp(.1) and ticker.right <= identity.right+dp(.1)
+                    else:
+                        assert name.right <= ticker.x and ticker.right <= identity.right+dp(.1)
                     assert identity.logo.right <= name.x
                     assert name.text == name.full_text or name.text.endswith("…")
                     if name.text.endswith("…"):
@@ -1082,7 +1089,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(10): yield
         assert ui.saved_sheet.is_open and ui.saved_sheet.body.height > 0
         assert ui.saved_sheet.body.y >= ui.y-dp(1)
-        assert ui.saved_sheet.top <= ui.results_toolbar.y+dp(1)
+        assert ui.saved_sheet.top <= ui.results_toolbar.to_window(0,ui.results_toolbar.y)[1]+dp(1)
         assert self._on_keyboard(Window,27)  # Native Back closes the sheet first.
         for _ in range(8): yield
         assert not ui.saved_sheet.is_open and ui.manager.current=="results"
@@ -1171,7 +1178,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         assert ui.manager.current=="library" and ui.library_state=="populated"
         assert set(ui.landing_saved_rows)==expected_ids
-        assert all(row["view"].text=="View" for row in ui.landing_saved_rows.values())
+        assert all("signals / year" in row["view"].text for row in ui.landing_saved_rows.values())
         ui.landing_security_buttons[us_line.counter].dispatch("on_release")
         for _ in range(6): yield
         ui.library_scroll.scroll_to(ui.landing_saved_rows[us_line.id]["view"],animate=False)
@@ -1207,9 +1214,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         count = len(ui.backtest_report.crossings.indices)
         assert list(ui.backtest_values) == ["crossings", "dca", "random"]
-        assert ui.backtest_captions["crossings"].text == f"a. at {count} upward crossings."
-        assert ui.backtest_captions["dca"].text == f"b. at {count} equal periods."
-        assert ui.backtest_captions["random"].text == f"c. At {count} random points (most common scenario)."
+        assert ui.backtest_captions["crossings"].text == f"At upward crossings · {count} buys"
+        assert ui.backtest_captions["dca"].text == f"At equal intervals · {count} buys"
+        assert ui.backtest_captions["random"].text == f"At random dates · {count} buys (most common of 500 samples)"
         assert ui.backtest_heading.text == "If you invested $100 per buy for the past:"
         assert ui.backtest_heading.parent is ui.backtest_period.parent
         assert ui.backtest_heading.right <= ui.backtest_period.x
@@ -1218,7 +1225,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert not hasattr(ui, "crossing_count_label")
         assert len(ui.backtest_report.random_average_prices) == 500
         y = ui.backtest_report.outperformance_percent
-        assert ui.backtest_note.text == f"Scenario a's moving average strategy outperforms {y:.1f}% of all 500 random buy scenarios."
+        assert ui.backtest_note.text == f"{y:.1f}% of the 500 random samples paid a higher average price than the crossing buys."
         ui.table_panel.export_to_png("artifacts/preview-backtesting.png")
         self.check("desktop preview: scenario order/counts, inline period, 500-seed values and requested outperformance copy")
 
@@ -1242,9 +1249,9 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.model.result = replace(result, events=())
         ui.refresh()
         assert all(value.text == "$0.00" for value in ui.backtest_values.values())
-        assert all(value.text == "(N/A vs a)" for value in ui.backtest_differences.values())
-        assert "N/A" in ui.backtest_note.text
-        assert ui.backtest_captions["dca"].text == "b. at 0 equal periods."
+        assert all(value.text == "(N/A vs crossings)" for value in ui.backtest_differences.values())
+        assert "No upward crossings" in ui.backtest_note.text
+        assert ui.backtest_captions["dca"].text == "At equal intervals · 0 buys"
         ui.model.result = result
         ui.refresh()
         self.check("desktop preview: zero-crossing periods show zero ending values and undefined comparisons")
@@ -1291,12 +1298,12 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.landing_security_buttons["DEMO-US"].dispatch("on_release")
         active_visibility = ui.model.active_visible
         previous = ui.model.store.get_line(us.id).visible
-        ui.landing_saved_rows[us.id]["hide"].dispatch("on_release")
+        ui.on_saved_visibility(us)
         assert ui.model.store.get_line(us.id).visible != previous
         assert ui.model.active_visible == active_visibility
         assert "DEMO-SGX" in ui.expanded_saved_securities and "DEMO-US" in ui.expanded_saved_securities
         previous_push = ui.model.store.get_line(sgx.id).push_enabled
-        ui.landing_saved_rows[sgx.id]["push"].dispatch("on_release")
+        ui.on_line_alert(sgx,"phone")
         assert ui.model.store.get_line(sgx.id).push_enabled != previous_push
         ui.landing_saved_rows[us.id]["view"].dispatch("on_release")
         assert ui.model.dataset.counter == "DEMO-US"

@@ -23,3 +23,8 @@ bin/
 *.jks
 client_secret*.json
 token*.json
+!docs/uiux-handover/tokens.json
+web/node_modules/
+web/.next/
+web/.env*
+!web/.env.example

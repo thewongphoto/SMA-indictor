@@ -1,0 +1,15 @@
+Apple, Microsoft, Google, Tesla, NVIDIA, Netflix and Singapore Airlines logo
+silhouettes are from Simple Icons 11.15.0 (https://simpleicons.org/), obtained
+from the official npm simple-icons package and verified against its SHA-512
+registry integrity value. Simple Icons graphics are CC0-1.0. Brand names and
+marks belong to their respective owners; their use identifies search examples
+and does not imply endorsement. Securities without a packaged logo use initials.
+No logo network requests are made at runtime.
+
+DBS and 29 ETF issuer/brand logos: tdrmk/stock-icons, commit e88424652fb4e41776144ba0e0f837659818ede9
+(https://github.com/tdrmk/stock-icons). Fidelity Investments logo: SolarSistim/Quickdash,
+commit 0bfa714464a7181c615b09d052cb538564e1f119 (https://github.com/SolarSistim/Quickdash).
+These new assets are not represented as Simple Icons/CC0 graphics. Brand marks
+remain the property of their owners and identify companies/issuers without endorsement.
+See docs/OFFLINE_LOGO_CATALOGUE.md for each original path, byte size and SHA-256.
+The images are bundled locally; no logo API or image network requests run in the app.

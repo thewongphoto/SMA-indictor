@@ -62,3 +62,9 @@ APT signature or TLS verification to work around a mirror/network failure.
 
 Record the actual artifact version, device/Android version and observed results.
 Do not carry a result from an older APK forward as if the new build was tested.
+
+For the 0.14 UI redesign, also run `python -m scripts.smoke_ui_redesign`,
+`npm ci --prefix web`, `npm run build --prefix web`, and
+`python -m scripts.smoke_web` (requires Playwright Chromium). The browser check
+uses an isolated simulated worker and never sends email. Native iOS remains
+paused; do not trigger its workflow for the web app.

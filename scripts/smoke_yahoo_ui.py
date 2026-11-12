@@ -141,7 +141,8 @@ class YahooSmoke(App):
         assert ui.model.dataset.stale
         assert len(ui.model.dataset.prices)==1700
         assert ui.plot_subtitle.text=="USD adjusted daily close\nDividends and splits included"
-        assert ui.api_status.color==[1,.52,.52,1]
+        from sma_analyzer.theme import NEGATIVE
+        assert ui.api_status.color==list(NEGATIVE)
         self.checked("failed request retains chart and marks stale")
         previous = self.provider._client
         self.provider._client = DesktopYahooClient(Path(temporary.name)/"yfinance-state")

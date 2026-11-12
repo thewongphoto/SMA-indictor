@@ -19,3 +19,11 @@ removed from this tree; earlier commits retain the design history.
 Native iOS releases are paused. The [Vercel/PWA guide](../PRIVATE_IPHONE_INSTALLATION.md)
 describes the web implementation still needed; these Kivy images do not show a
 deployed iPhone web app.
+
+## November redesign
+
+The [supplied design gallery](../uiux-handover/screens.md) and
+[implementation record](../uiux-handover/IMPLEMENTATION.md) cover Android and
+iPhone web 0.14.0. Current runtime screenshots are produced by
+`scripts.smoke_ui_redesign` and `scripts.smoke_web` in CI artifacts; older
+captures on this page document the preceding native iteration.

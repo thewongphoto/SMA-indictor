@@ -1,0 +1,31 @@
+/* Web reference for the Vercel app. Not used by the Kivy app. */
+:root {
+  color-scheme: dark;
+  --bg-screen: #0B1116; --surface: #131C24; --surface-hover: #18232D; --surface-sunken: #0E161D;
+  --control: #1A2630; --border-frame: #243340; --border-input: #2F4150; --divider: #1B2730;
+  --text: #EEF3F7; --text-secondary: #C5D2DB; --text-muted: #8DA0AE;
+  --accent: #2DD4BF; --accent-hover: #5EEAD4; --on-accent: #06201C; --accent-tint: #0F3B36; --accent-border: #1E4F49;
+  --up: #34D399; --down: #F87171; --down-tint: #3A1F22;
+  --warning-bg: #2A2412; --warning-title: #FBBF24; --warning-text: #E7D9B0;
+  --error-bg: #2A1719; --error-title: #FCA5A5; --error-text: #E5C2C2; --error-border: #5B3236;
+  --scrim: rgba(4, 8, 11, .66); --chart-price: #DCE5EC;
+  --line-0: #FFBD5C; --line-1: #96A3FF; --line-2: #FF7D9E; --line-3: #6BC2FF; --line-4: #C794F5; --line-5: #99D66B;
+  --line-6: #FF9E66; --line-7: #61D6EB; --line-8: #FFE640; --line-9: #3DD694; --line-10: #F261E0; --line-11: #F0F0E8;
+  --font: Manrope, system-ui, sans-serif;
+  --pad-screen: 20px; --radius-card: 16px; --radius-button: 14px; --radius-input: 12px; --radius-segment: 10px;
+  --touch: 44px;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px);
+}
+@media (max-width: 359px) { :root { --pad-screen: 14px; } }
+html, body { margin: 0; background: var(--bg-screen); color: var(--text); font-family: var(--font); }
+input, textarea, select { font-size: 16px; } /* prevents iPhone focus zoom */
+.tabular { font-variant-numeric: tabular-nums; }
+@keyframes sma-logo-draw {
+  0% { clip-path: inset(0 88% 0 0); opacity: 1; }
+  71.4% { clip-path: inset(0 12% 0 0); opacity: 1; }
+  84.3% { clip-path: inset(0 12% 0 0); opacity: 1; }
+  92.9%, 100% { clip-path: inset(0 12% 0 0); opacity: 0; }
+}
+.sma-logo-draw { animation: sma-logo-draw 1.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .sma-logo-draw { animation: none; } }

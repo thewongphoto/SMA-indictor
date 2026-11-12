@@ -1,11 +1,18 @@
 # Validation and build status
 
-Current source: **0.13.8**. The matching Android build tag is **apk-v0.13.8**.
+Current source: **0.14.0**. The matching Android build tag is **apk-v0.14.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
 
-Release 0.13.8 host validation ran **337 tests: 335 passed and two optional
+The 0.14.0 unit run completed **342 tests: 340 passed and two optional checks
+skipped**. The production web build and browser workflow passed against the
+isolated Python fixture worker. Native UI gates include the new four-tab/theme
+regressions as well as all retained Android checks. Final run results and
+artifacts are linked by the release workflow. Vercel deployment and physical
+iPhone/Android testing are separate from these host fixtures.
+
+Release 0.13.8 host validation previously ran **337 tests: 335 passed and two optional
 checks skipped** (NumPy and desktop yfinance). All **eight Android UI gates**
 and the additional desktop Yahoo fixture passed: **152 UI checks** in total.
 All **133 local link targets in 30 Markdown documents** passed.

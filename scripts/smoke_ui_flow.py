@@ -31,9 +31,9 @@ class FlowSmoke(MobileYahooSmoke):
         ui.new_analysis_button.dispatch("on_release")
         yield from self.frames()
         builder=ui.manager.current_screen
-        assert builder is ui.pages["search"] and len(ui.pages)==6
+        assert builder is ui.pages["search"] and len(ui.pages)==7
         assert "parameters" not in ui.pages and not hasattr(ui,"refresh_search_button")
-        assert ui.controls.parent is None and ui.page_titles["search"].text=="Choose a security"
+        assert ui.controls.parent is None and ui.page_titles["search"].text=="Find a security"
         self.capture("choose-security")
         self.checked("one builder screen; empty stage hides preferences and has no Refresh search button")
         ui.security_search.text="apple"

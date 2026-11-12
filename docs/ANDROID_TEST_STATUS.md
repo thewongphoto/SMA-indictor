@@ -1,20 +1,30 @@
 # Validation and build status
 
-Current source: **0.13.5**. The matching Android build tag is **apk-v0.13.5**.
+Current source: **0.13.6**. The matching Android build tag is **apk-v0.13.6**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
 
-Release 0.13.5 host validation ran **321 tests: 319 passed and two optional
+Release 0.13.6 host validation ran **333 tests: 331 passed and two optional
 checks skipped** (NumPy and desktop yfinance). All **eight Android UI gates**
 and the additional desktop Yahoo fixture run passed: **152 UI checks** in
-total. All **120 local link targets in 29 Markdown documents** passed.
+total. All **130 local link targets in 30 Markdown documents** passed.
 
-The dependency installer also completed in a clean Ubuntu 22.04 container
-with verified official HTTPS repositories. Four new regression tests cover
-repository isolation, bounded setup, failure propagation and retained logs.
+Twelve APK-policy tests cover actual signer comparison, compiled manifest
+parsing, release flags, permissions, exported components, packaged private data
+and verified-only distribution. Running the official SDK against the old 0.13.5
+APK reproduced the certificate mismatch and policy failures. The new final-APK
+gate must pass after native compilation before a binary can be uploaded.
+
+The dependency installer was also verified in a clean Ubuntu 22.04 container
+for 0.13.5; its repository and timeout policy is unchanged. Its regression tests
+cover isolation, bounded setup, failure propagation and retained logs.
 The [0.13.5 repair record](CHANGELOG.md#0135-build-repair) describes the original
 runner DNS failure, which stopped 0.13.4 before tests or native compilation.
+The [package audit](ANDROID_PACKAGE_SECURITY.md) records the 0.13.5 signing
+defect and OnePlus 13R/Android 16 warning. **Google Play Protect clearance remains
+unverified**; local/CI package checks do not establish Google's classification
+or physical-device behaviour.
 
 | Evidence | What it establishes |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Current UI motion and notification banners
 
-Current source: **0.13.5**. [Current captures](design/README.md) use controlled
+Current source: **0.13.6**. [Current captures](design/README.md) use controlled
 fixtures, not physical-phone validation or real market performance.
 
 ## Navigation, sheets and editors

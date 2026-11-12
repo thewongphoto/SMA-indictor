@@ -61,21 +61,31 @@ class NativeSchedulePackagingTests(TestCase):
             module.after_apk_build(tool)
             module.after_apk_build(tool)
             app=ET.parse(path).getroot().find("application")
-            self.assertEqual(len(app.findall("service")),1)
+            services=[node for node in app.findall("service")
+                      if node.get(f"{{{module.TOOLS}}}node")!="remove"]
+            self.assertEqual(len(services),1)
             self.assertEqual(app.get(f"{{{module.ANDROID}}}label"),"Original")
-            service=app.find("service")
+            service=services[0]
             self.assertEqual(service.get(f"{{{module.ANDROID}}}name"),"org.thewongphoto.smaanalyzer.SmaBackgroundService")
             self.assertEqual(service.get(f"{{{module.ANDROID}}}process"),":sma_background_alerts")
             self.assertEqual(service.get(f"{{{module.ANDROID}}}exported"),"false")
             self.assertEqual(service.get(f"{{{module.ANDROID}}}stopWithTask"),"false")
             self.assertIsNotNone(app.find("activity"))
+            for attribute in ("debuggable","allowBackup","fullBackupContent","usesCleartextTraffic"):
+                self.assertEqual(app.get(f"{{{module.ANDROID}}}{attribute}"),"false")
+            foreground=[node for node in app.findall("service") if node.get(f"{{{module.ANDROID}}}name")==
+                        "androidx.work.impl.foreground.SystemForegroundService"]
+            self.assertEqual(len(foreground),1)
+            self.assertEqual(foreground[0].get(f"{{{module.TOOLS}}}node"),"remove")
             self.assertEqual(path.read_bytes(),(root/"AndroidManifest.xml").read_bytes())
 
-    def test_native_job_packages_headless_entry_and_android14_permissions(self):
+    def test_native_job_packages_private_bound_entry_without_foreground_permissions(self):
         config=configparser.ConfigParser()
         config.read(Path(__file__).parents[1]/"buildozer.spec")
         app=config["app"]
         self.assertEqual(app["services"],"Smaalerts:service/alerts.py")
         self.assertEqual(app["p4a.hook"],"android/p4a_hook.py")
         self.assertIn("androidx.work:work-runtime:2.10.1",app["android.gradle_dependencies"])
-        self.assertIn("FOREGROUND_SERVICE_DATA_SYNC",app["android.permissions"])
+        self.assertNotIn("FOREGROUND_SERVICE",app["android.permissions"])
+        self.assertIn("WAKE_LOCK",app["android.permissions"])
+        self.assertIn("RECEIVE_BOOT_COMPLETED",app["android.permissions"])

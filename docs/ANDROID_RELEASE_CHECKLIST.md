@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.13.5**. Automatically publish completed, validated Android
+Current source: **0.13.6**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 
 ## Before publishing
@@ -15,6 +15,10 @@ changes unless the user asks to hold them. Native iOS releases are paused.
    released tags or create an `ios-v*` tag while native iOS releases are paused.
 5. Check Actions for native compilation success. Only then describe its APK as
    ready to download. Source/tag publication alone is not that confirmation.
+6. Require `scripts.verify_android_apk` after compilation: the actual certificate
+   must match the retained key and the merged manifest must pass release policy.
+   APK upload runs only after this check succeeds. Diagnostics remain separate.
+   [Package security and Play Protect limits](ANDROID_PACKAGE_SECURITY.md).
 
 ```sh
 python -m unittest discover -s tests -v

@@ -118,7 +118,7 @@ class NativeArchiveTests(TestCase):
         steps=workflow["jobs"]["apk"]["steps"]
         verify=next(i for i,step in enumerate(steps) if "scripts.prepare_android_sources" in step.get("run",""))
         save=next(i for i,step in enumerate(steps) if step.get("uses")=="actions/cache/save@v4")
-        compile=next(i for i,step in enumerate(steps) if "buildozer -v android debug" in step.get("run",""))
+        compile=next(i for i,step in enumerate(steps) if "buildozer -v android release" in step.get("run",""))
         self.assertLess(verify,save)
         self.assertLess(save,compile)
         config=configparser.ConfigParser();config.read(ROOT/"buildozer.spec")

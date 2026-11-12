@@ -2,13 +2,21 @@
 
 The SHA-1 identifies the **signing key**, not the source code or APK version.
 Every update must use the original key and package `org.thewongphoto.smaanalyzer`.
-No Google Cloud/OAuth setup is required. UI/Python updates retain the same signer.
+No Google Cloud/OAuth setup is required. From 0.13.6, the final APK must be
+verified against the retained signer before it can be uploaded.
 
-The old workflow generated a new debug key whenever GitHub's cache was missing.
-GitHub can evict caches, so that did not guarantee a stable identity. The updated
-workflow restores a permanent **Actions secret** first, accepts the original
-cached key as a migration fallback, and **never generates a replacement key**.
-An absent/incorrect key stops the build with an explanation.
+The workflow restores a permanent **Actions secret** first and accepts the
+original cached key as a migration fallback. It never generates a replacement
+key. An absent/incorrect key stops the build with an explanation. The release
+variant is explicitly signed using that retained key, and the Android SDK
+verifies the actual APK's signature and certificate after compilation.
+
+The 0.13.3 and 0.13.5 APKs were signed by different default debug keys despite
+their CI reports naming the same retained key. Those reports verified a keystore,
+not the final APK. This was a distribution defect; claims of stable signing for
+those APKs were not supported. See the [package audit](ANDROID_PACKAGE_SECURITY.md)
+for the actual fingerprints and upgrade limitations. Do not uninstall an older
+app with important saved data to work around a signature mismatch.
 
 ## One-time browser setup to preserve the existing cached key
 
@@ -25,15 +33,16 @@ never printed or included in the downloadable APK artifact.
 3. Copy it directly into your repository's **Settings → Secrets and variables →
    Actions → Secrets → New repository secret**, named **SIGNING_ADMIN_TOKEN**.
    Do not put the token in a repository file or message.
-4. Open **Actions → Build Android test APK → Run workflow**. Choose **main** and
+4. Open **Actions → Build Android APK → Run workflow**. Choose **main** and
    check **One-time: save the existing cached key as a durable Actions secret**.
    Start the run.
 5. Confirm the step **Persist the existing signing identity (one-time migration)**
    succeeds. In repository Actions settings you should now see:
    - Secret **ANDROID_DEBUG_KEYSTORE_BASE64**, containing the existing key.
    - Variable **ANDROID_SIGNING_SHA1**, containing its public fingerprint.
-6. Compare `android-signing-info.txt` in the new artifact with your previous
-   successful APK's artifact. The SHA-1 must match.
+6. Compare `signer_sha1` in `android-apk-verification.json` with the retained
+   key's fingerprint in `android-signing-info.txt`. Both must identify the actual
+   signing key; the build rejects a mismatch.
 7. Delete **SIGNING_ADMIN_TOKEN** from repository secrets and revoke the temporary
    fine-grained token in your personal GitHub settings. Future builds use only
    the saved signing secret; leave the one-time checkbox **unchecked**.
@@ -46,8 +55,10 @@ the already-used key. It is unrelated to Gmail or Google account authorization.
 
 Use **Run workflow → main** normally. The durable signing secret survives cache
 eviction, and the workflow verifies the fingerprint against ANDROID_SIGNING_SHA1.
-Do not edit/delete these values or rotate the key for ordinary updates. Install
-each APK over the existing app so its private SQLite data remains intact.
+Do not edit/delete these values or rotate the key for ordinary updates. In-place
+updates preserve SQLite data only when the installed APK uses the same signer.
+The 0.13.6 gate establishes that contract for subsequent builds; it cannot recover
+the private keys used by the earlier default-signed APKs.
 
 ## If the original cached key is already missing
 
@@ -68,5 +79,7 @@ If neither the cache nor a backup exists, keeping the old SHA-1 is impossible.
 Creating a new key would then require a deliberate application/data migration. Uninstalling the old app removes its private local data;
 do not use uninstall/reinstall as a routine update method.
 
-This remains a personal debug/test identity. Play Store release-key management
-is separate future work. Secrets/keystores must remain outside the repository.
+The retained key remains a personal Android debug/test certificate used to sign
+the release variant. It is not Play Store approval or Play Protect clearance.
+Play Store release-key management is separate future work.
+Secrets/keystores must remain outside the repository.

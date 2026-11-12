@@ -1,4 +1,4 @@
-name: Build Android test APK
+name: Build Android APK
 on:
   push:
     tags:
@@ -99,20 +99,37 @@ jobs:
           base64 -w 0 "$HOME/.android/debug.keystore" | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64 --repo "$GITHUB_REPOSITORY"
           signing_sha1=$(sed -n 's/^SHA1: //p' artifacts/android-signing-info.txt)
           gh variable set ANDROID_SIGNING_SHA1 --body "$signing_sha1" --repo "$GITHUB_REPOSITORY"
-      - name: Build portrait debug APK
+      - name: Build signed release APK
         run: |
           set -o pipefail
-          buildozer -v android debug 2>&1 | tee artifacts/android-build.log
-      - name: Upload test APK, signing fingerprint and validation logs
-        if: always()
+          export P4A_RELEASE_KEYSTORE="$HOME/.android/debug.keystore"
+          export P4A_RELEASE_KEYALIAS=androiddebugkey
+          export P4A_RELEASE_KEYSTORE_PASSWD=android
+          export P4A_RELEASE_KEYALIAS_PASSWD=android
+          buildozer -v android release 2>&1 | tee artifacts/android-build.log
+      - name: Verify final APK identity and release policy
+        run: |
+          python -m scripts.verify_android_apk
+      - name: Upload verified APK and package report
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: sma-android-test
-          if-no-files-found: warn
+          if-no-files-found: error
           path: |
             bin/*.apk
+            artifacts/android-signing-info.txt
+            artifacts/android-apk-verification.json
+      - name: Upload validation and build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sma-android-diagnostics
+          if-no-files-found: warn
+          path: |
             artifacts/android-deps.log
             artifacts/android-signing-info.txt
+            artifacts/android-apk-verification.json
             artifacts/android-build.log
             artifacts/android-native-sources.log
             artifacts/unit-tests.log

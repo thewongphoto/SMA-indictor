@@ -101,6 +101,7 @@ if operation == os.environ.get("SMA_APT_TEST_FAIL"):
         self.assertIn("set -o pipefail", dependency["run"])
         self.assertIn("tee artifacts/android-deps.log", dependency["run"])
         self.assertIn("pip install", steps[dependency_index + 1]["run"])
-        upload = next(step for step in steps if step.get("uses") == "actions/upload-artifact@v4")
+        upload = next(step for step in steps if step.get("uses") == "actions/upload-artifact@v4"
+                      and "artifacts/android-deps.log" in step["with"]["path"])
         self.assertEqual(upload["if"], "always()")
         self.assertIn("artifacts/android-deps.log", upload["with"]["path"])

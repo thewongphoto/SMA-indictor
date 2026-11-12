@@ -1,6 +1,6 @@
 # Android package security and Play Protect
 
-Source 0.13.6 builds a signed release APK. A package policy check verifies the
+Source 0.13.7 builds a signed release APK. A package policy check verifies the
 **final APK**, not just the keystore or build configuration. It does not certify
 an app as malware-free or establish Google Play Protect clearance.
 
@@ -22,7 +22,7 @@ notification-listener, contacts, or package-install access.
 
 The inspection found concrete distribution issues:
 
-| Item | 0.13.5 finding | 0.13.6 enforcement |
+| Item | 0.13.5 finding | 0.13.7 enforcement |
 | --- | --- | --- |
 | Signing identity | Actual APK signer differed from the key verified by CI. | Explicitly bind release signing to the retained keystore; compare the final APK certificate with its fingerprint. |
 | Debugging | `android:debuggable=true`. | Build the release variant and require `debuggable=false`. |
@@ -45,6 +45,13 @@ The new release workflow and post-build certificate check correct that defect.
 These findings do **not** establish why Google classified 0.13.5 as harmful.
 
 ## Final package checks
+
+Gradle controls debugging by build variant. The generated source manifest omits
+the debug attribute, avoiding Android's `HardcodedDebugMode` release-lint error.
+The final APK must be non-debuggable: an absent flag has Android's documented
+false default. Other privacy flags remain explicit. The 0.13.6 attempt failed
+this lint check and uploaded diagnostics only; 0.13.7 corrects the source
+manifest without disabling lint or allowing a debugging-enabled APK.
 
 `python -m scripts.verify_android_apk` uses the installed Android SDK tools and
 rejects an APK if its signature fails, its certificate differs from the retained
@@ -71,7 +78,7 @@ signing identity, not Play Store certification.
 ## Installation and existing data
 
 Android requires matching signing identities for in-place updates. The differing
-certificates above mean 0.13.6 cannot promise an in-place update over the earlier
+certificates above mean 0.13.7 cannot promise an in-place update over the earlier
 APKs. A fingerprint alone cannot recover an earlier build's private key. Keep
 any installed app with important saved data while arranging a migration;
 do not uninstall it or clear its storage as an update workaround.

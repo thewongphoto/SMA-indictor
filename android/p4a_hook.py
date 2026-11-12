@@ -16,7 +16,10 @@ def after_apk_build(toolchain):
     application=tree.getroot().find("application")
     if application is None:
         raise ValueError("Generated Android manifest has no application")
-    for attribute in ("debuggable","allowBackup","fullBackupContent","usesCleartextTraffic"):
+    # AGP owns this flag per build variant. A hardcoded false is itself a fatal
+    # HardcodedDebugMode release-lint error; the final APK gate checks its value.
+    application.attrib.pop(f"{{{ANDROID}}}debuggable",None)
+    for attribute in ("allowBackup","fullBackupContent","usesCleartextTraffic"):
         application.set(f"{{{ANDROID}}}{attribute}","false")
     # These jobs use a private bound service, never a foreground service.
     # Remove library declarations too, instead of only changing buildozer.spec.

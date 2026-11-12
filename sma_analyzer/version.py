@@ -1,2 +1,2 @@
 """Application version shared by diagnostics and release checks."""
-APP_VERSION = "0.13.6"
+APP_VERSION = "0.13.7"

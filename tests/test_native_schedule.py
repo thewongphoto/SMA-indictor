@@ -55,7 +55,7 @@ class NativeSchedulePackagingTests(TestCase):
             root=Path(temp)
             path=root/"src/main/AndroidManifest.xml"
             path.parent.mkdir(parents=True)
-            path.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.thewongphoto.smaanalyzer"><application android:label="Original"><activity android:name="Existing"/></application></manifest>')
+            path.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.thewongphoto.smaanalyzer"><application android:label="Original" android:debuggable="true"><activity android:name="Existing"/></application></manifest>')
             (root/"AndroidManifest.xml").write_bytes(path.read_bytes())
             tool=SimpleNamespace(_dist=SimpleNamespace(dist_dir=str(root)))
             module.after_apk_build(tool)
@@ -71,7 +71,8 @@ class NativeSchedulePackagingTests(TestCase):
             self.assertEqual(service.get(f"{{{module.ANDROID}}}exported"),"false")
             self.assertEqual(service.get(f"{{{module.ANDROID}}}stopWithTask"),"false")
             self.assertIsNotNone(app.find("activity"))
-            for attribute in ("debuggable","allowBackup","fullBackupContent","usesCleartextTraffic"):
+            self.assertNotIn(f"{{{module.ANDROID}}}debuggable",app.attrib)
+            for attribute in ("allowBackup","fullBackupContent","usesCleartextTraffic"):
                 self.assertEqual(app.get(f"{{{module.ANDROID}}}{attribute}"),"false")
             foreground=[node for node in app.findall("service") if node.get(f"{{{module.ANDROID}}}name")==
                         "androidx.work.impl.foreground.SystemForegroundService"]

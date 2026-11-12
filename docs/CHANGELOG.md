@@ -1,13 +1,14 @@
 # Release history
 
-The latest source version and requested Android build are **0.13.6** /
-**apk-v0.13.6**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.13.7** /
+**apk-v0.13.7**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
-| 0.13.6 | Uses explicit retained-key release signing and validates the final APK certificate; enforces non-debuggable/private/no-backup/HTTPS package policy, removes unused foreground-service declarations, and uploads APKs only after verification. Documents the unresolved Play Protect warning and older signing mismatch. |
+| 0.13.7 | Corrects release lint by letting Gradle own debug mode; the final-APK gate still requires debugging disabled and retained-key signing. |
+| 0.13.6 | Introduces explicit retained-key release signing and validates the final APK certificate; enforces non-debuggable/private/no-backup/HTTPS package policy, removes unused foreground-service declarations, and uploads APKs only after verification. Documents the unresolved Play Protect warning and older signing mismatch. Its initial build failed release lint and produced no verified APK; superseded by 0.13.7. |
 | 0.13.5 | Repairs Android dependency setup after the runner's Ubuntu mirror DNS failure; uses signed official HTTPS repositories, fresh package indexes, bounded retries, strict update failures and retained setup logs. Fixes links to the renamed documentation index. |
 | 0.13.4 | Repository/documentation cleanup; removes unused Gmail transport, native auth bridge and Google sign-in dependency; preserves old saved-data fields and blocks retired delivery channels. |
 | 0.13.3 | Fixes offline chart startup without currency metadata and a CI scrolling-test timing assumption. |
@@ -21,7 +22,7 @@ for the run matching the desired tag and its downloadable artifact.
 | 0.4–0.7.x | Phone-only UI, grouped saved lines, library-first flow and early offline search/design reviews. |
 | Earlier | Initial offline analysis and retired email prototype. |
 
-## 0.13.6 package security
+## 0.13.7 package security
 
 Inspection of the distributed 0.13.5 APK confirmed valid APK v2 signing, but its
 actual certificate did not match the retained keystore reported by CI. The
@@ -33,6 +34,12 @@ The merged manifest now requires debugging, backups and cleartext traffic to be
 disabled. The unused foreground-service permissions/component are removed;
 scheduled checks retain WorkManager and their private bound Python service.
 Only verified APKs are uploaded, with diagnostics retained separately.
+
+The first release attempt (0.13.6) failed `HardcodedDebugMode` lint because the
+manifest hook wrote `debuggable=false` explicitly. Version 0.13.7 removes the
+generated attribute so Gradle controls it by variant. The final APK must still
+be effectively non-debuggable; Android defaults a missing flag to false. Release
+lint stays enabled, with no baseline or suppression for this error.
 
 The [package audit](ANDROID_PACKAGE_SECURITY.md) records the exact evidence and
 the OnePlus 13R/Android 16 Play Protect warning. Its detection rationale is still

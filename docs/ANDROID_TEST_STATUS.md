@@ -1,16 +1,16 @@
 # Validation and build status
 
-Current source: **0.13.6**. The matching Android build tag is **apk-v0.13.6**.
+Current source: **0.13.7**. The matching Android build tag is **apk-v0.13.7**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
 
-Release 0.13.6 host validation ran **333 tests: 331 passed and two optional
+Release 0.13.7 host validation ran **334 tests: 332 passed and two optional
 checks skipped** (NumPy and desktop yfinance). All **eight Android UI gates**
 and the additional desktop Yahoo fixture run passed: **152 UI checks** in
 total. All **130 local link targets in 30 Markdown documents** passed.
 
-Twelve APK-policy tests cover actual signer comparison, compiled manifest
+Thirteen APK-policy tests cover actual signer comparison, compiled manifest
 parsing, release flags, permissions, exported components, packaged private data
 and verified-only distribution. Running the official SDK against the old 0.13.5
 APK reproduced the certificate mismatch and policy failures. The new final-APK

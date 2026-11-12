@@ -1,4 +1,4 @@
-# Android 0.13.6 notification checks and troubleshooting
+# Android 0.13.7 notification checks and troubleshooting
 
 Android uses a bounded WorkManager job that binds its private Python service.
 The service has a dedicated process, reports native/Python startup failures and
@@ -58,9 +58,9 @@ not a paused Kivy timer.
 
 ## Test the fixed background path
 
-1. Install **apk-v0.13.6** over the existing app. **Do not uninstall**: retain
+1. Install **apk-v0.13.7** over the existing app. **Do not uninstall**: retain
    saved SMAs, cached prices and signing identity. Open Settings and confirm
-   **DATA CONNECTION · 0.13.6**. View/refresh saved securities to establish
+   **DATA CONNECTION · 0.13.7**. View/refresh saved securities to establish
    current closing data; normal closing jobs maintain that cache thereafter.
 2. Allow Android notifications. **Test Android phone notification** checks the
    existing foreground/OS notification path. An OS/channel/DND choice still

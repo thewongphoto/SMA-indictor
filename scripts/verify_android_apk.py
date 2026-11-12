@@ -95,7 +95,10 @@ def verify_manifest(root, version=APP_VERSION):
             raise ValueError("Internal receiver permission must require the matching signature")
     application = next(node for node in root["children"] if node["tag"] == "application")
     for name in ("debuggable", "allowBackup", "fullBackupContent", "usesCleartextTraffic"):
-        if application["attributes"].get("android:" + name) is not False:
+        # Android's documented default for an absent debuggable flag is false.
+        # Other privacy flags are deliberately explicit in the generated manifest.
+        default = False if name == "debuggable" else None
+        if application["attributes"].get("android:" + name, default) is not False:
             raise ValueError("Release policy requires android:" + name + "=false")
     components = []
     private_services = set()
@@ -124,7 +127,7 @@ def verify_manifest(root, version=APP_VERSION):
         raise ValueError("Missing private Python service declarations")
     return {"package": PACKAGE, "version": version, "target_sdk": sdk["android:targetSdkVersion"],
             "permissions": sorted(permissions), "components": components,
-            "application": {name: application["attributes"]["android:" + name] for name in
+            "application": {name: application["attributes"].get("android:" + name, False) for name in
                             ("debuggable", "allowBackup", "fullBackupContent", "usesCleartextTraffic")}}
 
 

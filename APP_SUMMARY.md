@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.13.6**. Android and desktop are active. Native iPhone
+Current source: **0.13.7**. Android and desktop are active. Native iPhone
 releases are paused; [Vercel/PWA implementation is planned](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 

@@ -81,6 +81,14 @@ class AndroidApkPolicyTests(TestCase):
         self.assertEqual(result["version"], APP_VERSION)
         self.assertEqual(set(result["permissions"]), PERMISSIONS)
 
+    def test_absent_debug_flag_uses_androids_false_default_without_weakening_other_flags(self):
+        root, app = manifest()
+        del app["attributes"]["android:debuggable"]
+        self.assertIs(verify_manifest(root)["application"]["debuggable"],False)
+        del app["attributes"]["android:allowBackup"]
+        with self.assertRaisesRegex(ValueError,"allowBackup"):
+            verify_manifest(root)
+
     def test_debug_backup_or_cleartext_regressions_fail_the_release_gate(self):
         for attribute in ("debuggable", "allowBackup", "fullBackupContent", "usesCleartextTraffic"):
             for value in (True, None):

@@ -1,6 +1,6 @@
 # Android data, cache and request-log testing
 
-Current source: **0.13.6**. [Install the matching successful APK](ANDROID_APK_GUIDE.md)
+Current source: **0.13.7**. [Install the matching successful APK](ANDROID_APK_GUIDE.md)
 first. Prices are real completed daily histories for supported US/SG stocks
 and ETFs. Android uses the portable HTTPS adapter; it does not bundle desktop
 yfinance/pandas/curl_cffi. The feed remains for private personal use.

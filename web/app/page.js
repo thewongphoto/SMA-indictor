@@ -19,7 +19,7 @@ const defaultState = {
   archive: [],
   colors: [],
   settings: {},
-  version: "0.14.0",
+  version: "0.14.1",
 };
 const money = (value) =>
   Number(value).toLocaleString(undefined, {
@@ -40,13 +40,25 @@ function MotionLogo() {
     </div>
   );
 }
-function Toggle({ checked, onChange, label }) {
+// Per-line signal type field, its master setting key, and the shared app title.
+const LINE_SIGNAL_TYPES = [
+  ["alert_buy", "phone_buy", "Buy signal"],
+  ["alert_monitor", "phone_monitor", "Impending buy signal (End of trading)"],
+  [
+    "alert_start",
+    "phone_monitor_start",
+    "Impending buy signal (Start of trading)",
+  ],
+];
+
+function Toggle({ checked, onChange, label, disabled = false }) {
   return (
     <button
       className="toggle"
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
     >
       <span />
@@ -904,7 +916,9 @@ export default function App() {
                     {card.security.ticker} · {line.name}
                   </h2>
                   <div className="line-row">
-                    <span>Enable this line for alerts</span>
+                    <span>
+                      <strong>Enable this line for alerts</strong>
+                    </span>
                     <Toggle
                       checked={line.push_enabled}
                       label={"Alerts for " + line.name}
@@ -913,8 +927,36 @@ export default function App() {
                       }
                     />
                   </div>
+                  {LINE_SIGNAL_TYPES.map(([field, setting, label]) => (
+                    <div
+                      className={
+                        "line-row signal-type" +
+                        (line.push_enabled && state.settings[setting]
+                          ? ""
+                          : " muted")
+                      }
+                      key={field}
+                    >
+                      <span>
+                        {label}
+                        {!state.settings[setting] && (
+                          <small>Off for all lines in Settings</small>
+                        )}
+                      </span>
+                      <Toggle
+                        checked={Boolean(line[field])}
+                        disabled={!line.push_enabled}
+                        label={label + " for " + line.name}
+                        onChange={(value) =>
+                          mutate("line", { id: line.id, [field]: value })
+                        }
+                      />
+                    </div>
+                  ))}
                   <p className="small">
-                    Uses your three notification types in Settings.
+                    {line.push_enabled
+                      ? "Each type also needs its master switch in Settings."
+                      : "Turn on alerts for this line to choose signal types."}
                   </p>
                 </section>
               )),
@@ -926,6 +968,10 @@ export default function App() {
             <Signup />
             <section className="card">
               <h3>NOTIFICATION TYPES</h3>
+              <p className="small">
+                Master switches for all saved lines. Choose types for each line
+                in Alerts.
+              </p>
               {[
                 [
                   "phone_buy",

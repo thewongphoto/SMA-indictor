@@ -150,6 +150,8 @@ class Service:
                 if 'color' in body: model.store.set_color(identifier,int(body['color']))
                 if 'visible' in body: model.store.set_visible(identifier,bool(body['visible']))
                 if 'push_enabled' in body: model.store.set_notifications(identifier,'phone',bool(body['push_enabled']))
+                for kind,field in (('buy','alert_buy'),('monitor','alert_monitor'),('monitor_start','alert_start')):
+                    if field in body: model.store.set_line_alert(identifier,kind,bool(body[field]))
                 if body.get('archive'): model.store.delete(identifier)
             elif path == 'restore': model.store.restore(int(body['id']))
             elif path == 'settings':

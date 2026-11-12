@@ -23,10 +23,29 @@ class SavedLine:
     push_enabled: bool = True
     email_enabled: bool = False
     custom_name: str = ""
+    # Per-line signal types (0.14.1). Each also needs its global Settings type
+    # and the line's phone switch. Upgrades default On, so behaviour is kept.
+    alert_buy: bool = True
+    alert_monitor: bool = True
+    alert_start: bool = True
+
+    def alert_enabled(self, kind):
+        return {"buy": self.alert_buy, "monitor": self.alert_monitor,
+                "monitor_start": self.alert_start}[kind]
 
     @property
     def display_name(self):
         return self.custom_name or sma_label(self.period)
+
+
+ALERT_COLUMNS = ("alert_buy", "alert_monitor", "alert_start")
+ALERT_KIND_COLUMNS = {"buy": "alert_buy", "monitor": "alert_monitor", "monitor_start": "alert_start"}
+LINE_COLUMNS = ("id,counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name,"
+                + ",".join(ALERT_COLUMNS))
+
+
+def _line(row):
+    return SavedLine(*row[:5], *map(bool, row[5:8]), row[8], *map(bool, row[9:12]))
 
 
 class LineStore:
@@ -65,6 +84,9 @@ class LineStore:
                 columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
                 if "custom_name" not in columns:
                     connection.execute(f"ALTER TABLE {table} ADD COLUMN custom_name TEXT NOT NULL DEFAULT ''")
+                for name in ALERT_COLUMNS:
+                    if name not in columns:
+                        connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} INTEGER NOT NULL DEFAULT 1 CHECK({name} IN (0,1))")
             connection.execute("CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             connection.execute("CREATE TABLE IF NOT EXISTS deliveries (event_key TEXT PRIMARY KEY)")
             connection.execute("""CREATE TABLE IF NOT EXISTS notification_runs (
@@ -97,21 +119,21 @@ class LineStore:
     def list_lines(self, counter: str, scenario: str) -> list[SavedLine]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT id, counter, scenario, period, target_frequency, visible, push_enabled, email_enabled, custom_name "
+                f"SELECT {LINE_COLUMNS} "
                 "FROM saved_lines WHERE counter=? AND scenario=? AND data_version=? ORDER BY id",
                 (counter, scenario, DATA_VERSION),
             ).fetchall()
-        return [SavedLine(*row[:5], *map(bool, row[5:8]),row[8]) for row in rows]
+        return [_line(row) for row in rows]
 
     def list_all_lines(self) -> list[SavedLine]:
         """Landing-page library: all counters/scenarios, including hidden lines."""
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT id,counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name "
+                f"SELECT {LINE_COLUMNS} "
                 "FROM saved_lines WHERE data_version=? ORDER BY counter,scenario,id",
                 (DATA_VERSION,),
             ).fetchall()
-        return [SavedLine(*row[:5], *map(bool, row[5:8]),row[8]) for row in rows]
+        return [_line(row) for row in rows]
 
     def get_line(self, line_id: int) -> SavedLine:
         line = next((line for line in self.list_all_lines() if line.id == line_id), None)
@@ -122,14 +144,15 @@ class LineStore:
     def save(self, counter: str, scenario: str, period: int, target: int) -> None:
         with self._connect() as connection:
             self._allocate_color(connection,counter,scenario,period)
-            archived = connection.execute("SELECT custom_name,push_enabled FROM unsaved_lines WHERE counter=? AND scenario=? "
+            archived = connection.execute("SELECT custom_name,push_enabled,"+",".join(ALERT_COLUMNS)+
+                " FROM unsaved_lines WHERE counter=? AND scenario=? "
                 "AND period=? AND target_frequency=? AND data_version=?",(counter,scenario,period,target,DATA_VERSION)).fetchone()
             connection.execute(
-                "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version,custom_name,push_enabled) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
+                "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version,custom_name,push_enabled,"
+                + ",".join(ALERT_COLUMNS) + ") "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
                 "data_version) DO NOTHING",
-                (counter, scenario, period, target, DATA_VERSION,archived[0] if archived else "",
-                 archived[1] if archived else 1),
+                (counter, scenario, period, target, DATA_VERSION, *(archived or ("", 1, 1, 1, 1))),
             )
 
             connection.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? "
@@ -151,14 +174,15 @@ class LineStore:
     def delete(self, line_id: int) -> None:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name,data_version "
-                "FROM saved_lines WHERE id=?", (line_id,)).fetchone()
+                "SELECT counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name,"
+                + ",".join(ALERT_COLUMNS) + ",data_version FROM saved_lines WHERE id=?", (line_id,)).fetchone()
             if row is None:
                 return
             connection.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? "
                                "AND target_frequency=? AND data_version=?", (*row[:4], row[-1]))
             connection.execute("INSERT INTO unsaved_lines(counter,scenario,period,target_frequency,visible,"
-                               "push_enabled,email_enabled,custom_name,data_version) VALUES (?,?,?,?,?,?,?,?,?)", row)
+                               "push_enabled,email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
+                               ",data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", row)
             connection.execute("DELETE FROM unsaved_lines WHERE id NOT IN "
                                "(SELECT id FROM unsaved_lines ORDER BY id DESC LIMIT 10)")
             connection.execute("DELETE FROM saved_lines WHERE id=?", (line_id,))
@@ -166,22 +190,23 @@ class LineStore:
     def recent_unsaved(self) -> list[SavedLine]:
         """Most recent 10 unique unsaved configurations, across counters/scenarios."""
         with self._connect() as connection:
-            rows = connection.execute("SELECT id,counter,scenario,period,target_frequency,visible,"
-                                      "push_enabled,email_enabled,custom_name FROM unsaved_lines "
+            rows = connection.execute(f"SELECT {LINE_COLUMNS} FROM unsaved_lines "
                                       "WHERE data_version=? ORDER BY id DESC", (DATA_VERSION,)).fetchall()
-        return [SavedLine(*row[:5], *map(bool, row[5:8]),row[8]) for row in rows]
+        return [_line(row) for row in rows]
 
     def restore(self, history_id: int):
         with self._connect() as connection:
             row = connection.execute("SELECT counter,scenario,period,target_frequency,visible,push_enabled,"
-                                     "email_enabled,custom_name,data_version FROM unsaved_lines WHERE id=? AND data_version=?",
+                                     "email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
+                                     ",data_version FROM unsaved_lines WHERE id=? AND data_version=?",
                                      (history_id, DATA_VERSION)).fetchone()
             if row is None:
                 raise ValueError("This unsaved line is no longer in the last 10 entries.")
             if row[6] and not self.notification_settings().email:
                 raise ValueError("Save your email address in Settings before restoring an email-enabled line.")
             connection.execute("INSERT INTO saved_lines(counter,scenario,period,target_frequency,visible,"
-                               "push_enabled,email_enabled,custom_name,data_version) VALUES (?,?,?,?,?,?,?,?,?) "
+                               "push_enabled,email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
+                               ",data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
                                "ON CONFLICT(counter,scenario,period,target_frequency,data_version) DO NOTHING", row)
             connection.execute("DELETE FROM unsaved_lines WHERE id=?", (history_id,))
             self._allocate_color(connection,*row[:3])
@@ -254,6 +279,15 @@ class LineStore:
         column = "push_enabled" if channel == "phone" else "email_enabled"
         with self._connect() as connection:
             connection.execute(f"UPDATE saved_lines SET {column}=? WHERE id=?", (int(enabled), line_id))
+
+    def set_line_alert(self, line_id: int, kind: str, enabled: bool):
+        """Turn one signal type on/off for one saved line; identity is unchanged."""
+        column = ALERT_KIND_COLUMNS.get(kind)
+        if column is None:
+            raise ValueError("Choose Buy signal or an Impending buy signal type.")
+        with self._connect() as connection:
+            if not connection.execute(f"UPDATE saved_lines SET {column}=? WHERE id=?", (int(bool(enabled)), line_id)).rowcount:
+                raise ValueError("This SMA is no longer saved.")
 
     def was_delivered(self, key: str) -> bool:
         with self._connect() as connection:

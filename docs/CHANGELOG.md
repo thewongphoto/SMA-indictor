@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.14.0** /
-**apk-v0.14.0**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.14.1** /
+**apk-v0.14.1**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.14.1 | Each saved line chooses its own signal types: Buy signal and both Impending buy signals can be switched per line in the Alerts tab on Android and iPhone web, under the existing master switches in Settings. Upgrades keep every type On, archive/restore keeps the choices, and lines with no type On make no scheduled requests. |
 | 0.14.0 | Applies the November UI/UX handover to Android and a new iPhone web app: four tabs, cached watchlist status, frequency presets, editable saved lines, themes, readable backtests and cancel controls. Adds conditional opt-in signup, a private Python web worker, browser checks and deployment instructions. |
 | 0.13.8 | Fixes APK certificate parsing for SDK Build Tools 37 while retaining single-signer and retained-key checks; retains public certificate diagnostics even when verification fails. |
 | 0.13.7 | Corrects release lint by letting Gradle own debug mode. Native compilation passed, but the final-APK verifier rejected the new SDK certificate output format; no APK was uploaded. |

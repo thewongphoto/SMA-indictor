@@ -94,7 +94,8 @@ sign-in or email market-alert delivery. Voluntary signups are not total download
 
 ## 5. Notifications still require server implementation
 
-The Alerts screen stores per-line preferences and the same three global signal
+The Alerts screen stores per-line preferences, including each line's own
+switch for the three signal types (0.14.1), and the same three global signal
 types as Android. **This web release does not deliver Web Push notifications.**
 It says so in the UI and does not offer a misleading permission button.
 

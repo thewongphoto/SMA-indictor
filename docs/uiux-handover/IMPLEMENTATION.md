@@ -14,7 +14,7 @@ instructions in HOW_TO_COMMIT are historical reference, not the release scope.
 | SMA detail | Plain-language status, text Save, 4/6/12/Custom chips, retained chart gestures | Python-calculated SMA, chart inspection/pinch, range chips, text Save |
 | Saved lines | Inline show/hide, combined name/12-colour editor; drawer retained as shortcut | Inline visibility and name/colour sheet |
 | Backtest | Plain strategy names and correctly described random-price statistic | Same Python comparison engine; independent horizon controls |
-| Alerts | Existing phone switch per line and three global signal types | Stored preferences; clear notice that server delivery is not implemented |
+| Alerts | Phone switch plus three signal-type switches per line (0.14.1); three global master types | Stored preferences; clear notice that server delivery is not implemented |
 | Settings | Theme, optional contact, diagnostics, request log, cache controls, legal copy | Theme, optional contact, diagnostic log, export, cache clear, archive and private sign-in |
 | Loading/cancel | Existing native presplash; continuous stroke animation plus Cancel during scoring | Loading/calculation overlay and Cancel; stale results ignored |
 | Email | Hidden without configured HTTPS endpoint/capability | Hidden unless server SMTP capability is enabled |
@@ -26,8 +26,11 @@ has its own persistent database; native Android storage is not synchronized.
 
 ## Resolved design conflicts
 
-- Keep the existing alert model: one phone flag per line plus three global types.
-  The mockup's crosses-below toggle would change behaviour and is not introduced.
+- 0.14.0 kept the existing alert model: one phone flag per line plus three global
+  types. **0.14.1** adds the owner's chosen option (b): each line has its own
+  switch for all three types, with the Settings switches kept as master
+  switches. Upgrades default every line type On, so nothing changes until the
+  user turns one Off. The mockup's crosses-below toggle is still not introduced.
   Opening reminders retain the owner's previously selected **above-line** rule.
 - Start security groups collapsed, sort below-line groups first, and use bundled
   company/issuer logos with an initials fallback. Home emphasizes company name.

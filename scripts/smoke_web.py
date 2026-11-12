@@ -55,6 +55,12 @@ def main():
                 visibility.click();expect(visibility).to_have_attribute('aria-checked','false')
                 page.get_by_role('button',name='Alerts',exact=True).click()
                 expect(page.get_by_role('switch',name='Alerts for Long-term trend')).to_have_attribute('aria-checked','true')
+                buy=page.get_by_role('switch',name='Buy signal for Long-term trend')
+                expect(buy).to_have_attribute('aria-checked','true')
+                buy.click();expect(buy).to_have_attribute('aria-checked','false')
+                expect(page.get_by_role('switch',name='Impending buy signal (End of trading) for Long-term trend')).to_have_attribute('aria-checked','true')
+                page.reload();page.get_by_role('button',name='Alerts',exact=True).click()
+                expect(page.get_by_role('switch',name='Buy signal for Long-term trend')).to_have_attribute('aria-checked','false')
                 page.screenshot(path=str(OUT/'alerts.png'))
                 page.get_by_role('button',name='Settings',exact=True).click()
                 page.get_by_role('button',name='Light',exact=True).click()
@@ -88,7 +94,7 @@ def main():
                 expect(page.get_by_text('No archived lines.')).to_be_visible()
                 assert not errors,errors
                 browser.close()
-            print('PASS: private login, submit-only search, Python calculation, save/edit/colour, visibility vs alerts, themes, narrow layouts, offline reopening, archive/restore; email hidden without server configuration.')
+            print('PASS: private login, submit-only search, Python calculation, save/edit/colour, visibility vs alerts, per-line signal types, themes, narrow layouts, offline reopening, archive/restore; email hidden without server configuration.')
         finally:
             for process in (web,worker):
                 process.terminate()

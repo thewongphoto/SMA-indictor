@@ -7,9 +7,15 @@ require a foreground Activity or a Kivy timer left running in the background.
 
 ## Types, switches and schedules
 
-Each saved SMA's phone switch gates all three global signal-type switches.
-Hidden chart lines can still receive alerts. New saved lines and all three types
-default On. Existing stored Off choices remain Off; the added opening type takes
+Since 0.14.1 each saved SMA also has its own switch for each of the three
+signal types (Alerts tab). A type is checked for a line only when the line's
+phone switch, that line's type switch and the global type switch in Settings
+are all On. Upgraded lines start with every type On, so 0.14.0 behaviour is
+unchanged until the user turns a type Off; archive/restore keeps these choices.
+A line with no type left On makes no scheduled history request. End-of-trading
+slots still fetch for lines with only the opening type On, to keep the cache
+fresh for the next reminder. Hidden chart lines can still receive alerts. New
+saved lines and all three types default On. Existing stored Off choices remain Off; the added opening type takes
 its own On default, and can be switched Off independently. Email remains off.
 
 | Type | US listings: Singapore time | SGX listings: Singapore time | Condition |

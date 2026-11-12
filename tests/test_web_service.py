@@ -47,6 +47,11 @@ class WebServiceTests(TestCase):
         state=self.call('line',dict(id=line['id'],name='Long-term trend',color=2,visible=False,push_enabled=True))
         self.assertFalse(state['cards'][0]['lines'][0]['visible'])
         self.assertTrue(state['cards'][0]['lines'][0]['push_enabled'])
+        saved=state['cards'][0]['lines'][0]
+        self.assertTrue(saved['alert_buy'] and saved['alert_monitor'] and saved['alert_start'])
+        state=self.call('line',dict(id=line['id'],alert_buy=False,alert_start=False))
+        saved=state['cards'][0]['lines'][0]
+        self.assertEqual((saved['alert_buy'],saved['alert_monitor'],saved['alert_start']),(False,True,False))
         self.assertEqual(state['cards'][0]['lines'][0]['color'],-3)
         self.call('line',dict(id=line['id'],archive=True))
         archive=self.call('state')['archive'][0]

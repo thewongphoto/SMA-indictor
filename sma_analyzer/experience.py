@@ -1,4 +1,5 @@
 """Four-tab presentation layered over the existing calculation and data flows."""
+import sqlite3
 from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -121,24 +122,52 @@ class Experience:
 
     def refresh_alerts(self):
         from .app import Panel, WrappedLabel, LabButton
+        from .notifications import signal_title
         self.alerts_content.clear_widgets()
-        self.alerts_content.add_widget(WrappedLabel(text='Choose which saved lines can notify you. Signal types and schedules are managed in Settings.',color=MUTED))
+        self.alert_switches = {}
+        settings = self.model.store.notification_settings()
+        globally_on = {'buy': settings.phone_buy, 'monitor': settings.phone_monitor,
+                       'monitor_start': settings.phone_monitor_start}
+        self.alerts_content.add_widget(WrappedLabel(text='Choose which saved lines can notify you, and which signal types each line sends. '
+                                                         'Schedules and the master switch for each type are in Settings.',color=MUTED))
         for line in self.model.library_lines():
             panel = Panel()
             panel.add_widget(WrappedLabel(text=f'{self.model.security(line.counter).ticker} · {line.display_name}',bold=True,font_size=sp(17)))
             row = BoxLayout(size_hint_y=None,height=dp(48))
-            row.add_widget(WrappedLabel(text='Phone alerts',pos_hint={'center_y':.5}))
+            row.add_widget(WrappedLabel(text='Phone alerts',pos_hint={'center_y':.5},bold=True))
             switch = RuleSwitch(active=line.push_enabled)
             switch.bind(active=lambda _, enabled, item=line: self.on_line_alert(item,'phone'))
             row.add_widget(switch)
             panel.add_widget(row)
-            panel.add_widget(WrappedLabel(text='Uses the three enabled signal types and Singapore-time schedules. Hidden lines can still send alerts.',color=MUTED))
+            self.alert_switches[(line.id,'phone')] = switch
+            for kind in ('buy','monitor','monitor_start'):
+                row = BoxLayout(size_hint_y=None,height=dp(48),padding=(dp(12),0,0,0))
+                note = '' if globally_on[kind] else '\nOff for all lines in Settings'
+                row.add_widget(WrappedLabel(text=signal_title(kind)+note,pos_hint={'center_y':.5},
+                    color=TEXT if line.push_enabled and globally_on[kind] else MUTED,font_size=sp(13)))
+                type_switch = RuleSwitch(active=line.alert_enabled(kind))
+                type_switch.disabled = not line.push_enabled
+                type_switch.opacity = 1 if line.push_enabled else .45
+                type_switch.bind(active=lambda _, enabled, item=line, kind=kind: self.on_line_signal_type(item,kind,enabled))
+                row.add_widget(type_switch)
+                panel.add_widget(row)
+                self.alert_switches[(line.id,kind)] = type_switch
+            panel.add_widget(WrappedLabel(text='Turn on Phone alerts to choose signal types. Hidden lines can still send alerts.'
+                                          if not line.push_enabled else 'Hidden lines can still send alerts.',color=MUTED))
             self.alerts_content.add_widget(panel)
         if not self.model.library_lines():
             self.alerts_content.add_widget(WrappedLabel(text='Save an SMA line to set up alerts.',font_size=sp(20)))
         settings = LabButton(text='Notification settings')
         settings.bind(on_release=self.show_settings)
         self.alerts_content.add_widget(settings)
+
+    def on_line_signal_type(self, line, kind, enabled):
+        try:
+            self.model.store.set_line_alert(line.id, kind, enabled)
+        except (ValueError, sqlite3.Error) as error:
+            self.message(str(error), True)
+        self.refresh()
+        self.sync_notification_schedule()
 
     def populate_home(self, panel):
         from .app import WrappedLabel, LabButton

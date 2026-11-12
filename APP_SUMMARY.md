@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.14.0**. Android and desktop are active. Native iPhone
+Current source: **0.14.1**. Android and desktop are active. Native iPhone
 releases are paused; [the Vercel/PWA app is implemented and awaiting deployment](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -137,8 +137,10 @@ movements are excluded; dividends are not added twice.
 ## Notifications and diagnostics
 
 There are three phone types: Buy signal, Impending buy signal (End of trading)
-and Impending buy signal (Start of trading). All types and newly saved line
-switches default On while existing stored Off choices remain Off. Actual OS
+and Impending buy signal (Start of trading). Each saved line has a phone switch
+and its own switch for every type; Settings holds a master switch per type, and
+all three must be On for a line to receive that type. All types and newly saved
+line switches default On while existing stored Off choices remain Off. Actual OS
 permission, channel settings, Focus/Do Not Disturb and scheduling policy still
 control presentation and execution.
 

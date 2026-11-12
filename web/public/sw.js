@@ -1,4 +1,4 @@
-const CACHE = "sma-shell-0.14.0";
+const CACHE = "sma-shell-0.14.1";
 self.addEventListener("install", (event) =>
   event.waitUntil(
     caches

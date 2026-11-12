@@ -1647,6 +1647,8 @@ class AnalyzerScreen(Experience, FloatLayout):
             heading.add_widget(IconSymbol(icon))
             heading.add_widget(WrappedLabel(text=title,bold=True))
             self.settings_panel.add_widget(heading)
+            self.settings_panel.add_widget(WrappedLabel(text="Master switches for all saved lines. Choose types for each line in Alerts.",
+                                                        color=MUTED,font_size=sp(11)))
             for kind in ("buy","monitor","monitor_start"):
                 key = f"{channel}_{kind}"
                 row = BoxLayout(size_hint_y=None,spacing=dp(8))

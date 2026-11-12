@@ -1,9 +1,16 @@
 # Validation and build status
 
-Current source: **0.14.0**. The matching Android build tag is **apk-v0.14.0**.
+Current source: **0.14.1**. The matching Android build tag is **apk-v0.14.1**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.14.1 adds per-line signal types. Host validation ran **351 tests, all
+passing**, plus the extended four-tab regression (per-line
+Alerts switches, persistence and disabled state), every Android UI gate and the
+web worker/browser checks including per-line toggles after reload. One
+`smoke_ui` run failed a fixed-frame expand/collapse wait while other heavy jobs
+shared the CPU; it passed when re-run alone and also passes unchanged on 0.14.0.
 
 The 0.14.0 unit run completed **342 tests: 340 passed and two optional checks
 skipped**. The production web build and browser workflow passed against the

@@ -45,7 +45,26 @@ class RedesignSmoke(FlowSmoke):
         assert ui.model.store.color_index(line.counter,line.scenario,line.period)==-3
         assert ui.inline_lines.height>dp(44)
         assert not hasattr(ui,'contact_editor')
-        self.checked('four reachable tabs at 320/390 widths, theme contrast, combined name/colour persistence, inline saved lines and disabled unconfigured signup')
+        # 0.14.1 per-line signal types on the Alerts tab.
+        ui.select_tab('alerts')
+        yield from self.frames()
+        if not line.push_enabled:
+            ui.model.store.set_notifications(line.id,'phone',True)
+            ui.refresh()
+            yield from self.frames()
+        for kind in ('buy','monitor','monitor_start'):
+            assert (line.id,kind) in ui.alert_switches
+            assert ui.alert_switches[(line.id,kind)].width>=dp(44) and ui.alert_switches[(line.id,kind)].height>=dp(44)
+        ui.alert_switches[(line.id,'buy')].dispatch('on_release')
+        yield from self.frames()
+        stored=ui.model.store.get_line(line.id)
+        assert not stored.alert_buy and stored.alert_monitor and stored.alert_start
+        assert not ui.alert_switches[(line.id,'buy')].active
+        ui.alert_switches[(line.id,'phone')].active=False
+        yield from self.frames()
+        assert ui.alert_switches[(line.id,'monitor')].disabled
+        ui.export_to_png(str(out/'alerts-line-types.png'))
+        self.checked('four reachable tabs at 320/390 widths, theme contrast, combined name/colour persistence, inline saved lines, per-line signal types and disabled unconfigured signup')
 
 if __name__=='__main__':
     app=RedesignSmoke();app.run();temporary.cleanup()

@@ -690,3 +690,14 @@ html[data-theme="light"] {
 .sheet {
   max-height: calc(var(--app-height, 100dvh) * 0.9);
 }
+
+/* Per-line signal types (Alerts tab) sit under the line's own switch. */
+.line-row.signal-type {
+  padding-left: 12px;
+}
+.line-row.signal-type > span:first-child {
+  font-size: 14px;
+}
+.line-row.signal-type.muted > span:first-child {
+  color: var(--text-muted);
+}

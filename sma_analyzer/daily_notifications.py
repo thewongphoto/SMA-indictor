@@ -17,9 +17,23 @@ def check_detail(line, settings, expected):
     return (f"Saved SMA #{line.id} · {line.display_name} · {sma_label(line.period)} · "
             f"target {line.target_frequency}/year · close {expected}. "
             f"Phone notifications {state(line.push_enabled)}; "
-            f"Buy signal {state(settings.phone_buy)}; "
-            f"Impending buy signal (End of trading) {state(settings.phone_monitor)}; "
-            f"Impending buy signal (Start of trading) {state(settings.phone_monitor_start)}.")
+            f"Buy signal {state(settings.phone_buy)} (line {state(line.alert_buy)}); "
+            f"Impending buy signal (End of trading) {state(settings.phone_monitor)} (line {state(line.alert_monitor)}); "
+            f"Impending buy signal (Start of trading) {state(settings.phone_monitor_start)} (line {state(line.alert_start)}).")
+
+
+def line_wants(line,settings,phase):
+    """Phone switch plus at least one signal type on both globally and for this line.
+
+    End-of-trading slots also run for start-only lines: that closing fetch keeps
+    the cache fresh for the following opening reminder.
+    """
+    if not line.push_enabled:
+        return False
+    start=settings.phone_monitor_start and line.alert_start
+    if phase=="start":
+        return start
+    return (settings.phone_buy and line.alert_buy) or (settings.phone_monitor and line.alert_monitor) or start
 
 
 def enabled_lines(store,provider,region=None,phase=None):
@@ -29,7 +43,7 @@ def enabled_lines(store,provider,region=None,phase=None):
         return []
     result=[]
     for line in store.list_all_lines():
-        if not line.push_enabled or not line.counter.startswith("YAHOO:"):
+        if not line_wants(line,settings,phase) or not line.counter.startswith("YAHOO:"):
             continue
         security=provider.cache.security(line.counter)
         if security is not None and (region is None or security.region==region):
@@ -97,8 +111,7 @@ def run_daily_notifications(store,provider,region,notifier,now=None,should_stop=
                         continue
                     settings=replace(store.notification_settings(),email_buy=False,email_monitor=False)
                     detail=check_detail(line,settings,expected)
-                    if not line.push_enabled or not (settings.phone_monitor_start if phase=="start" else
-                            settings.phone_buy or settings.phone_monitor or settings.phone_monitor_start):
+                    if not line_wants(line,settings,phase):
                         cache.operation("notification-check",security.symbol,"disabled",
                             detail + " Switches disabled during retrieval; no signal evaluated or notification posted.")
                         continue

@@ -87,7 +87,8 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
 
     Uses the engine's below/equal/above crossing rules, including gap resets.
     Monitor means strictly below (not equal), once per simulated session.
-    Visibility does not affect alerts. Both channel and type must be enabled.
+    Visibility does not affect alerts. The channel, the global type and the
+    line's own type switch must all be enabled.
     """
     session = len(prices) if session is None else session
     if isinstance(session, bool) or not isinstance(session, int) or not 1 <= session <= len(prices):
@@ -108,6 +109,8 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
     ):
         if not enabled:
             continue
+        buy = buy and getattr(line, "alert_buy", True)
+        monitor = monitor and getattr(line, "alert_monitor", True)
         if crossing and buy:
             kind, subject = "buy", f"Buy Signal for {line.counter}"
             body = f"Buy Signal: {line.counter} has crossed above {sma_label(line.period)}, target {line.target_frequency} /year"
@@ -153,7 +156,8 @@ def evaluate_dataset_start(dataset, line, settings, trading_date, security_name,
     separately, so this reminder cannot suppress/replay an EOD signal.
     """
     if (getattr(dataset, "is_simulated", True) or not line.push_enabled or
-            not settings.phone_monitor_start or len(dataset.prices)<line.period):
+            not settings.phone_monitor_start or not getattr(line, "alert_start", True)
+            or len(dataset.prices)<line.period):
         return ()
     if region not in ("US", "SG"):
         raise ValueError("Opening reminders support US and SGX listings.")

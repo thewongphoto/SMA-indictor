@@ -201,7 +201,7 @@ class DailyNotificationsTests(TestCase):
             self.assertEqual(self.run_job()["posted"],0)
         event=next(e for e in self.provider.cache.diagnostic_events() if e["operation"]=="notification-check")
         self.assertEqual(event["status"],"no_signal")
-        self.assertIn("Buy signal On; Impending buy signal (End of trading) On",event["detail"])
+        self.assertIn("Buy signal On (line On); Impending buy signal (End of trading) On (line On)",event["detail"])
         self.phone.send.assert_not_called()
 
     def test_delivery_failure_keeps_signal_context_and_excludes_raw_errors(self):

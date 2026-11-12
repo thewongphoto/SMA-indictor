@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.13.7**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.13.8**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone | Native releases paused. The Vercel/PWA guide is a plan; this repository does not yet contain the web frontend or a deployed website. |
 

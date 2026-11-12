@@ -34,8 +34,18 @@ def fingerprint(value):
 
 
 def verify_signer(output, expected):
-    actual = re.findall(r"^Signer #\d+ certificate SHA-1 digest:\s*(\S+)", output, re.MULTILINE)
-    if len(actual) != 1 or fingerprint(actual[0]) != fingerprint(expected):
+    # Build Tools 37 labels certificates by signature scheme instead of number.
+    # Require the SDK's single-signer result as well as exactly one certificate;
+    # never mistake a source-stamp or public-key digest for the APK certificate.
+    counts = re.findall(r"^Number of signers: (\d+)\s*$", output, re.MULTILINE)
+    if counts != ["1"]:
+        raise ValueError("Final APK must have exactly one verified signer")
+    actual = re.findall(
+        r"^(?:Signer #\d+|V(?:1|2|3\.[01]) Signer:) certificate SHA-1 digest:[ \t]*(\S+)[ \t]*$",
+        output, re.MULTILINE)
+    if len(actual) != 1:
+        raise ValueError("Cannot read exactly one APK signing certificate from apksigner output")
+    if fingerprint(actual[0]) != fingerprint(expected):
         raise ValueError("Final APK signer differs from the retained signing identity")
     return fingerprint(actual[0])
 
@@ -184,6 +194,10 @@ def main():
         raise ValueError("Missing retained signing identity report")
     signature = subprocess.run([str(tools / "apksigner"), "verify", "--verbose", "--print-certs", str(apk)],
                                check=True, capture_output=True, text=True).stdout
+    # Public certificate evidence helps diagnose format changes without exposing
+    # any keystore or private key. Preserve it even if a policy check fails.
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.with_name("android-apk-signature.txt").write_text(signature)
     actual = verify_signer(signature, expected[1])
     dump = subprocess.run([str(tools / "aapt"), "dump", "xmltree", str(apk), "AndroidManifest.xml"],
                           check=True, capture_output=True, text=True).stdout

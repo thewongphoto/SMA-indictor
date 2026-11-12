@@ -40,19 +40,45 @@ def manifest():
 class AndroidApkPolicyTests(TestCase):
     def test_actual_apk_certificate_must_match_the_retained_key_not_only_a_valid_signature(self):
         expected = "92:3F:5D:E5:65:12:85:96:87:3E:31:97:08:E2:78:9D:91:40:48:F9"
-        published = "Signer #1 certificate SHA-1 digest: 50aeb2c1d575265caa95f9294f5cdfbc32439150\n"
+        published = "Number of signers: 1\nSigner #1 certificate SHA-1 digest: 50aeb2c1d575265caa95f9294f5cdfbc32439150\n"
         with self.assertRaisesRegex(ValueError, "differs"):
             verify_signer(published, expected)
-        proper = "Signer #1 certificate SHA-1 digest: " + fingerprint(expected).lower() + "\n"
+        proper = "Number of signers: 1\nSigner #1 certificate SHA-1 digest: " + fingerprint(expected).lower() + "\n"
         self.assertEqual(verify_signer(proper, expected), fingerprint(expected))
 
     def test_absent_or_additional_signers_are_rejected(self):
-        signer = "Signer #1 certificate SHA-1 digest: " + "1" * 40 + "\n"
-        for output in ("", signer + signer.replace("#1", "#2")):
+        signer = "Number of signers: 1\nSigner #1 certificate SHA-1 digest: " + "1" * 40 + "\n"
+        for output in ("", signer + signer.replace("#1", "#2"),
+                       signer.replace("signers: 1", "signers: 2")):
             with self.assertRaises(ValueError):
                 verify_signer(output, "1" * 40)
         with self.assertRaises(ValueError):
             fingerprint("not a fingerprint")
+
+    def test_real_sdk_35_and_37_outputs_identify_the_same_apk_certificate(self):
+        fixtures = Path(__file__).with_name("fixtures") / "apksigner"
+        expected = "50AEB2C1D575265CAA95F9294F5CDFBC32439150"
+        for name in ("build-tools-35-v2.txt", "build-tools-37-v2.txt"):
+            output = (fixtures / name).read_text()
+            with self.subTest(name=name):
+                self.assertEqual(verify_signer(output, expected), expected)
+                with self.assertRaisesRegex(ValueError, "differs"):
+                    verify_signer(output, "92:3F:5D:E5:65:12:85:96:87:3E:31:97:08:E2:78:9D:91:40:48:F9")
+
+    def test_sdk_37_v3_certificate_is_not_confused_with_public_key_or_stamp(self):
+        output = (Path(__file__).with_name("fixtures") / "apksigner/build-tools-37-v3.txt").read_text()
+        expected = "FC70B1C009CAD6EB35BC74DB78861CD5424846B5"
+        self.assertEqual(verify_signer(output, expected), expected)
+        for prefix in ("V3.0 Signer: public key", "Source Stamp Signer: certificate"):
+            with self.assertRaisesRegex(ValueError, "Cannot read"):
+                verify_signer(output.replace("V3.0 Signer: certificate SHA-1", prefix + " SHA-1"), expected)
+
+    def test_unknown_certificate_output_fails_with_parse_error_not_mismatch(self):
+        with self.assertRaisesRegex(ValueError, "Cannot read"):
+            verify_signer("Number of signers: 1\nUnknown certificate format\n", "1" * 40)
+        with self.assertRaisesRegex(ValueError, "Cannot read"):
+            verify_signer("Number of signers: 1\n" +
+                          ("V2 Signer: certificate SHA-1 digest: " + "1" * 40 + "\n") * 2, "1" * 40)
 
     def test_aapt_parser_preserves_compiled_booleans_and_attribute_ownership(self):
         output = '''N: android=http://schemas.android.com/apk/res/android
@@ -169,3 +195,4 @@ class AndroidApkPolicyTests(TestCase):
         diagnostic = next(step for step in steps if step.get("with", {}).get("name") == "sma-android-diagnostics")
         self.assertEqual(diagnostic["if"], "always()")
         self.assertNotIn("bin/", diagnostic["with"]["path"])
+        self.assertIn("artifacts/android-apk-signature.txt", diagnostic["with"]["path"])

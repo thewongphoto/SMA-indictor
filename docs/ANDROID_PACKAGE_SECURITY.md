@@ -1,8 +1,14 @@
 # Android package security and Play Protect
 
-Source 0.13.7 builds a signed release APK. A package policy check verifies the
+Source 0.13.8 builds a signed release APK. A package policy check verifies the
 **final APK**, not just the keystore or build configuration. It does not certify
 an app as malware-free or establish Google Play Protect clearance.
+
+The 0.13.7 build passed compilation/lint but its verifier could not parse
+SDK 37's new certificate labels. Version 0.13.8 corrects that parser and retains
+public certificate diagnostics. This failure was not evidence of a changed
+signer in 0.13.7; its APK was not uploaded. The [repair record](CHANGELOG.md#0138-apk-verification-repair)
+separates that defect from the confirmed older APK mismatches below.
 
 ## Reported warning and 0.13.5 inspection
 
@@ -22,7 +28,7 @@ notification-listener, contacts, or package-install access.
 
 The inspection found concrete distribution issues:
 
-| Item | 0.13.5 finding | 0.13.7 enforcement |
+| Item | 0.13.5 finding | 0.13.8 enforcement |
 | --- | --- | --- |
 | Signing identity | Actual APK signer differed from the key verified by CI. | Explicitly bind release signing to the retained keystore; compare the final APK certificate with its fingerprint. |
 | Debugging | `android:debuggable=true`. | Build the release variant and require `debuggable=false`. |
@@ -78,7 +84,7 @@ signing identity, not Play Store certification.
 ## Installation and existing data
 
 Android requires matching signing identities for in-place updates. The differing
-certificates above mean 0.13.7 cannot promise an in-place update over the earlier
+certificates above mean 0.13.8 cannot promise an in-place update over the earlier
 APKs. A fingerprint alone cannot recover an earlier build's private key. Keep
 any installed app with important saved data while arranging a migration;
 do not uninstall it or clear its storage as an update workaround.

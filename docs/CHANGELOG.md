@@ -1,13 +1,14 @@
 # Release history
 
-The latest source version and requested Android build are **0.13.7** /
-**apk-v0.13.7**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.13.8** /
+**apk-v0.13.8**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
-| 0.13.7 | Corrects release lint by letting Gradle own debug mode; the final-APK gate still requires debugging disabled and retained-key signing. |
+| 0.13.8 | Fixes APK certificate parsing for SDK Build Tools 37 while retaining single-signer and retained-key checks; retains public certificate diagnostics even when verification fails. |
+| 0.13.7 | Corrects release lint by letting Gradle own debug mode. Native compilation passed, but the final-APK verifier rejected the new SDK certificate output format; no APK was uploaded. |
 | 0.13.6 | Introduces explicit retained-key release signing and validates the final APK certificate; enforces non-debuggable/private/no-backup/HTTPS package policy, removes unused foreground-service declarations, and uploads APKs only after verification. Documents the unresolved Play Protect warning and older signing mismatch. Its initial build failed release lint and produced no verified APK; superseded by 0.13.7. |
 | 0.13.5 | Repairs Android dependency setup after the runner's Ubuntu mirror DNS failure; uses signed official HTTPS repositories, fresh package indexes, bounded retries, strict update failures and retained setup logs. Fixes links to the renamed documentation index. |
 | 0.13.4 | Repository/documentation cleanup; removes unused Gmail transport, native auth bridge and Google sign-in dependency; preserves old saved-data fields and blocks retired delivery channels. |
@@ -22,7 +23,26 @@ for the run matching the desired tag and its downloadable artifact.
 | 0.4–0.7.x | Phone-only UI, grouped saved lines, library-first flow and early offline search/design reviews. |
 | Earlier | Initial offline analysis and retired email prototype. |
 
-## 0.13.7 package security
+## 0.13.8 APK verification repair
+
+The [0.13.7 run](https://github.com/thewongphoto/SMA-indictor/actions/runs/43195884927)
+passed native compilation and release lint, then failed with `Final APK signer
+differs from the retained signing identity`. SDK Build Tools 37 changed certificate
+labels from `Signer #1 certificate SHA-1 digest:` to scheme-specific labels such
+as `V2 Signer: certificate SHA-1 digest:` and `V3.0 Signer: certificate SHA-1 digest:`.
+The verifier's old expression matched no certificate and incorrectly classified
+that parsing failure as an identity mismatch. The failed run did not retain its
+certificate output or APK, so it does not establish that APK's actual fingerprint.
+
+The format change was reproduced with official SDK 35 and 37 against the same
+0.13.5 APK, plus a disposable, locally signed v3 test fixture. Version 0.13.8
+accepts both output formats, requires exactly one signer and one certificate,
+and still rejects a certificate that differs from the retained key. Unknown
+output now reports a parse error. Public `android-apk-signature.txt` evidence
+is retained in diagnostics before policy checks. No signing key, package identity,
+lint rule or APK policy has been changed to resolve this parser defect.
+
+## Package security since 0.13.6
 
 Inspection of the distributed 0.13.5 APK confirmed valid APK v2 signing, but its
 actual certificate did not match the retained keystore reported by CI. The

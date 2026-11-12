@@ -1,20 +1,26 @@
 # Validation and build status
 
-Current source: **0.13.7**. The matching Android build tag is **apk-v0.13.7**.
+Current source: **0.13.8**. The matching Android build tag is **apk-v0.13.8**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
 
-Release 0.13.7 host validation ran **334 tests: 332 passed and two optional
+Release 0.13.8 host validation ran **337 tests: 335 passed and two optional
 checks skipped** (NumPy and desktop yfinance). All **eight Android UI gates**
-and the additional desktop Yahoo fixture run passed: **152 UI checks** in
-total. All **130 local link targets in 30 Markdown documents** passed.
+and the additional desktop Yahoo fixture passed: **152 UI checks** in total.
+All **133 local link targets in 30 Markdown documents** passed.
 
-Thirteen APK-policy tests cover actual signer comparison, compiled manifest
-parsing, release flags, permissions, exported components, packaged private data
+Sixteen APK-policy tests cover actual signer comparison, SDK 35/37 output
+formats, compiled manifest parsing, release flags, permissions, exported components, packaged private data
 and verified-only distribution. Running the official SDK against the old 0.13.5
 APK reproduced the certificate mismatch and policy failures. The new final-APK
 gate must pass after native compilation before a binary can be uploaded.
+
+The 0.13.7 native build and release lint passed, but its certificate parser
+did not recognize SDK 37's scheme-specific labels and stopped APK upload.
+The format incompatibility was reproduced using official SDK 35 and 37 on the
+same APK. Version 0.13.8 retains strict identity checks and saves public
+certificate diagnostics; [details](CHANGELOG.md#0138-apk-verification-repair).
 
 The dependency installer was also verified in a clean Ubuntu 22.04 container
 for 0.13.5; its repository and timeout policy is unchanged. Its regression tests

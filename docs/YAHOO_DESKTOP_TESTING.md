@@ -1,6 +1,6 @@
 # Desktop data and persistence testing
 
-Current source: **0.13.7**. [Start on a Mac](../START_HERE_MAC.md), or install
+Current source: **0.13.8**. [Start on a Mac](../START_HERE_MAC.md), or install
 requirements-desktop.txt in a Python 3.12 virtual environment. Live mode uses
 an isolated yfinance helper so a blocked/crashing native dependency reports a
 failure instead of closing Kivy. Android uses the separate mobile HTTPS client.

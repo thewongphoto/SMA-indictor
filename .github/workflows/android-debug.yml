@@ -131,6 +131,7 @@ jobs:
             artifacts/android-signing-info.txt
             artifacts/android-apk-verification.json
             artifacts/android-build.log
+            artifacts/android-apk-signature.txt
             artifacts/android-native-sources.log
             artifacts/unit-tests.log
             artifacts/docs-check.log

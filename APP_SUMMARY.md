@@ -1,11 +1,13 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.13.7**. Android and desktop are active. Native iPhone
+Current source: **0.13.8**. Android and desktop are active. Native iPhone
 releases are paused; [Vercel/PWA implementation is planned](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
 Android distribution uses an explicitly signed release variant. CI verifies the
 final APK's certificate, release flags, permissions and component protections.
+Version 0.13.8 fixes certificate parsing for Android SDK Build Tools 37;
+0.13.7 compiled successfully but failed this verification step before upload.
 Automatic Android cloud/full backups are disabled for private application data.
 The [package security audit](docs/ANDROID_PACKAGE_SECURITY.md) records the earlier
 signing mismatch and the reported Play Protect warning, which still requires

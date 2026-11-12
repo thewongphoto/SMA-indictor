@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.13.7**. Automatically publish completed, validated Android
+Current source: **0.13.8**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 
 ## Before publishing

@@ -2,7 +2,7 @@
 
 The SHA-1 identifies the **signing key**, not the source code or APK version.
 Every update must use the original key and package `org.thewongphoto.smaanalyzer`.
-No Google Cloud/OAuth setup is required. From 0.13.7, the final APK must be
+No Google Cloud/OAuth setup is required. From 0.13.6, the final APK must be
 verified against the retained signer before it can be uploaded.
 
 The workflow restores a permanent **Actions secret** first and accepts the
@@ -10,6 +10,13 @@ original cached key as a migration fallback. It never generates a replacement
 key. An absent/incorrect key stops the build with an explanation. The release
 variant is explicitly signed using that retained key, and the Android SDK
 verifies the actual APK's signature and certificate after compilation.
+
+Version 0.13.7 compiled but failed certificate parsing after SDK Build Tools 37
+changed its output labels. Version 0.13.8 supports both SDK formats and retains
+the strict single-signer/fingerprint comparison. Diagnostics now include the
+public `android-apk-signature.txt` output, including on a policy-check failure.
+The 0.13.7 error alone did not establish a different certificate; see the
+[repair evidence](CHANGELOG.md#0138-apk-verification-repair).
 
 The 0.13.3 and 0.13.5 APKs were signed by different default debug keys despite
 their CI reports naming the same retained key. Those reports verified a keystore,
@@ -57,7 +64,7 @@ Use **Run workflow → main** normally. The durable signing secret survives cach
 eviction, and the workflow verifies the fingerprint against ANDROID_SIGNING_SHA1.
 Do not edit/delete these values or rotate the key for ordinary updates. In-place
 updates preserve SQLite data only when the installed APK uses the same signer.
-The 0.13.7 gate establishes that contract for subsequent builds; it cannot recover
+The 0.13.8 gate enforces that contract for subsequent builds; it cannot recover
 the private keys used by the earlier default-signed APKs.
 
 ## If the original cached key is already missing

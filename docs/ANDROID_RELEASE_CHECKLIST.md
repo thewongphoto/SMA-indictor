@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.13.4**. Automatically publish completed, validated Android
+Current source: **0.13.5**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 
 ## Before publishing
@@ -34,6 +34,11 @@ APK host validation. The workflow supplies Xvfb/X11 and software GL. A headless
 local run can use `SDL_VIDEODRIVER=offscreen LIBGL_ALWAYS_SOFTWARE=1` with writable
 KIVY_HOME and XDG_CACHE_HOME directories. These are fixture tests, not live API
 or phone delivery tests. [Native source pins](MOBILE_NATIVE_SOURCES.md).
+
+The Ubuntu 22.04 workflow uses `bash scripts/install_android_deps.sh` for
+signed HTTPS repositories and fresh package indexes. Its setup log is retained
+as `android-deps.log` even when dependency installation fails. Do not disable
+APT signature or TLS verification to work around a mirror/network failure.
 
 ## Physical phone checks
 

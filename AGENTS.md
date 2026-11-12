@@ -12,7 +12,7 @@
   publication from completed native builds and downloadable APK artifacts.
 - Run all Android workflow UI gates before publishing a UI fix, including the
   offline preview and library flow as well as the live-data transport fixtures.
-- Keep README, APP_SUMMARY and docs/README.md current; use docs/CHANGELOG.md
+- Keep README, APP_SUMMARY and docs/1.Directory.md current; use docs/CHANGELOG.md
   rather than restoring obsolete release diaries. Validate local documentation
   links with scripts.check_repository_docs after moves/removals.
 - Gmail/Google authorization transports are retired. Keep legacy SQLite fields

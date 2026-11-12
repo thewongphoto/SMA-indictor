@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Active APK distribution through GitHub Actions. Source version **0.13.4**. |
+| Android | Active APK distribution through GitHub Actions. Source version **0.13.5**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone | Native releases paused. The Vercel/PWA guide is a plan; this repository does not yet contain the web frontend or a deployed website. |
 
@@ -19,7 +19,7 @@ for a successful run and download its **sma-android-test** artifact.
 - [Install or update the Android APK](docs/ANDROID_APK_GUIDE.md).
 - [Run on a Mac](START_HERE_MAC.md).
 - [Deploy a future iPhone web app through Vercel](docs/PRIVATE_IPHONE_INSTALLATION.md).
-- [All current guides](docs/README.md), [release history](docs/CHANGELOG.md),
+- [All current guides](docs/1.Directory.md), [release history](docs/CHANGELOG.md),
   [validation status](docs/ANDROID_TEST_STATUS.md) and [cleanup record](docs/MAINTENANCE.md).
 
 ## Current features

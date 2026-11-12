@@ -36,7 +36,7 @@ clear, and removes material that no longer supports them.
 ## Current documentation
 
 README and APP_SUMMARY now describe the active app rather than accumulating
-historical instructions. docs/README.md is the index; CHANGELOG.md replaces the
+historical instructions. docs/1.Directory.md is the index; CHANGELOG.md replaces the
 scattered release diaries. Installation, testing and calculation guides have
 been brought up to date. Relative document/image links are checked with:
 

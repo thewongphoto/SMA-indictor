@@ -45,6 +45,7 @@ def main():
                 page.get_by_role('button',name='Save',exact=True).click()
                 expect(page.get_by_role('button',name='Saved',exact=True)).to_be_visible()
                 page.screenshot(path=str(OUT/'chart.png'))
+                page.locator('section.backtest').screenshot(path=str(OUT/'backtest.png'))
                 page.get_by_role('button',name='Edit',exact=True).click()
                 page.get_by_label('Name',exact=True).fill('Long-term trend')
                 page.get_by_role('button',name='Rose',exact=True).click()

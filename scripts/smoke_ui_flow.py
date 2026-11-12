@@ -21,6 +21,19 @@ class FlowSmoke(MobileYahooSmoke):
         (widget or self.screen).export_to_png(str(root/(name+".png")))
 
     def tap(self,widget):
+        # Real touch at the widget's window position; bring it into view first
+        # when it sits further down a scrolling page.
+        from kivy.uix.scrollview import ScrollView
+        parent=widget.parent
+        seen=set()
+        while parent is not None and not isinstance(parent,ScrollView) and id(parent) not in seen:
+            seen.add(id(parent))  # the Window is its own parent
+            parent=parent.parent
+        if not isinstance(parent,ScrollView):
+            parent=None
+        if parent is not None:
+            parent.scroll_to(widget,padding=10,animate=False)
+            parent.update_from_scroll()
         pointer=Pointer(*widget.to_window(*widget.center))
         pointer.down();pointer.up()
 
@@ -87,7 +100,8 @@ class FlowSmoke(MobileYahooSmoke):
         assert "Recovery plan" in ui.legend_labels and ui.chart.inspection_name=="Recovery plan"
         assert "Recovery plan" in ui.saved_rows[saved.id]["title"].text
         assert "Recovery plan" in ui.landing_saved_rows[saved.id]["title"].text
-        assert "Recovery plan" in ui.backtest_section_title.text
+        assert ui.backtest_subcaptions["crossings"].text=="Your Recovery plan signals"
+        assert "Recovery plan" in ui.saved_menu_label.text
         assert ui.backtest_details.text==""
         self.capture("named-chart")
         self.capture("backtesting",ui.table_panel)

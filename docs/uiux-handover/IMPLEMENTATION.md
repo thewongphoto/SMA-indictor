@@ -1,4 +1,15 @@
-# November UI/UX implementation — 0.14.0
+# November UI/UX implementation — 0.14.0, completed in 0.14.2
+
+**0.14.2:** the owner reported that the Android build did not show the new
+design, with the backtest cell as the clearest example. 0.14.0 had restyled
+colours and added tabs but kept older layouts for Charts, backtesting,
+Settings and search. 0.14.2 rebuilds those against the screens in
+[screens.md](screens.md): 01, 02, 2b, 04, 06, 07, 09, 10, 11, 12, 13 and 14.
+Where a mockup used sample numbers, the app shows engine results. Two wording
+choices differ deliberately: the first-open screen says "A signup count"
+(voluntary signups, not total downloads), and the offline card is titled
+"Can't reach market data" because the check cannot tell offline from a
+blocked source.
 
 The owner supplied this handover and authorized code changes, GitHub publication,
 an Android APK build and matching iPhone web UI. The original design-only commit

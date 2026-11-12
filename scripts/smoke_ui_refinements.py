@@ -82,8 +82,9 @@ class RefinementSmoke(MobileYahooSmoke):
             for width in (320,440):
                 Window.size=(width,920)
                 yield from self.frames()
-                assert ui.guide_backtest_heading.right<=ui.guide_backtest_period.x
+                assert ui.guide_backtest_heading.y>=ui.guide_backtest_period.top
                 assert ui.guide_backtest_period.right<=ui.guide_content.right
+                assert all(button.width>=dp(44) and button.height>=dp(44) for button in ui.guide_backtest_period.buttons.values())
                 assert ui.guide_backtest_years.width>=dp(44)
                 self.capture("guide-custom-"+str(width),ui.guide_content)
             with patch.object(ui.guide_scroll,"scroll_to",wraps=ui.guide_scroll.scroll_to) as reveal:
@@ -122,11 +123,9 @@ class RefinementSmoke(MobileYahooSmoke):
         assert not hasattr(ui,"explanation")
         ui.scroll.scroll_to(ui.timeline_selector,animate=False)
         yield from self.frames()
-        ui.timeline_selector.dispatch("on_release")
-        yield from self.frames()
-        assert ui.timeline_selector.is_open
-        assert tuple(option.text for option in reversed(ui.timeline_selector._dropdown.container.children))==("3M","6M","9M","1Y","3Y","5Y","Max")
-        ui.timeline_selector._dropdown.export_to_png("artifacts/ui-0.9/chart-views.png")
+        assert tuple(ui.timeline_selector.values)==("3M","6M","9M","1Y","3Y","5Y","Max")
+        assert all(button.width>=dp(44) and button.height>=dp(44) for button in ui.timeline_selector.buttons.values())
+        ui.timeline_strip.export_to_png("artifacts/ui-0.9/chart-views.png")
         for label in ("3M","6M","9M"):
             ui.timeline_selector._dropdown.select(label)
             assert ui.chart.timeline==label
@@ -176,23 +175,24 @@ class RefinementSmoke(MobileYahooSmoke):
         self.checked("the theme-native search-plus opens Choose a security; Saved SMAs has no hamburger")
         ui.backtest_period._dropdown.select("3Y")
         report=ui.backtest_report
-        assert f"USD {report.crossings.invested:,.0f}" in ui.backtest_contribution.text
-        assert f"{len(report.crossings.indices)} upward crossings" in ui.backtest_contribution.text
-        assert ui.backtest_gain.text==f"{report.crossings.return_percent:+.2f}%"
+        assert f"USD {report.crossings.invested:,.0f} contributed" in ui.backtest_gains["crossings"].text
+        assert ui.backtest_contribution.text.startswith(f"{len(report.crossings.indices)} buys each · ")
+        assert ui.backtest_unit.text=="USD 100 per buy"
+        assert ui.backtest_gain.text==f"{report.crossings.return_percent:+.1f}% on contributions"
         assert all("vs crossings" in label.text for label in ui.backtest_differences.values())
         yield from self.frames()
         self.capture("backtesting",ui.table_panel)
         loss=replace(report,crossings=replace(report.crossings,ending_value=report.crossings.invested*.9))
         with patch("sma_analyzer.app.compare_investments",return_value=loss):
             ui._refresh_backtest()
-        assert ui.backtest_gain_icon.kind=="loss" and ui.backtest_gain.text=="-10.00%"
+        assert ui.backtest_gain.text=="-10.0% on contributions" and "loss on" in ui.backtest_gains["crossings"].text
         original=ui.model.result
         ui.model.result=replace(original,events=())
         ui._refresh_backtest()
-        assert ui.backtest_gain.text=="N/A" and ui.backtest_gain_icon.opacity==0
+        assert ui.backtest_gain.text=="N/A"
         ui.model.result=original
         ui._refresh_backtest()
-        self.checked("backtesting shows contributed amount, A growth, and separate B/C comparisons")
+        self.checked("backtest card (design 2b): chips, buys/date summary, contributed gains, bars and separate B/C comparisons")
         for page in ui.pages:
             texts=[w.text.lower() for w in ui.pages[page].walk() if isinstance(w,(Label,TextInput))]
             assert not any("yahoo" in text or "simulat" in text for text in texts),page

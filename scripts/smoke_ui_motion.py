@@ -6,6 +6,7 @@ from pathlib import Path
 from threading import Event
 from unittest.mock import patch
 
+from kivy.metrics import dp
 from kivy.core.window import Window
 from sma_analyzer.app import CustomValueField
 from sma_analyzer.navigation import BottomSheet, SoftPageTransition
@@ -50,7 +51,7 @@ class MotionSmoke(FlowSmoke):
         assert not ui.backtest_years.disabled
         ui.backtest_years.text="1.5"
         ui.backtest_years.dispatch("on_text_validate")
-        assert ui.backtest_report is not None and ui.backtest_custom_holder.height>44
+        assert ui.backtest_report is not None and ui.backtest_custom_holder.height>=dp(44)
         ui.scroll.scroll_to(ui.table_panel,animate=False)
         yield from self.frames()
         self.capture("custom-backtesting")

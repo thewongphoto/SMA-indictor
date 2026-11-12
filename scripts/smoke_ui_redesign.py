@@ -22,6 +22,13 @@ class RedesignSmoke(FlowSmoke):
                 assert len(ui.tab_buttons)==4
                 assert all(button.width>=dp(44) for button in ui.tab_buttons.values())
                 ui.export_to_png(str(out/f'{destination}-{width}.png'))
+        Window.size=(390,844)
+        ui.select_tab('results')
+        yield from self.frames(12)
+        ui.content.export_to_png(str(out/'results-full-390.png'))
+        ui.select_tab('settings')
+        yield from self.frames(12)
+        ui.settings_content.export_to_png(str(out/'settings-full-390.png'))
         ui.appearance_buttons['light'].dispatch('on_release')
         yield from self.frames()
         assert tuple(ui.page_titles['library'].color)==mapped(TEXT)

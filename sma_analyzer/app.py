@@ -26,6 +26,7 @@ from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
 from kivy.graphics.instructions import InstructionGroup
 from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
+from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -49,7 +50,9 @@ from .viewport import available_timelines
 from .widgets import (TimelineSelector, RoundedSelector, LegendItem, LegendSymbol,
                       IconButton, IconSymbol, RuleSwitch, SecurityMatchButton,
                       SecurityIdentity, SecurityIdentityButton, SavedSecurityGroup)
-from .widgets import PreferenceReveal, ColorOption
+from .widgets import PreferenceReveal, ColorOption, ChipSelector, ShareBar
+from .theme import SUNKEN, SECONDARY_BAR, BORDER, SURFACE as SURFACE_PANEL
+from .backtest_text import backtest_span, gain_phrase
 from .notifications import evaluate_eod, evaluate_dataset_eod, deliver_alerts, AndroidNotifier, Alert
 from .android_window import AndroidWindow
 from .backtest import compare_investments, period_sessions
@@ -942,9 +945,13 @@ class AnalyzerScreen(Experience, FloatLayout):
         self.search_scroll.scroll_to(self.search_panel, animate=False)
 
     def _clear_security_matches(self):
+        if getattr(self, "search_error_card", None) is not None and self.search_error_card.parent is not None:
+            self.search_error_card.parent.remove_widget(self.search_error_card)
         self.search_results = ()
         self.security_match_buttons = []
         self.search_matches.clear_widgets()
+        if hasattr(self, "refresh_recent"):
+            self.refresh_recent()
 
     def on_security_query_edited(self, *_):
         if self._syncing_search:
@@ -994,13 +1001,18 @@ class AnalyzerScreen(Experience, FloatLayout):
         try:
             matches = tuple(future.result())
             self.search_results = matches
+            saved = {line.counter for line in self.model.library_lines()}
             for security in matches:
-                button = SecurityMatchButton(security)
+                known = security.key in saved
+                button = SecurityMatchButton(security, action="Open  ›" if known else "Analyse  ›",
+                                             badge="SAVED" if known else "")
                 button.disabled = self.busy
                 button.bind(on_release=lambda _, item=security: self.select_security_match(item))
                 self.security_match_buttons.append(button)
                 self.search_matches.add_widget(button)
-            self.search_status.text = ((f"{len(matches)} matches. Select one to load daily price history."
+            if hasattr(self, "refresh_recent"):
+                self.refresh_recent()
+            self.search_status.text = ((f"{len(matches)} {'match' if len(matches) == 1 else 'matches'} for \"{self._submitted_query}\". Select one to load daily price history."
                                        if matches else "No US/SG stock or ETF matches. Try the ticker (e.g. AAPL or D05.SI), or refresh results.")
                                       if self.yahoo_enabled else
                                       (f"{len(matches)} preview matches. Select one to load example history."
@@ -1010,6 +1022,8 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.search_status.text = (display_text(error) if self.yahoo_enabled and isinstance(error, RuntimeError)
                                        else "Search could not be completed. Press Submit to try again.")
             self.search_status.color = ERROR
+            if hasattr(self, "show_search_error"):
+                self.show_search_error(self.search_status.text)
         self._update_api_status()
 
     def select_security_match(self, security):
@@ -1041,6 +1055,8 @@ class AnalyzerScreen(Experience, FloatLayout):
             if dataset.counter != security.key or dataset.scenario != scenario or len(dataset.prices) < 4:
                 raise ValueError("History does not match the selected security.")
             self.model.apply_dataset(dataset)
+            if hasattr(self, "remember_recent"):
+                self.remember_recent(security.key)
             self._job += 1
             self._syncing_controls = True
             try:
@@ -1133,6 +1149,8 @@ class AnalyzerScreen(Experience, FloatLayout):
             button.disabled = busy
         self.save_button.disabled = busy or self.model.result is None
         self.hide_button.disabled = busy or self.model.result is None
+        if hasattr(self,"refresh_detail_frequency"):
+            self.refresh_detail_frequency()
         if hasattr(self,"optimization_overlay"):
             if busy:
                 self.optimization_overlay.show(self.model.target_frequency)
@@ -1146,8 +1164,9 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.show_search()
             self.search_status.text = "Choose a real company and load its daily history before optimizing."
             return
-        self.show_parameters()
-        self._result_origin = "parameters"
+        if not getattr(self, "_optimize_in_place", False):
+            self.show_parameters()
+            self._result_origin = "parameters"
         try:
             self._read_target()
         except ValueError as error:
@@ -1398,7 +1417,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         if self.yahoo_enabled and self.library_state == "empty":
             widgets = [self.library_intro, self.library_archive_button]
         if self.source_warning.text:
-            widgets.insert(0, self.source_warning)
+            widgets.insert(0, getattr(self, "source_warning_card", self.source_warning))
         for widget in widgets:
             self.library_content.add_widget(widget)
 
@@ -2039,93 +2058,117 @@ class AnalyzerScreen(Experience, FloatLayout):
                 table.add_widget(Label(text=value,color=TEXT,font_size=sp(12)))
         return table
 
-    def _add_investment_horizon(self, container, callback, default="1Y"):
-        """Shared horizon/Custom inputs for the guide and the selected SMA."""
-        header = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(6))
+    def _add_investment_horizon(self, container, callback, default="1Y", heading_text=None, heading_muted=False):
+        """Shared horizon chips/Custom input for the guide and the selected SMA (design 2b)."""
         prefix = "USD " if self.yahoo_enabled else "$"
-        heading = WrappedLabel(text=f"If you invested {prefix}100 per buy for the past:", bold=True, font_size=sp(14))
-        heading.pos_hint = {"center_y": .5}
-        header.add_widget(heading)
-        period = TimelineSelector(values=("1Y", "3Y", "5Y", "Max", "Custom"))
-        period.text = default
-        period.width = dp(112)
-        period.pos_hint = {"center_y": .5}
-        header.add_widget(period)
-        heading.bind(height=lambda _, height: setattr(header, "height", max(dp(48), height)))
-        container.add_widget(header)
-        custom_row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
-        custom_row.bind(minimum_height=custom_row.setter("height"))
-        custom_row.add_widget(WrappedLabel(text="Custom period (years)", font_size=sp(11), color=MUTED))
-        entry = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
-        years = CustomValueField(text="2", hint_text="Years")
-        entry.add_widget(years)
-        entry.add_widget(LabButton(text="Apply", on_release=callback, size_hint_x=None, width=dp(82)))
-        custom_row.add_widget(entry)
+        heading = WrappedLabel(text=heading_text or f"If you invested {prefix}100 per buy for the past:",
+                               bold=not heading_muted, color=MUTED if heading_muted else TEXT,
+                               font_size=sp(13 if heading_muted else 14))
+        container.add_widget(heading)
+        period = ChipSelector(("1Y", "3Y", "5Y", "Max", "Custom"), text=default)
+        container.add_widget(period)
+        custom_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
+        custom_row.add_widget(WrappedLabel(text="Years of history", font_size=sp(14), pos_hint={"center_y": .5}))
+        years = CustomValueField(text="2", hint_text="Years", size_hint_x=None, width=dp(84))
+        custom_row.add_widget(years)
+        custom_row.add_widget(LabButton(text="Apply", on_release=callback, size_hint_x=None, width=dp(82)))
         holder = PreferenceReveal(custom_row, detach_when_hidden=True)
         container.add_widget(holder)
         period.bind(on_select=callback)
         years.bind(on_text_validate=callback, focus=self._editor_focus)
         return heading, period, years, holder
 
+    BACKTEST_ROWS = (("crossings", "At upward crossings"),
+                     ("dca", "At equal intervals"),
+                     ("random", "At random dates"))
+
     def _refresh_table(self):
         # Keep the controls alive: refreshing after a save/hide must retain the period.
         if not hasattr(self, "backtest_period"):
-            self.backtest_section_title=WrappedLabel(text="",font_size=sp(11),color=MUTED)
-            self.table_panel.add_widget(self.backtest_section_title)
+            panel = self.table_panel
+            title_row = BoxLayout(size_hint_y=None, height=dp(30))
+            self.backtest_section_title = WrappedLabel(text="Backtest", bold=True, font_size=sp(17),
+                                                       pos_hint={"center_y": .5})
+            title_row.add_widget(self.backtest_section_title)
+            self.backtest_unit = WrappedLabel(text="", color=MUTED, font_size=sp(12), halign="right",
+                                              size_hint_x=None, width=dp(120), pos_hint={"center_y": .5})
+            title_row.add_widget(self.backtest_unit)
+            panel.add_widget(title_row)
             (self.backtest_heading, self.backtest_period,
              self.backtest_years, self.backtest_custom_holder) = self._add_investment_horizon(
-                self.table_panel, self._refresh_backtest)
-            self.backtest_contribution = WrappedLabel(font_size=sp(13))
-            self.table_panel.add_widget(self.backtest_contribution)
-            self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(11))
-            self.table_panel.add_widget(self.backtest_details)
-            self.backtest_values = {}
-            self.backtest_differences = {}
-            self.backtest_captions = {}
-            self.backtest_info_buttons = {}
-            for key in ("crossings", "dca", "random"):
-                row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(2))
+                panel, self._refresh_backtest,
+                heading_text="Three ways to make the same number of buys over the same period.",
+                heading_muted=True)
+            self.backtest_contribution = WrappedLabel(color=MUTED, font_size=sp(12), bold=True)
+            panel.add_widget(self.backtest_contribution)
+            self.backtest_details = WrappedLabel(color=MUTED, font_size=sp(12))
+            panel.add_widget(self.backtest_details)
+            self.backtest_values, self.backtest_differences = {}, {}
+            self.backtest_captions, self.backtest_subcaptions = {}, {}
+            self.backtest_info_buttons, self.backtest_bars, self.backtest_gains = {}, {}, {}
+            for key, title in self.BACKTEST_ROWS:
+                row = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(6))
                 row.bind(minimum_height=row.setter("height"))
-                caption_row = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(2))
-                caption = WrappedLabel(text="", bold=True)
-                caption.pos_hint = {"center_y": .5}
-                caption.bind(height=lambda _, height, box=caption_row: setattr(box, "height", max(dp(44), height)))
-                caption_row.add_widget(caption)
-                self.backtest_captions[key] = caption
+                top = BoxLayout(size_hint_y=None, spacing=dp(10))
+                words = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(1))
+                words.bind(minimum_height=words.setter("height"))
+                caption = WrappedLabel(text=title, bold=True, font_size=sp(14))
+                words.add_widget(caption)
+                sub_row = BoxLayout(size_hint_y=None, height=dp(20), spacing=dp(2))
+                sub = WrappedLabel(text="", color=MUTED, font_size=sp(12), pos_hint={"center_y": .5})
+                sub_row.add_widget(sub)
+                sub.bind(height=lambda _, height, box=sub_row: setattr(box, "height", max(dp(20), height)))
                 if key != "crossings":
-                    info = IconButton(kind="info")
-                    info.pos_hint = {"center_y": .5}
+                    info = IconButton(kind="info", pos_hint={"center_y": .5})
                     info.bind(on_release=lambda _, scenario=key: self.show_backtest_help(scenario))
-                    caption_row.add_widget(info)
+                    sub_row.add_widget(info)
+                    sub_row.height = dp(44)
                     self.backtest_info_buttons[key] = info
-                row.add_widget(caption_row)
-                row.add_widget(WrappedLabel(text="Value of total investment", halign="right", font_size=sp(11), color=MUTED))
-                value_row = BoxLayout(size_hint_y=None, height=dp(30), spacing=dp(4))
-                value_row.add_widget(Label())
-                value = Label(text="—", size_hint_x=None, bold=True, color=PRICE_COLOR, font_size=sp(17))
-                value.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(2)))
-                value_row.add_widget(value)
-                if key != "crossings":
-                    difference = Label(text="", size_hint_x=None, font_size=sp(11), color=MUTED)
-                    difference.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(2)))
-                    value_row.add_widget(difference)
-                    self.backtest_differences[key] = difference
+                words.add_widget(sub_row)
+                top.add_widget(words)
+                numbers = BoxLayout(orientation="vertical", size_hint=(None, None), width=dp(150), spacing=dp(1))
+                numbers.bind(minimum_height=numbers.setter("height"))
+                value = WrappedLabel(text="—", bold=True, font_size=sp(15), halign="right")
+                difference = WrappedLabel(text="", font_size=sp(12), bold=True, halign="right", color=MUTED)
+                numbers.add_widget(value)
+                numbers.add_widget(difference)
+                top.add_widget(numbers)
+                fit = lambda *_, box=top, a=words, b=numbers: setattr(box, "height", max(a.height, b.height))
+                words.bind(height=fit)
+                numbers.bind(height=fit)
+                row.add_widget(top)
+                bar = ShareBar(fill=list(ACCENT if key == "crossings" else SECONDARY_BAR))
+                row.add_widget(bar)
+                gain = WrappedLabel(text="", color=MUTED, font_size=sp(11))
+                row.add_widget(gain)
+                panel.add_widget(row)
+                self.backtest_captions[key], self.backtest_subcaptions[key] = caption, sub
+                self.backtest_values[key], self.backtest_bars[key], self.backtest_gains[key] = value, bar, gain
+                if key == "crossings":
+                    self.backtest_gain = difference
                 else:
-                    self.backtest_gain_icon = IconSymbol(kind="gain",size_hint=(None,None),
-                                                        size=(dp(18),dp(24)),pos_hint={"center_y":.5})
-                    value_row.add_widget(self.backtest_gain_icon)
-                    self.backtest_gain = Label(text="",size_hint_x=None,font_size=sp(12),color=PRICE_COLOR)
-                    self.backtest_gain.bind(texture_size=lambda widget,size:setattr(widget,"width",size[0]+dp(2)))
-                    value_row.add_widget(self.backtest_gain)
-                row.add_widget(value_row)
-                self.backtest_values[key] = value
-                self.table_panel.add_widget(row)
+                    self.backtest_differences[key] = difference
+            self.backtest_stat = BoxLayout(size_hint_y=None, height=dp(64), spacing=dp(12), padding=dp(12))
+            with self.backtest_stat.canvas.before:
+                Color(*SUNKEN)
+                stat_rect = RoundedRectangle(radius=[dp(12)])
+            self.backtest_stat.bind(pos=lambda widget, _: setattr(stat_rect, "pos", widget.pos),
+                                    size=lambda widget, _: setattr(stat_rect, "size", widget.size))
+            self.backtest_rank = Label(text="—", bold=True, font_size=sp(22), color=ACCENT,
+                                       size_hint_x=None, pos_hint={"center_y": .5})
+            self.backtest_rank.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0] + dp(4)))
+            self.backtest_stat.add_widget(self.backtest_rank)
             self.backtest_note = WrappedLabel(text="", color=MUTED, font_size=sp(12))
-            self.table_panel.add_widget(self.backtest_note)
-            self.crossing_details_button = LabButton(text="View all upward crossings")
+            self.backtest_stat.add_widget(self.backtest_note)
+            self.backtest_note.bind(height=lambda _, height: setattr(self.backtest_stat, "height",
+                                                                     max(dp(64), height + dp(24))))
+            panel.add_widget(self.backtest_stat)
+            panel.add_widget(WrappedLabel(text="Excludes fees, taxes and currency moves. An estimate from past "
+                                               "prices, not a forecast.", color=MUTED, font_size=sp(11)))
+            self.crossing_details_button = LabButton(text="All upward crossings  ›")
             self.crossing_details_button.bind(on_release=self.show_more_crossings)
-            self.table_panel.add_widget(self.crossing_details_button)
-        self.backtest_section_title.text=f"03  /  BACKTESTING · {self.model.current_line_name()}"
+            panel.add_widget(self.crossing_details_button)
+        self.backtest_subcaptions["crossings"].text = f"Your {self.model.current_line_name()} signals"
         self._refresh_backtest()
 
     def show_color_picker(self,*_):
@@ -2163,18 +2206,41 @@ class AnalyzerScreen(Experience, FloatLayout):
         if saved is None:
             return
         self.finish_editing()
-        content=BoxLayout(orientation="vertical",spacing=dp(10),padding=dp(12))
+        content=BoxLayout(orientation="vertical",spacing=dp(10),padding=(dp(16),dp(8),dp(16),dp(16)))
+        # Design 09 sheet: handle, title and line identity, Done at the top right.
+        handle=AnchorLayout(size_hint_y=None,height=dp(12))
+        grip=Widget(size_hint=(None,None),size=(dp(40),dp(4)))
+        with grip.canvas:
+            Color(*BORDER)
+            grip_rect=RoundedRectangle(radius=[dp(2)])
+        grip.bind(pos=lambda widget,_:setattr(grip_rect,"pos",widget.pos),size=lambda widget,_:setattr(grip_rect,"size",widget.size))
+        handle.add_widget(grip)
+        content.add_widget(handle)
+        header=BoxLayout(size_hint_y=None,height=dp(52),spacing=dp(8))
+        titles=BoxLayout(orientation="vertical")
+        titles.add_widget(WrappedLabel(text="Edit line",bold=True,font_size=sp(20)))
+        titles.add_widget(WrappedLabel(text=f"{self.model.security(saved.counter).ticker} · {sma_label(saved.period)} · "
+                                            f"target {saved.target_frequency}/year",color=MUTED,font_size=sp(13)))
+        header.add_widget(titles)
+        self.rename_save_button=LabButton(text="Done",size_hint_x=None,width=dp(72),pos_hint={"center_y":.5})
+        self.rename_save_button.fill=SURFACE_PANEL
+        self.rename_save_button.color=ACCENT
+        self.rename_save_button.font_size=sp(16)
+        self.rename_save_button._draw()
+        header.add_widget(self.rename_save_button)
+        content.add_widget(header)
         scroll=ScrollView(do_scroll_x=False)
         fields=BoxLayout(orientation="vertical",size_hint_y=None,spacing=dp(8))
         fields.bind(minimum_height=fields.setter("height"))
-        fields.add_widget(WrappedLabel(text=f"{sma_label(saved.period)} · target {saved.target_frequency}/year. Leave blank to use the default name.",color=MUTED))
+        fields.add_widget(WrappedLabel(text="Name",bold=True,font_size=sp(15)))
         self.rename_editor=EditingField(text=saved.custom_name,hint_text="Name your saved SMA",multiline=False,
-            size_hint_y=None,height=dp(48),font_size=sp(16),padding=dp(10),foreground_color=TEXT,
-            background_normal="",background_active="",background_color=(.10,.15,.23,1))
+            size_hint_y=None,height=dp(52),font_size=sp(16),padding=dp(12),foreground_color=TEXT,
+            background_normal="",background_active="",background_color=BG)
         fields.add_widget(self.rename_editor)
+        fields.add_widget(WrappedLabel(text=f"Leave blank to use {sma_label(saved.period)}.",color=MUTED,font_size=sp(13)))
         self.rename_status=WrappedLabel(text="",color=ERROR,font_size=sp(12))
         fields.add_widget(self.rename_status)
-        fields.add_widget(WrappedLabel(text="Colour",bold=True))
+        fields.add_widget(WrappedLabel(text="Colour",bold=True,font_size=sp(15)))
         grid=GridLayout(cols=4,spacing=dp(8),size_hint_y=None)
         grid.bind(minimum_height=grid.setter('height'))
         self.edit_line_color = None
@@ -2192,19 +2258,13 @@ class AnalyzerScreen(Experience, FloatLayout):
         fields.add_widget(grid)
         scroll.add_widget(fields)
         content.add_widget(scroll)
-        buttons=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
-        cancel=LabButton(text="Cancel")
-        self.rename_save_button=LabButton(text="Done",primary=True)
-        buttons.add_widget(cancel)
-        buttons.add_widget(self.rename_save_button)
-        content.add_widget(buttons)
-        self.rename_popup=ScreenPopup(self,title="Edit line",content=content,size_hint=(None,None))
+        self.rename_popup=ScreenPopup(self,title="",title_size=0,separator_height=0,content=content,
+                                      size_hint=(None,None),background="",background_color=SURFACE_PANEL)
         self.bind(size=self._position_rename_popup,pos=self._position_rename_popup)
         def dismiss(*_):
             self.rename_editor.focus=False
             self.unbind(size=self._position_rename_popup,pos=self._position_rename_popup)
         self.rename_popup.bind(on_dismiss=dismiss)
-        cancel.bind(on_release=self.rename_popup.dismiss)
         def save_name(*_):
             try:
                 self.model.store.rename(saved.id,self.rename_editor.text)
@@ -2232,12 +2292,16 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.backtest_years.focus = False
         self.backtest_custom_holder.show(custom,animate=True)
         self.backtest_report = None
+        prefix = "USD " if self.yahoo_enabled else "$"
+        self.backtest_unit.text = f"{prefix}100 per buy"
         self.backtest_contribution.text = ""
         self.backtest_gain.text = ""
-        self.backtest_gain_icon.opacity = 0
+        self.backtest_rank.text = "—"
         self.crossing_details_button.disabled = self.model.result is None
-        for value in self.backtest_values.values():
-            value.text = "—"
+        for key in self.backtest_values:
+            self.backtest_values[key].text = "—"
+            self.backtest_bars[key].share = 0
+            self.backtest_gains[key].text = ""
         for difference in self.backtest_differences.values():
             difference.text = ""
         if self.model.result is None:
@@ -2248,48 +2312,43 @@ class AnalyzerScreen(Experience, FloatLayout):
         try:
             data, result = self.model.dataset, self.model.result
             dates = data.dates if not getattr(data, "is_simulated", True) else None
-            self.backtest_heading.text = ("If you invested USD 100 per buy for the past:"
-                                          if dates else "If you invested $100 per buy for the past:")
+            prefix = "USD " if dates else "$"
+            self.backtest_unit.text = f"{prefix}100 per buy"
             sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices), dates)
             report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
             self.backtest_report = report
             count = len(report.crossings.indices)
             self._set_backtest_captions(count)
-            from datetime import date
-            years = ((date.fromisoformat(data.dates[report.end])-date.fromisoformat(data.dates[report.start])).days/CALENDAR_DAYS_PER_YEAR
-                     if dates else (report.end-report.start+1)/252)
-            prefix = "USD " if dates else "$"
-            self.backtest_contribution.text = (f"Over {years:.2f} years, following {count} upward crossings, "
-                f"you would have invested {prefix}{report.crossings.invested:,.0f} in total ({count} × {prefix}100).")
+            self.backtest_contribution.text = f"{count} buys each · " + backtest_span(data, report, dates)
             self.backtest_details.text = ""
             gain = report.crossings.return_percent
-            if gain is not None:
-                self.backtest_gain_icon.kind = "gain" if gain>=0 else "loss"
-                self.backtest_gain_icon.opacity = 1
-                self.backtest_gain.text = f"{gain:+.2f}%"
-                self.backtest_gain.color = (.22,.94,.43,1) if gain>=0 else ERROR
+            self.backtest_gain.text = "N/A" if gain is None else f"{gain:+.1f}% on contributions"
+            self.backtest_gain.color = MUTED if gain is None else ACCENT if gain >= 0 else ERROR
+            if report.outperformance_percent is not None:
+                self.backtest_rank.text = f"{report.outperformance_percent:.0f}%"
+                self.backtest_note.text = ("of the 500 random samples paid a higher average price than the "
+                                           "crossing buys.")
             else:
-                self.backtest_gain.text = "N/A"
-            self.backtest_note.text = (
-                f"{report.outperformance_percent:.1f}% of the 500 random samples paid a higher average price than the crossing buys."
-                if report.outperformance_percent is not None else
-                "No upward crossings in this period; no purchase comparison is available.")
+                self.backtest_note.text = "No upward crossings in this period; no purchase comparison is available."
+            largest = max((getattr(report, key).ending_value for key in self.backtest_values), default=0)
             for key, value in self.backtest_values.items():
                 scenario = getattr(report, key)
-                value.text = f"{prefix}{scenario.ending_value:,.2f}"
+                value.text = f"{prefix}{scenario.ending_value:,.0f}"
+                self.backtest_bars[key].share = scenario.ending_value/largest if largest > 0 else 0
+                self.backtest_gains[key].text = gain_phrase(scenario.ending_value, scenario.invested, prefix)
                 if key in self.backtest_differences:
                     percent = scenario.difference_percent(report.crossings)
-                    self.backtest_differences[key].text = ("(N/A vs crossings)" if percent is None
-                        else f"({percent:+.2f}% vs crossings)")
+                    label = self.backtest_differences[key]
+                    label.text = "N/A vs crossings" if percent is None else f"{percent:+.1f}% vs crossings"
+                    label.color = MUTED if percent is None else ACCENT if percent > 0 else ERROR if percent < 0 else MUTED
         except ValueError as error:
             self.backtest_details.text = str(error)
             self.backtest_note.text = ""
             self._set_backtest_captions("—")
 
     def _set_backtest_captions(self, count):
-        self.backtest_captions["crossings"].text = f"At upward crossings · {count} buys"
-        self.backtest_captions["dca"].text = f"At equal intervals · {count} buys"
-        self.backtest_captions["random"].text = f"At random dates · {count} buys (most common of 500 samples)"
+        self.backtest_subcaptions["dca"].text = "Regular buys, evenly spaced"
+        self.backtest_subcaptions["random"].text = "Most common of 500 samples"
 
     def show_backtest_help(self, scenario):
         if scenario == "dca":

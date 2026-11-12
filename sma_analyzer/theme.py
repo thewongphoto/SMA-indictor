@@ -12,6 +12,13 @@ ON_ACCENT = rgba('#06201C')
 POSITIVE = rgba('#34D399')
 NEGATIVE = rgba('#F87171')
 BORDER = rgba('#2F4150')
+SUNKEN = rgba('#0E161D')
+ACCENT_TINT = rgba('#0F3B36')
+SECONDARY_BAR = rgba('#5B7386')
+NEGATIVE_TINT = rgba('#3A1F22')
+WARNING_BG = rgba('#2A2412')
+WARNING_TITLE = rgba('#FBBF24')
+WARNING_TEXT = rgba('#E7D9B0')
 
 def register_fonts():
     from pathlib import Path

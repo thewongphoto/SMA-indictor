@@ -191,21 +191,30 @@ class OptimizationOverlay(FloatLayout):
         super().__init__(size_hint=(None,None),**kwargs)
         self.host=host
         with self.canvas.before:
-            Color(0,0,0,.42)
+            Color(0.02,0.03,0.04,.66)
             self.scrim=Rectangle()
         self.card=BoxLayout(orientation="vertical",size_hint=(None,None),height=dp(292),
                            padding=dp(16),spacing=dp(8))
+        from . import theme
         with self.card.canvas.before:
-            Color(.10,.15,.23,1)
-            self.surface=RoundedRectangle(radius=[dp(16)])
+            Color(*theme.SURFACE)
+            self.surface=RoundedRectangle(radius=[dp(20)])
         self.logo=CrossingLogoAnimation()
         self.card.add_widget(self.logo)
         self.card.add_widget(Label(text="Finding your SMA line…",bold=True,font_size=sp(18),color=(.92,.95,.98,1)))
-        self.caption=Label(font_size=sp(12),color=(.58,.66,.75,1),halign="center",valign="middle")
+        self.caption=Label(font_size=sp(14),color=theme.MUTED,halign="center",valign="middle")
         self.caption.bind(size=lambda widget,size:setattr(widget,"text_size",size))
         self.card.add_widget(self.caption)
         from .app import LabButton
         self.cancel_button=LabButton(text="Cancel")
+        self.cancel_button.fill=theme.SURFACE
+        self.cancel_button.font_size=sp(15)
+        self.cancel_button.height=dp(48)
+        with self.cancel_button.canvas.after:
+            Color(*theme.BORDER)
+            outline=Line(width=dp(1))
+        self.cancel_button.bind(pos=lambda b,_:setattr(outline,"rounded_rectangle",(*b.pos,*b.size,dp(10))),
+                                size=lambda b,_:setattr(outline,"rounded_rectangle",(*b.pos,*b.size,dp(10))))
         self.cancel_button.bind(on_release=lambda *_: self.host.cancel_optimization())
         self.card.add_widget(self.cancel_button)
         self.add_widget(self.card)
@@ -224,7 +233,13 @@ class OptimizationOverlay(FloatLayout):
         self.pos,self.size=self.host.pos,self.host.size
 
     def show(self,target):
-        self.caption.text=f"Finding a line for {target} upward crossings/year"
+        ticker=""
+        try:
+            data=self.host.model.dataset
+            ticker=self.host.model.security(data.counter).ticker if data.prices else ""
+        except Exception:
+            ticker=""
+        self.caption.text=(f"Matching about {target} upward crossings a year" + (f" for {ticker}." if ticker else "."))
         self._fit_host()
         if self.parent is None:
             self.host.bind(pos=self._fit_host,size=self._fit_host)

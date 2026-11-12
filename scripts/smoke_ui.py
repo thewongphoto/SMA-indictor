@@ -149,9 +149,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         # Font textures and minimum-height bindings settle over multiple frames.
         # Wait for actual layout instead of relying on a fixed startup delay.
         deadline = time.monotonic() + 3
-        while ui.optimal_panel.top <= ui.chart.parent.top:
-            assert time.monotonic() < deadline, "Optimal SMA panel must be above the chart"
+        while not (ui.detail_hero.y >= ui.detail_status.top and ui.detail_status.y >= ui.chart.parent.top):
+            assert time.monotonic() < deadline, "Design 02 order: price hero, then status card, then the chart"
             yield
+        assert ui.timeline_strip.top <= ui.chart.parent.y and ui.table_panel.top <= ui.detail_signals.y
         assert len(ui.chart.prices) == 1260 and not ui.chart.series
         assert ui.chart.viewport.bounds == (1008, 1259)
         assert ui.timeline_selector.text == "1Y"
@@ -166,10 +167,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.chart_change.period_label.text == "PAST 1Y"
         self.check("preview chart comparisons handle missing quote currency without inventing a denomination")
         assert "count" not in ui.card_values
-        assert len(ui.cards.children) == 2
-        assert ui.save_button.parent.parent is ui.optimal_panel
+        assert len(ui.cards.children) == 2  # values kept for flows; summarized by the status card
+        # Design 02: Save sits in the header bar; Show/Hide stays with the selected line.
+        assert ui.save_button.parent is ui.saved_menu_label.parent
         assert ui.hide_button.parent.parent is ui.optimal_panel
-        assert ui.optimal_panel.top > ui.chart.parent.top
+        assert ui.detail_status.top > ui.chart.parent.top
         assert ui.save_button.disabled
         assert not ui.save_button.selected and ui.save_button.text == "Save"
         assert ui.manager.current == "library" and ui.library_state == "empty"
@@ -200,10 +202,10 @@ class SmokeApp(SMAStockAnalyzerApp):
             report = ui.backtest_report
             assert report is not None
             for key, label in ui.backtest_values.items():
-                assert label.text == f"${getattr(report, key).ending_value:,.2f}"
+                assert label.text == f"${getattr(report, key).ending_value:,.0f}"
                 if key in ui.backtest_differences:
                     delta = getattr(report, key).difference_percent(report.crossings)
-                    assert ui.backtest_differences[key].text == f"({delta:+.2f}% vs crossings)"
+                    assert ui.backtest_differences[key].text == f"{delta:+.1f}% vs crossings"
             assert "contributed" not in ui.backtest_details.text.lower()
             assert ui.manager.current == "results"
             self.check(f"target {target}: button, engine, cards, chart markers and investment values")
@@ -281,7 +283,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         assert ui.card_values["period"].text == "SMA (254 days)"
         assert ui.card_values["actual"].text == "31.31 / yr"
         ui.backtest_period._dropdown.select("Max")
-        assert "125 buys" in ui.backtest_captions["crossings"].text
+        assert ui.backtest_contribution.text.startswith("125 buys each")
         assert ui.model.result.comparisons==1006
         assert ui.model.result.frequency_error>0
         assert not hasattr(ui,"explanation")
@@ -343,7 +345,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         pointer.down(); pointer.up()
         for _ in range(10): yield
         assert not ui.saved_sheet.is_open and ui.saved_sheet.parent is None
-        assert ui.saved_menu_label.text == "Saved lines"
+        assert ui.save_button.parent is ui.saved_menu_label.parent  # header: Back · title · Save
         pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
         for _ in range(10): yield
@@ -515,11 +517,12 @@ class SmokeApp(SMAStockAnalyzerApp):
             assert ui.content.width <= size[0]
             assert ui.chart.width > 200
             assert ui.chart.height >= 240
-            for key, difference in ui.backtest_differences.items():
-                value = ui.backtest_values[key]
-                assert value.right <= difference.x
-                assert difference.right <= ui.table_panel.right-dp(12)
-                assert value.x >= ui.table_panel.x+dp(12)
+            for key, value in ui.backtest_values.items():
+                caption = ui.backtest_captions[key]
+                assert caption.right <= value.parent.x
+                assert value.parent.right <= ui.table_panel.right-dp(12)
+                assert caption.x >= ui.table_panel.x+dp(12)
+                assert ui.backtest_bars[key].width > 0
             ui.show_parameters()
             for _ in range(4): yield
             wide = size[0] >= 760
@@ -531,7 +534,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(ui.frequency_chips.x-ui.optimize_button.x)<dp(1)
                 assert ui.controls.height < dp(450), "Merged controls stay compact while stacked"
                 assert ui.optimal_panel.orientation == "vertical"
-                assert ui.card_values["period"].y >= ui.save_button.top
+                assert ui.card_values["period"].y >= ui.hide_button.top
             elif ui.control_grid.cols == 1:
                 assert ui.counter.y > ui.frequency_chips.y > ui.optimize_button.y
                 assert ui.controls.height < dp(360)
@@ -635,16 +638,17 @@ class SmokeApp(SMAStockAnalyzerApp):
             yield
         chart = ui.chart
 
-        arrow = Pointer(*ui.timeline_selector.to_window(ui.timeline_selector.right-dp(8), ui.timeline_selector.center_y))
-        arrow.down()
-        arrow.up()
-        for _ in range(14):
+        ui.scroll.scroll_to(ui.timeline_strip, animate=False)
+        for _ in range(4):
             yield
-        assert ui.timeline_selector.is_open, "Arrow area must open the same dropdown as the label"
-        options = {option.text: option for option in ui.timeline_selector._dropdown.container.children}
+        options = ui.timeline_selector.buttons
         assert set(options) == {"3M","6M","9M","1Y","3Y","5Y","Max"}
-        assert options["1Y"].background_color != options["3Y"].background_color
-        options["3Y"].dispatch("on_release")
+        # A real touch on a chip selects it; the selected chip is shaded.
+        chip = options["3Y"]
+        touch = Pointer(*chip.to_window(*chip.center)); touch.down(); touch.up()
+        for _ in range(4):
+            yield
+        assert ui.timeline_selector.text == "3Y" and options["3Y"].color != options["1Y"].color
         assert chart.viewport.bounds == (504,1259)
         # Re-select the same preset after a custom zoom to restore its baseline.
         chart.viewport.select(600,700)
@@ -654,7 +658,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         options["1Y"].dispatch("on_release")
         for _ in range(6):
             yield
-        self.check("rounded dropdown arrow is clickable; selected option shaded; selecting same preset resets drag zoom")
+        self.check("range chips respond to real touches; selected chip shaded; selecting same preset resets drag zoom")
 
         def location(fraction, y_fraction=0.5):
             left, bottom, width, height = chart.plot_rect
@@ -1086,7 +1090,10 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.show_results()
         pointer = Pointer(*ui.saved_menu_label.to_window(*ui.saved_menu_label.center))
         pointer.down(); pointer.up()
-        for _ in range(10): yield
+        # Wait for the slide-in animation itself, not a fixed frame count.
+        deadline = time.monotonic() + 3
+        while not (ui.saved_sheet.is_open and ui.saved_sheet.progress >= 1) and time.monotonic() < deadline:
+            yield
         assert ui.saved_sheet.is_open and ui.saved_sheet.body.height > 0
         assert ui.saved_sheet.body.y >= ui.y-dp(1)
         assert ui.saved_sheet.top <= ui.results_toolbar.to_window(0,ui.results_toolbar.y)[1]+dp(1)
@@ -1214,18 +1221,26 @@ class SmokeApp(SMAStockAnalyzerApp):
         for _ in range(8): yield
         count = len(ui.backtest_report.crossings.indices)
         assert list(ui.backtest_values) == ["crossings", "dca", "random"]
-        assert ui.backtest_captions["crossings"].text == f"At upward crossings · {count} buys"
-        assert ui.backtest_captions["dca"].text == f"At equal intervals · {count} buys"
-        assert ui.backtest_captions["random"].text == f"At random dates · {count} buys (most common of 500 samples)"
-        assert ui.backtest_heading.text == "If you invested $100 per buy for the past:"
-        assert ui.backtest_heading.parent is ui.backtest_period.parent
-        assert ui.backtest_heading.right <= ui.backtest_period.x
+        assert [ui.backtest_captions[key].text for key in ui.backtest_values] == [
+            "At upward crossings", "At equal intervals", "At random dates"]
+        assert ui.backtest_subcaptions["random"].text == "Most common of 500 samples"
+        assert ui.backtest_contribution.text.startswith(f"{count} buys each · ")
+        assert ui.backtest_section_title.text == "Backtest" and ui.backtest_unit.text == "$100 per buy"
+        assert ui.backtest_heading.text == "Three ways to make the same number of buys over the same period."
+        assert ui.backtest_heading.y >= ui.backtest_period.top
+        assert ui.backtest_period.text == "Max" and list(ui.backtest_period.buttons) == ["1Y", "3Y", "5Y", "Max", "Custom"]
+        assert all(button.height >= dp(44) for button in ui.backtest_period.buttons.values())
+        largest = max(getattr(ui.backtest_report, key).ending_value for key in ui.backtest_values)
+        for key in ui.backtest_values:
+            assert abs(ui.backtest_bars[key].share - getattr(ui.backtest_report, key).ending_value/largest) < 1e-9
+            assert "contributed" in ui.backtest_gains[key].text
         assert ui.backtest_details.text == ""
         assert "sessions" not in ui.backtest_details.text and "Warm-up" not in ui.backtest_details.text
         assert not hasattr(ui, "crossing_count_label")
         assert len(ui.backtest_report.random_average_prices) == 500
         y = ui.backtest_report.outperformance_percent
-        assert ui.backtest_note.text == f"{y:.1f}% of the 500 random samples paid a higher average price than the crossing buys."
+        assert ui.backtest_rank.text == f"{y:.0f}%"
+        assert ui.backtest_note.text == "of the 500 random samples paid a higher average price than the crossing buys."
         ui.table_panel.export_to_png("artifacts/preview-backtesting.png")
         self.check("desktop preview: scenario order/counts, inline period, 500-seed values and requested outperformance copy")
 
@@ -1248,10 +1263,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         result = ui.model.result
         ui.model.result = replace(result, events=())
         ui.refresh()
-        assert all(value.text == "$0.00" for value in ui.backtest_values.values())
-        assert all(value.text == "(N/A vs crossings)" for value in ui.backtest_differences.values())
-        assert "No upward crossings" in ui.backtest_note.text
-        assert ui.backtest_captions["dca"].text == "At equal intervals · 0 buys"
+        assert all(value.text == "$0" for value in ui.backtest_values.values())
+        assert all(value.text == "N/A vs crossings" for value in ui.backtest_differences.values())
+        assert "No upward crossings" in ui.backtest_note.text and ui.backtest_rank.text == "—"
+        assert ui.backtest_contribution.text.startswith("0 buys each")
+        assert all(gain.text == "No buys in this period" for gain in ui.backtest_gains.values())
         ui.model.result = result
         ui.refresh()
         self.check("desktop preview: zero-crossing periods show zero ending values and undefined comparisons")
@@ -1313,7 +1329,11 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.saved_sheet.scroll.scroll_to(arrow, animate=False)
         for _ in range(6): yield
         touch = Pointer(*arrow.to_window(*arrow.center)); touch.down(); touch.up()
-        for _ in range(6): yield
+        # The 0.22 s collapse detaches its body on completion; wait for it
+        # rather than a fixed frame count (slow software GL can skip frames).
+        deadline = time.monotonic() + 2
+        while ui.saved_security_groups["DEMO-SGX"]["body"].parent is not None and time.monotonic() < deadline:
+            yield
         assert ui.saved_security_groups["DEMO-SGX"]["body"].parent is None
         assert ui.landing_security_groups["DEMO-SGX"]["body"].parent is None
         assert ui.saved_security_buttons["DEMO-SGX"].kind == "down"
@@ -1448,7 +1468,9 @@ class SmokeApp(SMAStockAnalyzerApp):
                 ui.parameter_scroll.scroll_y = 1
                 for _ in range(10): yield
                 assert ui.security_search.right <= ui.search_submit.x
-                assert ui.search_submit.right <= ui.search_panel.right-dp(12)
+                # Flat search page (design 10): the page content supplies the margin.
+                assert ui.search_submit.right <= ui.search_panel.right
+                assert ui.search_submit.to_window(ui.search_submit.right, 0)[0] <= Window.width-dp(12)
                 assert ui.search_results_scroll.height <= dp(288)
                 for button in ui.security_match_buttons:
                     assert button.ticker_label.x >= button.logo_widget.parent.right

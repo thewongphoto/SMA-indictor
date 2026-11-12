@@ -19,7 +19,7 @@ const defaultState = {
   archive: [],
   colors: [],
   settings: {},
-  version: "0.14.1",
+  version: "0.14.2",
 };
 const money = (value) =>
   Number(value).toLocaleString(undefined, {
@@ -793,11 +793,16 @@ export default function App() {
                 </section>
               )}
               {chart.backtest && (
-                <section className="card">
-                  <h2>Backtest</h2>
-                  <p>
+                <section className="card backtest">
+                  <div className="backtest-title">
+                    <h2>Backtest</h2>
+                    <span className="small">
+                      {chart.preview ? "$" : "USD "}100 per buy
+                    </span>
+                  </div>
+                  <p className="muted">
                     Three ways to make the same number of buys over the same
-                    period. USD 100 per buy.
+                    period.
                   </p>
                   <div className="segments">
                     {["1Y", "3Y", "5Y", "Max", "Custom"].map((value) => (
@@ -818,7 +823,7 @@ export default function App() {
                       }}
                     >
                       <label>
-                        Years
+                        Years of history
                         <input
                           type="number"
                           min="0.01"
@@ -830,49 +835,99 @@ export default function App() {
                       <button>Apply</button>
                     </form>
                   )}
-                  {chart.backtest.rows.map((row, i) => (
-                    <div className="backtest-row" key={row.key}>
-                      <div>
-                        <strong>
-                          {
-                            [
-                              "At upward crossings",
-                              "At equal intervals",
-                              "At random dates",
-                            ][i]
-                          }
-                        </strong>
-                        <strong>${money(row.ending_value)}</strong>
-                      </div>
-                      <p>
-                        {row.indices.length} buys · ${money(row.invested)}{" "}
-                        contributed
-                      </p>
-                      <div className="bar">
-                        <span
-                          style={{
-                            width: `${(100 * row.ending_value) / Math.max(1, ...chart.backtest.rows.map((x) => x.ending_value))}%`,
-                          }}
-                        />
-                      </div>
-                      <p
-                        className={row.difference < 0 ? "negative" : "positive"}
-                      >
-                        {i
-                          ? row.difference === null
-                            ? "N/A"
-                            : `${row.difference.toFixed(2)}% vs crossings`
-                          : row.return_percent === null
-                            ? "N/A"
-                            : `${row.return_percent.toFixed(2)}% on contributions`}
-                      </p>
-                    </div>
-                  ))}
-                  <p>
-                    {chart.backtest.outperformance === null
-                      ? "No crossings in this period."
-                      : `${chart.backtest.outperformance.toFixed(1)}% of 500 random samples paid a higher average price than the crossing buys.`}
+                  <p className="backtest-summary">
+                    {chart.backtest.rows[0].indices.length} buys each ·{" "}
+                    {chart.backtest.span}
                   </p>
+                  {chart.backtest.rows.map((row, i) => {
+                    const prefix = chart.preview ? "$" : "USD ";
+                    const largest = Math.max(
+                      1,
+                      ...chart.backtest.rows.map((x) => x.ending_value),
+                    );
+                    const change = row.ending_value - row.invested;
+                    const comparison = i
+                      ? row.difference === null
+                        ? "N/A vs crossings"
+                        : `${row.difference >= 0 ? "+" : ""}${row.difference.toFixed(1)}% vs crossings`
+                      : row.return_percent === null
+                        ? "N/A"
+                        : `${row.return_percent >= 0 ? "+" : ""}${row.return_percent.toFixed(1)}% on contributions`;
+                    const value = i ? row.difference : row.return_percent;
+                    return (
+                      <div className="backtest-row" key={row.key}>
+                        <div>
+                          <span>
+                            <strong>
+                              {
+                                [
+                                  "At upward crossings",
+                                  "At equal intervals",
+                                  "At random dates",
+                                ][i]
+                              }
+                            </strong>
+                            <small>
+                              {
+                                [
+                                  `Your ${
+                                    chart.lines.find(
+                                      (saved) =>
+                                        saved.period === chart.result.period,
+                                    )?.name ||
+                                    `SMA (${chart.result.period} days)`
+                                  } signals`,
+                                  "Regular buys, evenly spaced",
+                                  "Most common of 500 samples",
+                                ][i]
+                              }
+                            </small>
+                          </span>
+                          <span className="backtest-value">
+                            <strong>
+                              {prefix}
+                              {Math.round(row.ending_value).toLocaleString("en-US")}
+                            </strong>
+                            <small
+                              className={
+                                value === null || value === 0
+                                  ? ""
+                                  : value < 0
+                                    ? "negative"
+                                    : "positive"
+                              }
+                            >
+                              {comparison}
+                            </small>
+                          </span>
+                        </div>
+                        <div className={"bar" + (i ? " secondary" : "")}>
+                          <span
+                            style={{
+                              width: `${(100 * row.ending_value) / largest}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="small">
+                          {row.invested
+                            ? `${change >= 0 ? "+" : "−"}${prefix}${Math.round(Math.abs(change)).toLocaleString("en-US")} ${change >= 0 ? "gain" : "loss"} on ${prefix}${Math.round(row.invested).toLocaleString("en-US")} contributed`
+                            : "No buys in this period"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  <div className="backtest-stat">
+                    <strong>
+                      {chart.backtest.outperformance === null
+                        ? "—"
+                        : `${chart.backtest.outperformance.toFixed(0)}%`}
+                    </strong>
+                    <p>
+                      {chart.backtest.outperformance === null
+                        ? "No upward crossings in this period; no purchase comparison is available."
+                        : "of the 500 random samples paid a higher average price than the crossing buys."}
+                    </p>
+                  </div>
                   <p className="small">
                     Excludes fees, taxes and currency moves. An estimate from
                     past prices, not a forecast.

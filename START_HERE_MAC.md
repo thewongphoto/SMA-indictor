@@ -1,6 +1,6 @@
 # Start here on a Mac
 
-This runs the current **0.14.1 Kivy desktop app** with real Yahoo daily data.
+This runs the current **0.14.2 Kivy desktop app** with real Yahoo daily data.
 It is a desktop app, not the future iPhone website. For iPhone, read the
 [Vercel/PWA guide](docs/PRIVATE_IPHONE_INSTALLATION.md).
 

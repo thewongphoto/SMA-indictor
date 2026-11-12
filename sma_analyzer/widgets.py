@@ -24,6 +24,7 @@ GAIN_COLOR = (.27, .88, .57, 1)
 LOSS_COLOR = (1, .36, .40, 1)
 
 from .appearance import Color, Label, Button
+from . import theme
 
 
 class ChangeArrow(Widget):
@@ -400,6 +401,132 @@ class TimelineSelector(RoundedSelector):
         super().__init__(text="1Y", size_hint_x=None, width=dp(100), **kwargs)
 
 
+ACCENT_TINT = theme.rgba('#0F3B36')
+
+
+class _ChipSelection:
+    """Keeps the dropdown-style ``_dropdown.select(value)`` entry point."""
+    def __init__(self, owner):
+        self.owner = owner
+
+    def select(self, value):
+        self.owner.select(value)
+
+
+class ChipSelector(BoxLayout):
+    """Equal-width segmented chips (design 2b horizons), 44 dp targets.
+
+    Same contract as RoundedSelector: ``text`` holds the selected value and
+    ``on_select`` fires for every user choice, including re-selecting.
+    """
+    __events__ = ("on_select",)
+    text = StringProperty("")
+
+    def __init__(self, values, text=None, **kwargs):
+        kwargs.setdefault("size_hint_y", None)
+        kwargs.setdefault("height", dp(44))
+        kwargs.setdefault("spacing", dp(6))
+        super().__init__(**kwargs)
+        self._values = ()
+        self.buttons = {}
+        self._dropdown = _ChipSelection(self)
+        self.bind(text=self._paint)
+        self.values = values
+        self.text = text if text is not None else self.values[0]
+        self._paint()
+
+    @property
+    def values(self):
+        return self._values
+
+    @values.setter
+    def values(self, values):
+        values = tuple(values)
+        if values == self._values:
+            return
+        self._values = values
+        self.clear_widgets()
+        self.buttons = {}
+        for value in values:
+            button = Button(text=value, font_size=sp(13), bold=True, background_normal="",
+                            background_down="", background_color=(0, 0, 0, 0))
+            button.bind(pos=self._paint, size=self._paint, state=self._paint,
+                        on_release=lambda _, value=value: self.select(value))
+            self.buttons[value] = button
+            self.add_widget(button)
+        self._paint()
+
+    def on_disabled(self, _, disabled):
+        for button in self.buttons.values():
+            button.disabled = disabled
+
+    def select(self, value):
+        if value not in self.buttons:
+            raise ValueError(f"Choose one of {', '.join(self.values)}.")
+        self.text = value
+        self.dispatch("on_select", value)
+
+    def on_select(self, value):
+        pass
+
+    def _paint(self, *_):
+        for value, button in self.buttons.items():
+            selected = value == self.text
+            button.color = theme.ACCENT if selected else theme.TEXT
+            button.canvas.before.clear()
+            with button.canvas.before:
+                Color(*(ACCENT_TINT if selected else theme.CONTROL))
+                RoundedRectangle(pos=button.pos, size=button.size, radius=[dp(10)])
+
+
+class ShareBar(Widget):
+    """A 6 dp rounded track with a filled share (0..1), as in design 2b."""
+    share = NumericProperty(0)
+    fill = ListProperty(list(theme.ACCENT))
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("size_hint_y", None)
+        kwargs.setdefault("height", dp(6))
+        super().__init__(**kwargs)
+        self.bind(pos=self._paint, size=self._paint, share=self._paint, fill=self._paint)
+        self._paint()
+
+    def _paint(self, *_):
+        self.canvas.clear()
+        radius = [self.height/2]
+        with self.canvas:
+            Color(*theme.CONTROL)
+            RoundedRectangle(pos=self.pos, size=self.size, radius=radius)
+            share = max(0.0, min(1.0, float(self.share or 0)))
+            if share > 0:
+                Color(*self.fill)
+                RoundedRectangle(pos=self.pos, size=(max(self.height, self.width*share), self.height), radius=radius)
+
+
+class Pill(Label):
+    """Rounded status badge (design 01): BELOW is red-tinted, ABOVE is teal-tinted."""
+    def __init__(self, text="", negative=False, **kwargs):
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("height", dp(28))
+        super().__init__(text=text, bold=True, font_size=sp(12), **kwargs)
+        self.negative = negative
+        with self.canvas.before:
+            self._pill_color = Color(*(theme.NEGATIVE_TINT if negative else theme.ACCENT_TINT))
+            self._pill_rect = RoundedRectangle(radius=[dp(14)])
+        self.color = theme.NEGATIVE if negative else theme.ACCENT
+        self.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0] + dp(24)),
+                  pos=self._paint_pill, size=self._paint_pill)
+
+    def set_state(self, text, negative):
+        self.text = text
+        self.negative = negative
+        self._pill_color.rgba = theme.NEGATIVE_TINT if negative else theme.ACCENT_TINT
+        self.color = theme.NEGATIVE if negative else theme.ACCENT
+
+    def _paint_pill(self, *_):
+        self._pill_rect.pos, self._pill_rect.size = self.pos, self.size
+
+
 class LegendSymbol(Widget):
     def __init__(self, color, plus=False, **kwargs):
         super().__init__(size_hint=(None, None), size=(dp(26), dp(24)), **kwargs)
@@ -608,8 +735,9 @@ class RuleSwitch(Button):
 
 
 class SecurityMatchButton(ButtonBehavior, BoxLayout):
-    """One explicit selection target: packaged logo (or initials), ticker and name."""
-    def __init__(self, security, **kwargs):
+    """One explicit selection target: packaged logo (or initials), company name first,
+    ticker · market underneath and an optional trailing action (design 10/11)."""
+    def __init__(self, security, action="", badge="", action_muted=False, **kwargs):
         super().__init__(orientation="horizontal", size_hint_y=None, height=dp(76),
                          padding=dp(10), spacing=dp(10), **kwargs)
         self.security = security
@@ -626,15 +754,34 @@ class SecurityMatchButton(ButtonBehavior, BoxLayout):
         self.add_widget(logo_box)
         words = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(3), pos_hint={"center_y": .5})
         words.bind(minimum_height=words.setter("height"))
-        self.ticker_label = Label(text=f"{security.ticker} · {security.exchange}", bold=True,
-                                  font_size=sp(13), color=(.94,.97,1,1), halign="left", size_hint_y=None)
-        self.name_label = Label(text=security.name, font_size=sp(12), color=MUTED, halign="left", size_hint_y=None)
-        for label in (self.ticker_label,self.name_label):
+        self.name_label = Label(text=security.name, bold=True, font_size=sp(15), color=theme.TEXT,
+                                halign="left", size_hint_y=None)
+        self.ticker_label = Label(text=f"{security.ticker} · {security.exchange}", font_size=sp(12),
+                                  color=MUTED, halign="left", size_hint_y=None)
+        for label in (self.name_label,self.ticker_label):
             label.bind(width=lambda widget,width:setattr(widget,"text_size",(width,None)),
                        texture_size=lambda widget,size:setattr(widget,"height",size[1]+dp(2)))
             words.add_widget(label)
         words.bind(height=lambda _,height:setattr(self,"height",max(dp(76),height+dp(20))))
         self.add_widget(words)
+        self.badge_label = None
+        if badge:
+            self.badge_label = Label(text=badge, bold=True, font_size=sp(11), color=theme.ACCENT,
+                                     size_hint=(None, None), height=dp(24), pos_hint={"center_y": .5})
+            self.badge_label.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(16)))
+            with self.badge_label.canvas.before:
+                Color(*theme.ACCENT_TINT)
+                badge_rect = RoundedRectangle(radius=[dp(12)])
+            self.badge_label.bind(pos=lambda widget, _: setattr(badge_rect, "pos", widget.pos),
+                                  size=lambda widget, _: setattr(badge_rect, "size", widget.size))
+            self.add_widget(self.badge_label)
+        self.action_label = None
+        if action:
+            self.action_label = Label(text=action, bold=True, font_size=sp(13),
+                                      color=MUTED if action_muted else theme.ACCENT,
+                                      size_hint=(None, None), height=dp(24), pos_hint={"center_y": .5})
+            self.action_label.bind(texture_size=lambda widget, size: setattr(widget, "width", size[0]+dp(4)))
+            self.add_widget(self.action_label)
         with self.canvas.before:
             self._match_color = Color(.10,.15,.21,1)
             self._match_rect = RoundedRectangle(pos=self.pos,size=self.size,radius=[dp(10)])

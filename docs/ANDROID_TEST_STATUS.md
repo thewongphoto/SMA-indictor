@@ -1,9 +1,15 @@
 # Validation and build status
 
-Current source: **0.14.1**. The matching Android build tag is **apk-v0.14.1**.
+Current source: **0.14.2**. The matching Android build tag is **apk-v0.14.2**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.14.2 rebuilds the Android Charts, backtest, Settings, search, Home,
+edit-line, calculating and first-open screens to the November design. Its UI
+gates were updated to the new copy and layout (for example chip horizons
+instead of dropdowns) and wait on the animation they check rather than a fixed
+frame count; calculations and stored data are unchanged.
 
 Release 0.14.1 adds per-line signal types. Host validation ran **351 tests, all
 passing**, plus the extended four-tab regression (per-line

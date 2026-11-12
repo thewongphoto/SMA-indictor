@@ -72,7 +72,9 @@ class Service:
         if result:
             report = compare_investments(data.prices,result.sma,result.events,
                 period_sessions(horizon,years,len(data.prices),dates),dates)
+            from sma_analyzer.backtest_text import backtest_span
             report = dict(start=report.start,end=report.end,outperformance=report.outperformance_percent,
+                span=backtest_span(data,report,dates),
                 rows=[dict(key=key,**asdict(getattr(report,key)),invested=getattr(report,key).invested,
                     return_percent=getattr(report,key).return_percent,
                     difference=getattr(report,key).difference_percent(report.crossings)) for key in ('crossings','dca','random')])

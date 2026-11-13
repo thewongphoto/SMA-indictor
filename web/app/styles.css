@@ -792,3 +792,16 @@ a {
   width: 55%;
   font-size: 12px;
 }
+.setup-result {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  scroll-margin: 20px;
+}
+.setup-result:empty {
+  display: none;
+}
+.setup-result p:last-child {
+  margin-bottom: 0;
+}

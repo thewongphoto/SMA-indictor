@@ -29,6 +29,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: python -m scripts.smoke_web
       - run: python -m scripts.smoke_local_web
+      - run: python -m scripts.smoke_setup_feedback
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -36,3 +37,4 @@ jobs:
           path: |
             artifacts/web-ui/
             artifacts/local-web/
+            artifacts/setup-feedback/

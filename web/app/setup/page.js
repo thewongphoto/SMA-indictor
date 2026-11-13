@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 function base64(bytes) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
     .replace(/\+/g, "-")
@@ -12,17 +12,65 @@ export default function Setup() {
     [keys, setKeys] = useState(null),
     [message, setMessage] = useState(""),
     [sql, setSql] = useState("");
-  async function check() {
+  const [checking, setChecking] = useState(false),
+    [checkError, setCheckError] = useState(""),
+    [needsLogin, setNeedsLogin] = useState(false),
+    [checkedAt, setCheckedAt] = useState(null);
+  const checkingRequest = useRef(false),
+    result = useRef(null);
+  async function check(scrollToResult = false) {
+    if (checkingRequest.current) return;
+    checkingRequest.current = true;
+    setChecking(true);
+    setCheckError("");
+    setNeedsLogin(false);
+    setCheckedAt(null);
     try {
-      const response = await fetch("/api/push/config", { cache: "no-store" }),
+      const response = await fetch("/api/push/config", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(20000),
+        }),
         value = await response.json();
-      if (!response.ok) throw new Error(value.error);
+      if (!response.ok) {
+        setNeedsLogin(response.status === 401);
+        throw new Error(value.error || "The setup check could not complete.");
+      }
       setConfig(value);
-      setMessage("");
+      setCheckedAt(new Date());
     } catch (error) {
-      setMessage(error.message);
+      setConfig(null);
+      setCheckError(
+        error.name === "TimeoutError" || error.name === "AbortError"
+          ? "The check timed out. Check your connection and try again."
+          : error.message || "The setup check could not complete.",
+      );
+    } finally {
+      checkingRequest.current = false;
+      setChecking(false);
+      if (scrollToResult)
+        requestAnimationFrame(() =>
+          result.current?.scrollIntoView({
+            block: "nearest",
+            behavior: "smooth",
+          }),
+        );
     }
   }
+  const nextStep = !config
+    ? ""
+    : !config.database_configured
+      ? "Add SUPABASE_URL and SUPABASE_SECRET_KEY to this Vercel project's Production variables, then redeploy."
+      : !config.vapid_ready || !config.cron_secret_configured
+        ? "Complete step 3 above: add the three generated notification values to Vercel Production, then redeploy. Keep your existing keys."
+        : !config.schema_ready
+          ? "Complete step 4 above: prepare the SQL, paste it into Supabase → SQL Editor → New query, and click Run. If you already ran it, recheck the Supabase secret key in Vercel."
+          : !config.cron_secret_matches
+            ? "Prepare and run the SQL using the same CRON_SECRET currently saved in Vercel."
+            : !config.origin_matches
+              ? "Prepare and run the SQL from your production website so its scheduled URL matches this site."
+              : config.scheduled_jobs !== 4
+                ? "Rerun the prepared SQL to create or activate all four scheduled jobs."
+                : "";
   useEffect(() => {
     check();
     try {
@@ -99,7 +147,11 @@ export default function Setup() {
         <p>
           Project:{" "}
           {config?.project_url ||
-            "Add SUPABASE_URL and SUPABASE_SECRET_KEY in Vercel, then redeploy."}
+            (checking
+              ? "Checking connection…"
+              : checkError
+                ? "Connection has not been verified. See the result under Check setup below."
+                : "Add SUPABASE_URL and SUPABASE_SECRET_KEY in Vercel, then redeploy.")}
         </p>
         <p>
           Sign in on the main app first if this page reports “Sign in to your
@@ -187,7 +239,63 @@ export default function Setup() {
       </section>
       <section className="card">
         <h2>5. Check readiness</h2>
-        <button onClick={check}>Check setup</button>
+        <button disabled={checking} onClick={() => check(true)}>
+          {checking ? "Checking setup…" : "Check setup"}
+        </button>
+        <div
+          ref={result}
+          className="setup-result"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {checking ? (
+            <p>
+              Checking your Vercel settings and Supabase connection. This can
+              take up to 20 seconds.
+            </p>
+          ) : checkError ? (
+            <>
+              <p>
+                <strong>Setup check could not complete.</strong> {checkError}
+              </p>
+              {needsLogin ? (
+                <p>
+                  <a href="/" target="_blank" rel="noopener">
+                    Sign in to SMA in a new tab
+                  </a>{" "}
+                  using your APP_PASSWORD. Then return to this tab and click
+                  Check setup again. Your generated keys stay in this tab.
+                </p>
+              ) : (
+                <p>
+                  Try Check setup again. If it still fails, share this error
+                  message without including any secret values.
+                </p>
+              )}
+            </>
+          ) : (
+            checkedAt && (
+              <>
+                <p>
+                  <strong>
+                    {config?.ready
+                      ? "Setup is ready."
+                      : "Check complete — setup still needs attention."}
+                  </strong>
+                </p>
+                <p className="small">
+                  Last checked: {checkedAt.toLocaleTimeString()}.
+                </p>
+                {nextStep && (
+                  <p>
+                    <strong>Next step:</strong> {nextStep}
+                  </p>
+                )}
+              </>
+            )
+          )}
+        </div>
         {config && (
           <ul>
             <li>

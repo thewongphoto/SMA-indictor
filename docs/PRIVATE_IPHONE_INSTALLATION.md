@@ -123,7 +123,11 @@ The unfilled, reviewable template is [web/setup/supabase.sql](../web/setup/supab
 
 ## 6. Check setup, then enable the iPhone
 
-Back on `/setup`, click **Check setup**. It checks:
+Back on `/setup`, click **Check setup**. Wait for the result directly beneath
+that button (up to 20 seconds). It shows either **Setup is ready**, the next
+unfinished step, or an error. If asked to sign in, use the provided new-tab link,
+sign in with `APP_PASSWORD`, then return and check again. Keep your generated
+keys; there is no need to generate replacements. The checklist checks:
 
 - Supabase variables are configured and the schema/function exists.
 - All four jobs are active.

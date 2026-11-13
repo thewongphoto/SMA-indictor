@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import Chart from "./chart";
 import Signup from "./signup";
 import Dialog from "./dialog";
+import { localApi, remote } from "./local-service";
+import PushControls from "./push-controls";
+import { syncPush } from "./push-client";
 import { stored, clearSnapshots } from "./cache";
 
 const labels = {
@@ -19,7 +22,7 @@ const defaultState = {
   archive: [],
   colors: [],
   settings: {},
-  version: "0.14.3",
+  version: "0.15.0",
 };
 const money = (value) =>
   Number(value).toLocaleString(undefined, {
@@ -95,16 +98,41 @@ export default function App() {
     [standalone, setStandalone] = useState(false);
   const generation = useRef(0),
     jobRef = useRef(null);
+  const backend = useRef("local");
   async function api(path, body, method) {
-    const response = await fetch("/api/" + path, {
-      method: method || (body ? "POST" : "GET"),
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const value = await response.json();
-    if (response.status === 401) setAuth(false);
-    if (!response.ok) throw new Error(value.error || "Request failed");
-    return value;
+    try {
+      if (path === "login" || path === "logout") {
+        const value = await remote(path, body, method);
+        localStorage.setItem(
+          "sma-offline-session",
+          path === "login" ? "1" : "0",
+        );
+        return value;
+      }
+      if (path === "state") {
+        if (navigator.onLine) {
+          backend.current = (await remote("session")).storage;
+          localStorage.setItem("sma-storage-mode", backend.current);
+          localStorage.setItem("sma-offline-session", "1");
+        } else {
+          backend.current = localStorage.getItem("sma-storage-mode") || "local";
+          if (localStorage.getItem("sma-offline-session") !== "1") {
+            const e = new Error("Sign in while online first.");
+            e.status = 401;
+            throw e;
+          }
+        }
+      }
+      if (backend.current === "local")
+        return await localApi(path, body, method);
+      const value = await remote(path, body, method);
+      return Array.isArray(value.cards)
+        ? { ...value, storage: "worker" }
+        : value;
+    } catch (error) {
+      if (error.status === 401) setAuth(false);
+      throw error;
+    }
   }
   async function refresh() {
     const value = await api("state");
@@ -140,6 +168,24 @@ export default function App() {
     };
     resize();
     window.visualViewport?.addEventListener("resize", resize);
+    const openAlerts = (event) => {
+      if (event.data?.type === "open-alerts") {
+        cancel();
+        setTab("alerts");
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", openAlerts);
+    if (location.hash === "#alerts") setTab("alerts");
+    const updatePush = () => {
+      if (backend.current === "local")
+        localApi("state")
+          .then(setState)
+          .catch(() => {});
+    };
+    const synchronize = () => syncPush().catch(() => {});
+    window.addEventListener("sma-push-updated", updatePush);
+    window.addEventListener("sma-push-sync", synchronize);
+    window.addEventListener("online", synchronize);
     connection();
     window.addEventListener("online", connection);
     window.addEventListener("offline", connection);
@@ -154,12 +200,19 @@ export default function App() {
       .catch(() => {});
     refresh()
       .catch((error) => {
-        if (navigator.onLine) setError(error.message);
+        if (navigator.onLine && error.status !== 401) setError(error.message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        if (backend.current === "local") syncPush().catch(() => {});
+      });
     if ("serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     return () => {
+      navigator.serviceWorker?.removeEventListener("message", openAlerts);
+      window.removeEventListener("sma-push-updated", updatePush);
+      window.removeEventListener("sma-push-sync", synchronize);
+      window.removeEventListener("online", synchronize);
       window.removeEventListener("online", connection);
       window.removeEventListener("offline", connection);
       window.removeEventListener("popstate", back);
@@ -386,6 +439,13 @@ export default function App() {
       line.target_frequency === chart.result?.target,
   );
   const below = state.cards.reduce((sum, card) => sum + card.below, 0);
+  if (auth === null && loading)
+    return (
+      <main className="login">
+        <MotionLogo />
+        <h1>Opening your SMA app…</h1>
+      </main>
+    );
   if (auth === false)
     return (
       <main className="login">
@@ -486,7 +546,7 @@ export default function App() {
                   className="text"
                   onClick={() =>
                     alert(
-                      "In Safari, tap Share, then Add to Home Screen. Server notifications are not enabled in this build.",
+                      "In Safari, tap Share, then Add to Home Screen. Enable alerts from the Alerts tab after adding the app to your Home Screen.",
                     )
                   }
                 >
@@ -796,9 +856,7 @@ export default function App() {
                 <section className="card backtest">
                   <div className="backtest-title">
                     <h2>Backtest</h2>
-                    <span className="small">
-                      $100 per buy
-                    </span>
+                    <span className="small">$100 per buy</span>
                   </div>
                   <p className="muted">
                     Three ways to make the same number of buys over the same
@@ -886,7 +944,9 @@ export default function App() {
                           <span className="backtest-value">
                             <strong>
                               {prefix}
-                              {Math.round(row.ending_value).toLocaleString("en-US")}
+                              {Math.round(row.ending_value).toLocaleString(
+                                "en-US",
+                              )}
                             </strong>
                             <small
                               className={
@@ -957,13 +1017,11 @@ export default function App() {
         {tab === "alerts" && (
           <>
             <p>Choose which saved lines can notify you.</p>
-            <section className="notice">
-              <strong>Server notifications are not enabled yet</strong>
-              <p>
-                Your preferences are saved. Delivery requires the production
-                scheduler and Web Push service.
-              </p>
-            </section>
+            <PushControls
+              push={state.push}
+              storage={state.storage}
+              onChange={() => localApi("state").then(setState)}
+            />
             {state.cards.flatMap((card) =>
               card.lines.map((line) => (
                 <section className="card" key={line.id}>
@@ -1091,34 +1149,69 @@ export default function App() {
               </button>
               <button
                 className="setting"
-                onClick={() => {
-                  const blob = new Blob(
-                    [
-                      JSON.stringify(
-                        {
-                          version: 1,
-                          cards: state.cards.map(({ security, lines }) => ({
-                            security,
-                            lines,
-                          })),
-                          settings: state.settings,
-                        },
-                        null,
-                        2,
-                      ),
-                    ],
-                    { type: "application/json" },
-                  );
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "sma-saved-lines.json";
-                  a.click();
-                  URL.revokeObjectURL(url);
+                onClick={async () => {
+                  try {
+                    const value =
+                      backend.current === "local"
+                        ? await api("export")
+                        : {
+                            version: 1,
+                            cards: state.cards.map(({ security, lines }) => ({
+                              security,
+                              lines,
+                            })),
+                            settings: state.settings,
+                          };
+                    const blob = new Blob([JSON.stringify(value, null, 2)], {
+                        type: "application/json",
+                      }),
+                      url = URL.createObjectURL(blob),
+                      link = document.createElement("a");
+                    link.href = url;
+                    link.download = "sma-saved-lines.json";
+                    link.click();
+                    URL.revokeObjectURL(url);
+                  } catch (error) {
+                    fail(error);
+                  }
                 }}
               >
                 Export saved parameters <span>↓</span>
               </button>
+              {state.storage === "local" && (
+                <label className="setting">
+                  Import saved parameters
+                  <input
+                    aria-label="Import saved parameters"
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (!file) return;
+                      try {
+                        if (file.size > 1048576)
+                          throw new Error(
+                            "Choose a saved-parameters backup under 1 MB.",
+                          );
+                        if (
+                          !confirm(
+                            "Merge this backup with your saved lines? Existing matching lines are kept.",
+                          )
+                        )
+                          return;
+                        const next = await api(
+                          "import",
+                          JSON.parse(await file.text()),
+                        );
+                        setState(next);
+                      } catch (error) {
+                        fail(error);
+                      }
+                    }}
+                  />
+                </label>
+              )}
               <button
                 className="setting negative"
                 onClick={async () => {
@@ -1152,6 +1245,7 @@ export default function App() {
             <button
               onClick={async () => {
                 await api("logout", {});
+                setTab("library");
                 await clearSnapshots();
                 setState(defaultState);
                 setChart(null);

@@ -1,7 +1,7 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.14.3**. Android and desktop are active. Native iPhone
-releases are paused; [the Vercel/PWA app is implemented and awaiting deployment](docs/PRIVATE_IPHONE_INSTALLATION.md).
+Current source: **0.15.0**. Android and desktop are active. Native iPhone
+releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
 Android distribution uses an explicitly signed release variant. CI verifies the
@@ -146,8 +146,8 @@ control presentation and execution.
 
 [The notification guide](docs/ANDROID_DAILY_NOTIFICATIONS.md) defines the four
 SGT jobs, stale/holiday handling, duplicate suppression and tests. Desktop runs
-interactive data requests only. The iPhone web app still requires a server
-scheduler and Web Push; browser timers cannot preserve native background work.
+interactive data requests only. The iPhone web app uses Supabase scheduling and Vercel Web Push after the owner
+completes setup; browser timers cannot preserve native background work.
 
 The copyable request log separates logical APP operations, actual HTTP calls,
 CACHE hits and notification checks/triggers/delivery outcomes. Tokens, cookies,
@@ -157,3 +157,19 @@ record is not proof that a user saw a banner.
 Legacy email market-alert delivery and Google authorization remain removed. Optional release-update signup is separate and hidden until the server is configured. Legacy SQLite email
 columns/preferences remain solely for upgrade compatibility; old email events
 cannot be dispatched. [Validation status](docs/ANDROID_TEST_STATUS.md).
+
+## iPhone local web runtime (0.15.0)
+
+The web app now uses the shared pure Python engine/backtest modules inside a
+Pyodide/NumPy browser worker. IndexedDB retains parameters, histories and settings;
+Cancel terminates the calculation worker. Sign-out preserves local saved lines.
+Vercel handles authenticated market requests and Web Push. Supabase stores only
+synced alert parameters/subscriptions, required closing snapshots, and delivery
+journals. pg_cron invokes the four shared SGT schedules; event/run claims prevent
+replays. Per-line and global flags both apply, and chart visibility is independent.
+Opening checks use a verified closing snapshot, with no intraday retrieval.
+
+The [free setup guide](docs/PRIVATE_IPHONE_INSTALLATION.md) explains the seven
+variables, SQL and physical iPhone acceptance checks. Existing Python-worker mode
+remains available when both old worker variables are set. The native Android
+engine and scheduler are unchanged by the web implementation.

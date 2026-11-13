@@ -90,3 +90,14 @@ Vercel still needs a connected project, private access secrets and the HTTPS
 persistent worker. Optional email additionally needs SMTP configuration. The
 Android signup base URL is deliberately empty until that deployment exists.
 No native iOS build is released and no Play Protect clearance is claimed.
+
+## 0.15.0 local calculation and alert deployment
+
+The iPhone web runtime now uses the shared Python modules in a local browser
+worker, with IndexedDB persistence and backup import/export. Supabase stores
+subscriptions, enabled alert parameters, verified closing snapshots and a run/
+delivery journal; Vercel sends Web Push. The supplied `/setup` page generates
+keys locally and prepares idempotent SQL for four SGT schedules. This supersedes
+the earlier requirement for a persistent Python host and the earlier statement
+that web notification delivery was unimplemented. Deployment configuration and
+physical iPhone checks are in the [current guide](../PRIVATE_IPHONE_INSTALLATION.md).

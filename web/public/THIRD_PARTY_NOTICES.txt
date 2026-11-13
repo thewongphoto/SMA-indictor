@@ -1,0 +1,18 @@
+SMA Stock Analyzer web runtime third-party notices
+
+Pyodide 0.29.5: Mozilla Public License 2.0.
+The unmodified JavaScript/WebAssembly runtime is distributed with this app.
+License: /PYODIDE-LICENSE.txt
+Corresponding source: https://github.com/pyodide/pyodide/tree/0.29.5
+Upstream: https://pyodide.org/
+
+Python 3.13.2: Python Software Foundation License and included component notices.
+Source and licence: https://www.python.org/downloads/release/python-3132/
+The standard library is distributed through the unmodified Pyodide package.
+
+NumPy 2.2.5: BSD-3-Clause and component notices in the distributed wheel.
+Source: https://github.com/numpy/numpy/tree/v2.2.5
+Pyodide packaging/patches: https://github.com/pyodide/pyodide/tree/0.29.5/packages/numpy
+
+Manrope fonts: SIL Open Font License 1.1. See /fonts/OFL.txt.
+Company/issuer logos: third-party trademarks. See /logos/CREDITS.txt.

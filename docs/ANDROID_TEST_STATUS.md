@@ -1,6 +1,6 @@
 # Validation and build status
 
-Current source: **0.14.3**. The matching Android build tag is **apk-v0.14.3**.
+Current source: **0.15.0**. The matching Android build tag is **apk-v0.15.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
@@ -69,3 +69,11 @@ that a new iPhone release or browser port exists.
 [Release checklist](ANDROID_RELEASE_CHECKLIST.md) ·
 [Data/request-log testing](YAHOO_ANDROID_TESTING.md) ·
 [Background notification testing](ANDROID_DAILY_NOTIFICATIONS.md)
+
+For 0.15.0, the 354-test Python suite passed with two optional skips. The
+new browser workflow runs real Pyodide/NumPy and compares its result with
+Python, then checks cold offline backtesting, local persistence, backup import
+and setup UI. Server fixtures compare signal rules and all four schedules with
+native Python, and check claims, stale data and subscription expiration.
+Live Supabase SQL setup and physical iPhone push acceptance remain owner steps
+in the [free setup guide](PRIVATE_IPHONE_INSTALLATION.md).

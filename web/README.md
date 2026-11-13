@@ -1,28 +1,38 @@
 # iPhone web app
 
-Next.js frontend for Safari and Add to Home Screen. It uses the same Python
-engine and SQLite saved-line model as Android through a private, persistent
-worker. It is not a native iOS package.
+Next.js frontend for Safari and Add to Home Screen. Python calculations run
+locally using a dedicated Pyodide/NumPy worker and the shared native engine.
+Saved parameters, histories and settings stay in IndexedDB. Vercel proxies Yahoo
+requests and sends Web Push; Supabase provides durable alert state and scheduling.
 
-See the [deployment guide](../docs/PRIVATE_IPHONE_INSTALLATION.md) for the exact
-worker/Vercel setup, optional email signup and remaining notification work.
+Follow the [beginner setup guide](../docs/PRIVATE_IPHONE_INSTALLATION.md) or open
+`/setup` on the deployed website for the seven Vercel variables and prepared SQL.
+No persistent Python host is required. The older `web_worker/` mode remains
+available only when both `PYTHON_API_URL` and `PYTHON_API_TOKEN` are configured.
 
 ```sh
 npm ci --prefix web
 npm run build --prefix web
+npm test --prefix web
 ```
 
-The lockfile pins the tested dependencies. For local development copy
-`.env.example` to `.env.local`, fill the four server variables, run the worker,
-then `npm run dev --prefix web`. Environment files are excluded from Git.
+The build allowlists pure modules from `../sma_analyzer/`, copies the pinned
+runtime and downloads its hash-verified numerical wheel from the official
+Pyodide CDN. Root Directory stays `web`; allow source files outside it for builds.
+Generated `public/python/`, `python-runtime/` and setup copies are ignored by Git.
+The lockfile pins all dependencies. Pyodide source/licence notices, NumPy wheel notices, Manrope licences and logo
+credits are bundled; see `/THIRD_PARTY_NOTICES.txt`.
 
-Browser checks (after a production build):
+Browser validation:
 
 ```sh
-python -m pip install playwright
+python -m pip install requests certifi tzdata playwright
 python -m playwright install chromium
 python -m scripts.smoke_web
+python -m scripts.smoke_local_web
 ```
 
-The check starts isolated servers on ports 3111 and 8111, uses simulated data
-and cannot send signup emails. Screenshots go to `artifacts/web-ui/`.
+The first checks legacy worker compatibility. The second uses actual in-browser
+Python with intercepted market fixtures and no Python calculation server.
+All mail/push delivery is disabled or mocked in these tests. Browser checks do
+not establish physical Safari/iPhone notification behaviour.

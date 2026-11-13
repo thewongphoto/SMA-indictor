@@ -28,3 +28,6 @@ web/node_modules/
 web/.next/
 web/.env*
 !web/.env.example
+web/public/python/
+web/public/python-runtime/
+web/public/setup/

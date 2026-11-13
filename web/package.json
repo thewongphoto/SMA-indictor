@@ -1,15 +1,21 @@
 {
   "name": "sma-iphone-web",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1"
+    "start": "next start --hostname 127.0.0.1",
+    "prebuild": "node scripts/prepare-browser.mjs",
+    "predev": "node scripts/prepare-browser.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",
+    "pyodide": "0.29.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  }
+    "react-dom": "^19.2.0",
+    "web-push": "3.6.7"
+  },
+  "type": "module"
 }

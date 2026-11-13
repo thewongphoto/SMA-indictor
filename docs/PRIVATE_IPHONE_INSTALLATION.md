@@ -1,118 +1,204 @@
-# Deploy the private iPhone web app
+# Free iPhone setup: Vercel + Supabase
 
-Version 0.14.0 includes a working Next.js frontend in [web/](../web/) and a
-persistent Python service in [web_worker/](../web_worker/). Deployment is pending.
-This route supports Safari and Add to Home Screen; it does not produce an IPA.
-Native iOS releases remain paused.
+Version **0.15.0** runs the existing Python SMA/backtest engine on your phone
+using Pyodide in a browser worker. Saved lines, settings and downloaded prices
+live in IndexedDB. Vercel handles private sign-in, Yahoo HTTPS requests and Web
+Push delivery. Supabase stores alert subscriptions, the enabled line parameters,
+closing snapshots needed by opening reminders, and the delivery journal.
 
-## 1. Start the Python service on a persistent host
+There is no always-running Python server to rent. Native iOS releases remain
+paused. This is the Safari / Add to Home Screen app.
 
-The existing Python engine performs optimization and backtesting. Keep it on a
-host with a persistent disk, rather than Vercel's temporary function filesystem.
+## What you need
 
-```sh
-python -m venv .venv-web
-.venv-web/bin/python -m pip install requests certifi tzdata
-export PYTHON_API_TOKEN='replace-with-a-long-random-secret'
-.venv-web/bin/python -m web_worker.server --data /persistent/sma-data --port 8100
+- Your GitHub repository connected to a Vercel **Hobby/Free** project.
+- A Supabase **Free** project. Free-service quotas and project pausing can stop
+  scheduled checks; this setup cannot guarantee uninterrupted or exact-time alerts.
+- iOS 16.4+ for Home Screen Web Push, and notification permission on the phone.
+
+## 1. Check your existing Vercel project
+
+In Vercel, open the project → **Settings**:
+
+| Setting | Value |
+| --- | --- |
+| Git repository | `thewongphoto/SMA-indictor` |
+| Production branch | `main` |
+| Framework | **Next.js** |
+| Root Directory | **`web`** |
+| Build Command | Default (`npm run build`) |
+| Output Directory | Next.js default; leave override off |
+| Install Command | Default npm detection; leave override off |
+
+Allow source files outside the Root Directory in the build settings when that
+option is shown: the build bundles the shared engine from `sma_analyzer/`.
+The pinned Python runtime and numerical package are copied/downloaded at build
+with package hashes checked. No private database or credential file is bundled.
+
+## 2. Add the first four Vercel variables
+
+Open **Settings → Environment Variables**. Each entry has a **Key** (the exact
+name below) and a **Value** (your own value). Select **Production** for each.
+
+| Key | Value |
+| --- | --- |
+| `APP_PASSWORD` | Your chosen website login password. |
+| `AUTH_SECRET` | A different random secret of at least 32 characters for sessions. |
+| `SUPABASE_URL` | Your project URL, e.g. `https://your-project.supabase.co`. |
+| `SUPABASE_SECRET_KEY` | Your Supabase **secret** key, starting `sb_secret_`. |
+
+Find the Supabase key under **Project Settings → API Keys → Secret keys**.
+A legacy service-role JWT also works, but a new secret key is preferred.
+Do not paste private values into chat, GitHub, screenshots or `NEXT_PUBLIC_`
+variables. Supabase requests run on Vercel, not in browser code.
+
+Leave `PYTHON_API_URL` and `PYTHON_API_TOKEN` unset for this local approach.
+If those two are both configured, the app deliberately retains the older worker
+mode so existing users do not silently lose access to worker-stored parameters.
+Export that library before choosing to switch modes; native Android data is not
+synchronized automatically.
+
+## 3. Deploy the new code and open notification setup
+
+After the 0.15.0 changes reach GitHub, Vercel should build the connected `main`
+branch. Open **Deployments** and wait for **Ready**. If it does not start, choose
+**Redeploy** for the latest source deployment. Confirm its commit is current.
+
+Open your production website, sign in using `APP_PASSWORD`, then visit:
+
+```text
+https://YOUR-PRODUCTION-WEBSITE/setup
 ```
 
-Use a service manager to restart it after host reboots, and an HTTPS reverse
-proxy to make it reachable from Vercel. The listener defaults to localhost and
-requires a bearer token on every endpoint. Keep that token server-only. Run one
-worker process per data directory. Back up that directory privately; it contains
-saved parameters and downloaded market histories. Use separate directories and
-credentials for testing and production.
+For the owner's current deployment:
+[open notification setup](https://sma-indictor-xyx2.vercel.app/setup).
+If it returns 404, the new source has not finished deploying.
 
-The worker is single-user. It uses the Android portable Yahoo HTTPS provider,
-the existing 365-day engine, SQLite saved identities and market cache. Pending
-calculation jobs are in memory; after a restart the user can run them again.
-Saved lines survive worker restarts. A missing deployment or provider outage
-produces a visible error rather than sample prices.
+## 4. Generate and save the three notification values
 
-## 2. Connect Vercel to GitHub
+On `/setup`, click **Generate keys** once. Generation happens in your browser.
+Save the values in your password manager and keep that browser tab open.
 
-Import `thewongphoto/SMA-indictor`, select **Next.js**, and set **Root Directory**
-to `web`. Use the committed lockfile and `npm run build`. Configure these server
-variables in the intended Vercel environment:
+Add these three entries to Vercel → **Settings → Environment Variables**, again
+selecting **Production**:
 
-| Variable | Purpose |
+| Key | Value |
 | --- | --- |
-| `APP_PASSWORD` | Private app access password. |
-| `AUTH_SECRET` | Long random secret used to sign expiring sessions. |
-| `PYTHON_API_URL` | HTTPS origin of the persistent worker. |
-| `PYTHON_API_TOKEN` | Same bearer secret as the worker. |
+| `VAPID_PUBLIC_KEY` | The matching generated public key. |
+| `VAPID_PRIVATE_KEY` | The matching generated private key. |
+| `CRON_SECRET` | The generated scheduler secret. |
 
-Do not prefix these with `NEXT_PUBLIC_`. Use distinct Preview and Production
-credentials. The access cookie is HttpOnly, SameSite Strict and Secure in
-production. Mutations reject foreign browser origins. This is private access
-for one owner, not a multi-user account or tenant system.
+There are now **seven variables** in total. The public key is sent to the
+browser; the private key and scheduler secret stay server-side.
+Optional `VAPID_SUBJECT` can supply your own HTTPS contact URL or `mailto:` URI.
 
-The [web workflow](../.github/workflows/web.yml) builds and runs browser checks;
-it does not deploy Vercel. A GitHub push updates a Vercel project only after the
-owner has connected and configured that project.
+Open **Deployments → latest production deployment → ⋯ → Redeploy** so the
+new environment values take effect. Return to the same `/setup` tab afterward.
+Do not generate a second set while completing this setup. Replacing VAPID keys
+later requires phones to enable notifications again.
 
-## 3. Open on iPhone
+## 5. Run the prepared SQL in Supabase
 
-Open the production HTTPS URL in Safari, sign in, then use **Share → Add to Home
-Screen**. The app includes a manifest, 192/512px icons, Apple touch icon, safe-area
-padding, dynamic viewport sizing and a bottom tab bar that hides while typing.
-It supports the shared Home/Charts/Alerts/Settings design, line editing, chart
-inspection/pinch, independent backtest ranges and system/light/dark themes.
+On the production `/setup` page, click **Prepare setup SQL**, then **Copy setup
+SQL**. It fills the website URL and scheduler secret locally in your browser.
 
-Downloaded chart snapshots are kept in IndexedDB, and the service worker keeps
-the app shell for offline opening. New searches and calculations require a
-connection. iOS can evict browser storage; server-side saved parameters remain
-on the worker. Clearing downloaded data clears browser snapshots and worker
-history without deleting saved parameters. Signing out clears local snapshots.
-The Export action downloads saved parameters; native Android data is not
-synchronized or imported automatically.
+In Supabase:
 
-## 4. Optional release-update email
+1. Open your project.
+2. Select **SQL Editor → New query**.
+3. Paste the complete prepared script and review it.
+4. Click **Run**.
 
-The owner selected **optional signup, enabled only after server configuration**.
-Without a configured service, the form is absent and use of the app is unaffected.
-On the worker, set all of:
+The script creates four tables, protected service-only functions, and four
+scheduled jobs. It preserves existing records when rerun. Row Level Security
+is enabled and browser `anon`/`authenticated` roles have no table access. The
+scheduler secret is stored in **Supabase Vault**, not in the cron job commands.
+The filled SQL contains a private secret: do not commit or share it.
 
-- `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`
-- `CONTACT_FROM`, `CONTACT_TO`
-- Optional `SMTP_PORT` (default 587, mandatory STARTTLS)
+If the original setup tab was closed, copy the existing `CRON_SECRET` from your
+own Vercel settings into the optional field on `/setup` to prepare the SQL again.
+You do not need to replace your notification keys to rerun the SQL.
 
-The form appears only after the capability endpoint reports that configuration.
-The user can skip; submission sends that email and an installation identifier
-to the configured developer. Success is shown only after SMTP accepts the mail.
-Failures remain visible and can be retried; no silent delivery claim is made.
-Rate limits persist on the worker. UI previews disable signup even with SMTP
-variables present. No real emails are sent by the automated tests.
+The unfilled, reviewable template is [web/setup/supabase.sql](../web/setup/supabase.sql).
 
-For Android, set `SMA_CONTACT_BASE_URL` at runtime during development, or set
-`CONTACT_BASE_URL` in [contact.py](../sma_analyzer/contact.py) to the deployed
-HTTPS frontend origin before building a subsequent APK. The current APK has no
-production URL configured and therefore hides signup. SMTP credentials belong
-only on the server. This opt-in feature does not restore retired Gmail/Google
-sign-in or email market-alert delivery. Voluntary signups are not total downloads.
+## 6. Check setup, then enable the iPhone
 
-## 5. Notifications still require server implementation
+Back on `/setup`, click **Check setup**. It checks:
 
-The Alerts screen stores per-line preferences, including each line's own
-switch for the three signal types (0.14.1), and the same three global signal
-types as Android. **This web release does not deliver Web Push notifications.**
-It says so in the UI and does not offer a misleading permission button.
+- Supabase variables are configured and the schema/function exists.
+- All four jobs are active.
+- The notification key formats are valid.
+- The scheduler secret in Supabase matches Vercel (compares hashes).
+- Supabase's scheduled website URL matches the site you are opening.
 
-To enable delivery later, implement durable subscriptions and scheduled market
-checks on the server, preserving the shared four SGT job identities and event
-deduplication. Web Push needs stable VAPID keys, an HTTPS origin, a push handler
-in the service worker and opt-in permission from a user gesture. iPhone supports
-web notifications only for eligible Home Screen apps (iOS 16.4+); Safari tabs
-need installation guidance. The OS controls notification presentation. Browser
-timers cannot replace this scheduler. Android's native scheduler remains active
-and unchanged.
+When ready:
 
-## Verification
+1. Open your production website in **Safari on the iPhone**.
+2. Tap **Share → Add to Home Screen → Add**.
+3. Open the new Home Screen icon and sign in.
+4. Save an SMA line, then open **Alerts**.
+5. Tap **Enable notifications → Allow**.
+6. Wait until preferences are synced, then tap **Send test notification**.
+7. Inspect the phone's notifications. A server acceptance message alone does
+   not prove a banner appeared; iOS/Focus settings control presentation.
 
-Run the commands in [web/README.md](../web/README.md). The browser suite uses
-synthetic prices and an isolated temporary worker, checks 320/390/768px layouts,
-search submission, calculation/save/edit, visibility versus alerts, offline
-reopening and archive/restore. Chromium tests are not physical iPhone or Safari
-validation. After deployment, check Safari, Add to Home Screen, keyboard/notch
-layout, offline reopen and server recovery on the actual phone.
+A per-line phone switch, that line's signal-type switch and the matching master
+switch in Settings must all be enabled. Chart visibility is independent of alerts.
+While offline, local changes are saved immediately and marked **waiting to sync**.
+Keep the app open after reconnecting until sync succeeds. The server continues
+using its last synced preferences until that update arrives.
+
+## Schedules and alert behaviour
+
+All targets stay in **Asia/Singapore**, including US daylight saving changes:
+
+| Job | Singapore-time target | Behaviour |
+| --- | --- | --- |
+| US close | Tue–Sat 06:30 | Refresh completed adjusted closes; buy crossing / below-line check. |
+| SG close | Mon–Fri 18:30 | Same closing check for SG listings. |
+| US opening reminder | Mon–Fri 21:30 | Last verified adjusted close strictly above SMA. |
+| SG opening reminder | Mon–Fri 09:00 | Same opening reminder for SG listings. |
+
+Supabase pg_cron uses UTC internally. The supplied SQL converts these four
+schedules; no paid Vercel Cron schedule is needed. Checks expire after 30 minutes
+and do not replay old slots after an outage. Weekday schedules do not invent
+an exchange holiday calendar. A closing job only alerts on its expected session;
+an opening reminder can use an older close only when the latest closing job
+freshly verified that snapshot. Opening jobs do not fetch intraday prices.
+
+Run claims and event keys are stored durably to prevent duplicate checks and
+repeated sends. Removed or disabled lines are rechecked before delivery. Expired
+push subscriptions are disabled after a 404/410 response. Failed/uncertain sends
+are recorded without automatic same-slot replay. View recent results in
+**Alerts → View recent server checks**, or the protected Supabase run/event tables.
+
+## Local data and backups
+
+The first calculation downloads roughly a dozen megabytes of Python/runtime
+assets; later calculations reuse them. The UI remains responsive and Cancel
+terminates the calculation worker. The shared optimizer and backtest modules
+retain the native calendar365, warm-up, gap, tie and adjusted-close rules.
+
+After downloading, chart snapshots, the calculation runtime and market histories
+can reopen offline. New stock searches and fresh prices still need a connection.
+iOS can evict website storage. **Export saved parameters** regularly and keep
+the JSON file privately. **Import saved parameters** merges active lines and
+settings; existing matching lines keep their current choices. Price histories
+and the recently unsaved archive are not included in that backup.
+
+Signing out keeps the local library; clearing downloaded data keeps saved SMA
+parameters. Browser data removal can erase both. This is a private single-owner
+app, not a multi-user account system or native Android-to-iPhone cloud sync.
+
+## Email and remaining acceptance checks
+
+Optional signup remains hidden unless a separately configured email service
+advertises support. Supabase notification setup does not enable SMTP signup or
+restore the retired Gmail integration.
+
+The browser suite exercises the real Pyodide runtime and checks results against
+Python, offline reload/backtesting, persistence, backup import and setup UI.
+Server fixtures compare alert rules/schedules to native Python and verify
+concurrent claims, stale closes and expired subscriptions. These checks do not
+establish live delivery to a physical iPhone. After completing setup, test a
+notification with the Home Screen app closed and inspect the scheduled run log.

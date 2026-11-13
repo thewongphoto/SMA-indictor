@@ -1,31 +1,19 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
+import {
+  json,
+  equal,
+  sign,
+  authenticated,
+  bodyObject,
+} from "../../../lib/auth";
+import { searchMarket, historyMarket } from "../../../lib/market";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-const json = (data, status = 200, headers = {}) =>
-  Response.json(data, {
-    status,
-    headers: { "Cache-Control": "no-store", ...headers },
-  });
-const equal = (a, b) => {
-  const x = Buffer.from(a),
-    y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-};
-const sign = (value) =>
-  createHmac("sha256", process.env.AUTH_SECRET).update(value).digest("hex");
-function authenticated(req) {
-  const cookie = (req.headers.get("cookie") || "")
-    .split(";")
-    .map((x) => x.trim())
-    .find((x) => x.startsWith("sma_session="));
-  if (!cookie || !process.env.AUTH_SECRET) return false;
-  const [expires, mac] = cookie.slice(12).split(".");
-  return Number(expires) > Date.now() && equal(mac || "", sign(expires));
-}
+export const maxDuration = 60;
 async function handler(req, { params }) {
   const path = (await params).path.join("/");
-  const readOnly = ["state", "log", "contact-capabilities"].includes(path);
+  const readOnly = ["state", "log", "contact-capabilities", "session"].includes(
+    path,
+  );
   const methods = path.startsWith("jobs/")
     ? ["GET", "DELETE"]
     : readOnly
@@ -68,6 +56,33 @@ async function handler(req, { params }) {
     !authenticated(req)
   )
     return json({ error: "Sign in to your private app." }, 401);
+  if (path === "session")
+    return json({
+      storage:
+        process.env.PYTHON_API_URL && process.env.PYTHON_API_TOKEN
+          ? "worker"
+          : "local",
+    });
+  if (path === "market/search" || path === "market/history") {
+    try {
+      const body = await bodyObject(req);
+      return json(
+        path === "market/search"
+          ? await searchMarket(body.query)
+          : await historyMarket(body.key),
+      );
+    } catch (error) {
+      return json(
+        { error: error.message || "The market data service is unavailable." },
+        503,
+      );
+    }
+  }
+  if (
+    path === "contact-capabilities" &&
+    (!process.env.PYTHON_API_URL || !process.env.PYTHON_API_TOKEN)
+  )
+    return json({ enabled: false });
   if (!process.env.PYTHON_API_URL || !process.env.PYTHON_API_TOKEN)
     return json(
       { error: "The calculation service is not configured yet." },

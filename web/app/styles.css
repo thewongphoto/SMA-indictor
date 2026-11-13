@@ -758,3 +758,37 @@ html[data-theme="light"] {
   font-size: 12px;
   color: var(--text-muted);
 }
+.setup-page {
+  max-width: 720px;
+  margin: auto;
+  padding: 24px 20px;
+  line-height: 1.6;
+}
+.setup-page h1 {
+  margin: 20px 0;
+}
+.setup-page h2 {
+  margin-bottom: 12px;
+}
+.setup-page label {
+  display: block;
+  margin: 20px 0;
+}
+.setup-page input {
+  font-family: monospace;
+}
+.setup-page textarea {
+  width: 100%;
+  font: 12px monospace;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+a {
+  color: var(--accent);
+}
+.setting input[type="file"] {
+  width: 55%;
+  font-size: 12px;
+}

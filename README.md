@@ -6,9 +6,9 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.14.3**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.15.0**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone | Next.js/PWA frontend and Python worker implemented; Vercel deployment and server configuration pending. Native releases remain paused. |
+| iPhone | Runs Python calculations and saved data locally in Safari/Home Screen. Vercel + Supabase setup enables scheduled Web Push. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
@@ -55,6 +55,14 @@ Prices and calculations use adjusted daily closes. Crossing prices are
 interpolated daily-line intersections, not observed intraday trades. Fees,
 taxes and currency movements are excluded from return comparisons. Frequency
 matching is not a claim of profitability. Yahoo data remains for private use.
+
+## iPhone web setup
+
+Follow the [free Vercel + Supabase walkthrough](docs/PRIVATE_IPHONE_INSTALLATION.md).
+After deployment, open `/setup` for key generation and the prepared scheduling SQL.
+The first calculation downloads the Python runtime; stock lookups need connectivity.
+Use saved-parameter export/import for backups. Free-service availability and iOS
+settings control background alert reliability.
 
 ## Development
 

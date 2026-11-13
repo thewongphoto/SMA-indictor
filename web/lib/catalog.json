@@ -1,0 +1,616 @@
+{
+  "issuers": [
+    {
+      "key": "vanguard",
+      "name": "Vanguard",
+      "aliases": [
+        "vanguard"
+      ],
+      "source_ticker": "VOO"
+    },
+    {
+      "key": "blackrock",
+      "name": "BlackRock / iShares",
+      "aliases": [
+        "ishares",
+        "blackrock"
+      ],
+      "source_ticker": "BLK"
+    },
+    {
+      "key": "state-street",
+      "name": "State Street",
+      "aliases": [
+        "state street",
+        "spdr",
+        "ssga"
+      ],
+      "source_ticker": "SPY"
+    },
+    {
+      "key": "invesco",
+      "name": "Invesco",
+      "aliases": [
+        "invesco",
+        "powershares"
+      ],
+      "source_ticker": "QQQ"
+    },
+    {
+      "key": "schwab",
+      "name": "Charles Schwab",
+      "aliases": [
+        "schwab",
+        "charles schwab"
+      ],
+      "source_ticker": "SCHB"
+    },
+    {
+      "key": "jpmorgan",
+      "name": "J.P. Morgan",
+      "aliases": [
+        "jpmorgan",
+        "jp morgan",
+        "j p morgan"
+      ],
+      "source_ticker": "JEPI"
+    },
+    {
+      "key": "dimensional",
+      "name": "Dimensional Fund Advisors",
+      "aliases": [
+        "dimensional",
+        "dfa"
+      ],
+      "source_ticker": "DFAC"
+    },
+    {
+      "key": "first-trust",
+      "name": "First Trust",
+      "aliases": [
+        "first trust",
+        "ft vest",
+        "ft cboe vest"
+      ],
+      "source_ticker": "FTCS"
+    },
+    {
+      "key": "vaneck",
+      "name": "VanEck",
+      "aliases": [
+        "vaneck",
+        "van eck"
+      ],
+      "source_ticker": "SMH"
+    },
+    {
+      "key": "proshares",
+      "name": "ProShares",
+      "aliases": [
+        "proshares"
+      ],
+      "source_ticker": "TQQQ"
+    },
+    {
+      "key": "wisdomtree",
+      "name": "WisdomTree",
+      "aliases": [
+        "wisdomtree",
+        "wisdom tree"
+      ],
+      "source_ticker": "USFR"
+    },
+    {
+      "key": "fidelity",
+      "name": "Fidelity Investments",
+      "aliases": [
+        "fidelity"
+      ],
+      "source_ticker": ""
+    },
+    {
+      "key": "capital-group",
+      "name": "Capital Group",
+      "aliases": [
+        "capital group"
+      ],
+      "source_ticker": "CGUS"
+    },
+    {
+      "key": "goldman-sachs",
+      "name": "Goldman Sachs",
+      "aliases": [
+        "goldman sachs",
+        "goldman"
+      ],
+      "source_ticker": "GS"
+    },
+    {
+      "key": "global-x",
+      "name": "Global X",
+      "aliases": [
+        "global x",
+        "globalx"
+      ],
+      "source_ticker": "QYLD"
+    },
+    {
+      "key": "american-century",
+      "name": "American Century Investments",
+      "aliases": [
+        "american century",
+        "avantis"
+      ],
+      "source_ticker": "FLV"
+    },
+    {
+      "key": "franklin-templeton",
+      "name": "Franklin Templeton",
+      "aliases": [
+        "franklin",
+        "templeton",
+        "legg mason",
+        "clearbridge"
+      ],
+      "source_ticker": "BEN"
+    },
+    {
+      "key": "pimco",
+      "name": "PIMCO",
+      "aliases": [
+        "pimco"
+      ],
+      "source_ticker": "BOND"
+    },
+    {
+      "key": "pacer",
+      "name": "Pacer",
+      "aliases": [
+        "pacer"
+      ],
+      "source_ticker": "COWZ"
+    },
+    {
+      "key": "janus-henderson",
+      "name": "Janus Henderson",
+      "aliases": [
+        "janus henderson",
+        "janus"
+      ],
+      "source_ticker": "JAAA"
+    },
+    {
+      "key": "innovator",
+      "name": "Innovator",
+      "aliases": [
+        "innovator"
+      ],
+      "source_ticker": "PJAN"
+    },
+    {
+      "key": "direxion",
+      "name": "Direxion",
+      "aliases": [
+        "direxion"
+      ],
+      "source_ticker": "SPXL"
+    },
+    {
+      "key": "pgim",
+      "name": "PGIM / Prudential",
+      "aliases": [
+        "pgim",
+        "prudential"
+      ],
+      "source_ticker": "PULS"
+    },
+    {
+      "key": "t-rowe-price",
+      "name": "T. Rowe Price",
+      "aliases": [
+        "t rowe price"
+      ],
+      "source_ticker": "TROW"
+    },
+    {
+      "key": "ark",
+      "name": "ARK Investment Management",
+      "aliases": [
+        "ark",
+        "21shares ark"
+      ],
+      "source_ticker": "ARKK"
+    },
+    {
+      "key": "harbor",
+      "name": "Harbor Capital",
+      "aliases": [
+        "harbor"
+      ],
+      "source_ticker": "HGER"
+    },
+    {
+      "key": "roundhill",
+      "name": "Roundhill Investments",
+      "aliases": [
+        "roundhill"
+      ],
+      "source_ticker": "MAGS"
+    },
+    {
+      "key": "alpha-architect",
+      "name": "Alpha Architect",
+      "aliases": [
+        "alpha architect"
+      ],
+      "source_ticker": "BOXX"
+    },
+    {
+      "key": "amplify",
+      "name": "Amplify ETFs",
+      "aliases": [
+        "amplify"
+      ],
+      "source_ticker": "DIVO"
+    },
+    {
+      "key": "alps",
+      "name": "ALPS / SS&C",
+      "aliases": [
+        "alps",
+        "ss c alps"
+      ],
+      "source_ticker": "SDOG"
+    }
+  ],
+  "stocks": {
+    "AAPL": "apple",
+    "MSFT": "microsoft",
+    "GOOG": "google",
+    "GOOGL": "google",
+    "TSLA": "tesla",
+    "NVDA": "nvidia",
+    "NFLX": "netflix",
+    "C6L": "singaporeairlines",
+    "D05": "dbs",
+    "DBSDF": "dbs",
+    "DBSDY": "dbs",
+    "BLK": "blackrock",
+    "STT": "state-street",
+    "IVZ": "invesco",
+    "SCHW": "schwab",
+    "JPM": "jpmorgan",
+    "GS": "goldman-sachs",
+    "BEN": "franklin-templeton",
+    "TROW": "t-rowe-price",
+    "WT": "wisdomtree"
+  },
+  "etfs": {
+    "VOO": "vanguard",
+    "VTI": "vanguard",
+    "VXUS": "vanguard",
+    "VEA": "vanguard",
+    "VWO": "vanguard",
+    "BND": "vanguard",
+    "BNDX": "vanguard",
+    "VUG": "vanguard",
+    "VTV": "vanguard",
+    "VT": "vanguard",
+    "VIG": "vanguard",
+    "VYM": "vanguard",
+    "VGK": "vanguard",
+    "VNQ": "vanguard",
+    "VO": "vanguard",
+    "VB": "vanguard",
+    "VGT": "vanguard",
+    "VHT": "vanguard",
+    "VDC": "vanguard",
+    "VPU": "vanguard",
+    "VFH": "vanguard",
+    "VDE": "vanguard",
+    "VBR": "vanguard",
+    "VCSH": "vanguard",
+    "VGLT": "vanguard",
+    "IVV": "blackrock",
+    "IWM": "blackrock",
+    "EFA": "blackrock",
+    "EEM": "blackrock",
+    "AGG": "blackrock",
+    "TLT": "blackrock",
+    "IEF": "blackrock",
+    "SHY": "blackrock",
+    "LQD": "blackrock",
+    "HYG": "blackrock",
+    "IAU": "blackrock",
+    "ITOT": "blackrock",
+    "IXUS": "blackrock",
+    "QUAL": "blackrock",
+    "USMV": "blackrock",
+    "SGOV": "blackrock",
+    "IBIT": "blackrock",
+    "IEMG": "blackrock",
+    "IEFA": "blackrock",
+    "IJR": "blackrock",
+    "IJS": "blackrock",
+    "IJH": "blackrock",
+    "IVW": "blackrock",
+    "IVLU": "blackrock",
+    "ACWI": "blackrock",
+    "SPY": "state-street",
+    "SPLG": "state-street",
+    "SPYM": "state-street",
+    "SPYG": "state-street",
+    "SPYV": "state-street",
+    "DIA": "state-street",
+    "GLD": "state-street",
+    "GLDM": "state-street",
+    "XLF": "state-street",
+    "XLK": "state-street",
+    "XLE": "state-street",
+    "XLV": "state-street",
+    "XLY": "state-street",
+    "XLP": "state-street",
+    "XLU": "state-street",
+    "XLB": "state-street",
+    "XLI": "state-street",
+    "XLRE": "state-street",
+    "XLC": "state-street",
+    "BIL": "state-street",
+    "SPTM": "state-street",
+    "SPDW": "state-street",
+    "SPAB": "state-street",
+    "SPEM": "state-street",
+    "SPMD": "state-street",
+    "SPTL": "state-street",
+    "QQQ": "invesco",
+    "QQQM": "invesco",
+    "RSP": "invesco",
+    "QQQJ": "invesco",
+    "SPMO": "invesco",
+    "DBB": "invesco",
+    "DBC": "invesco",
+    "DBE": "invesco",
+    "DBP": "invesco",
+    "DBA": "invesco",
+    "BKLN": "invesco",
+    "PGX": "invesco",
+    "PDBC": "invesco",
+    "SCHB": "schwab",
+    "SCHD": "schwab",
+    "SCHF": "schwab",
+    "SCHG": "schwab",
+    "SCHH": "schwab",
+    "SCHX": "schwab",
+    "SCHA": "schwab",
+    "SCHM": "schwab",
+    "SCHE": "schwab",
+    "SCHZ": "schwab",
+    "SCHP": "schwab",
+    "SCHO": "schwab",
+    "SCHR": "schwab",
+    "JEPI": "jpmorgan",
+    "JEPQ": "jpmorgan",
+    "JPST": "jpmorgan",
+    "JPIE": "jpmorgan",
+    "JQUA": "jpmorgan",
+    "JPME": "jpmorgan",
+    "JCPB": "jpmorgan",
+    "JMUB": "jpmorgan",
+    "BBUS": "jpmorgan",
+    "FBTC": "fidelity",
+    "FETH": "fidelity",
+    "FTEC": "fidelity",
+    "FDVV": "fidelity",
+    "FBCG": "fidelity",
+    "ONEQ": "fidelity",
+    "FIDU": "fidelity",
+    "FDRR": "fidelity",
+    "FIDI": "fidelity",
+    "FENY": "fidelity",
+    "FSTA": "fidelity",
+    "FHLC": "fidelity",
+    "FREL": "fidelity",
+    "FDIS": "fidelity",
+    "FCOM": "fidelity",
+    "FLDR": "fidelity",
+    "FVAL": "fidelity",
+    "FMIL": "fidelity",
+    "FPRO": "fidelity",
+    "FELG": "fidelity",
+    "FELC": "fidelity",
+    "USFR": "wisdomtree",
+    "DGRW": "wisdomtree",
+    "NTSX": "wisdomtree",
+    "NTSI": "wisdomtree",
+    "NTSE": "wisdomtree",
+    "DXJ": "wisdomtree",
+    "DGS": "wisdomtree",
+    "BOXX": "alpha-architect",
+    "QVAL": "alpha-architect",
+    "IVAL": "alpha-architect",
+    "QMOM": "alpha-architect",
+    "IMOM": "alpha-architect",
+    "VMOT": "alpha-architect",
+    "HIDE": "alpha-architect",
+    "MAGS": "roundhill",
+    "BETZ": "roundhill",
+    "MEME": "roundhill",
+    "CHAT": "roundhill",
+    "NERD": "roundhill",
+    "METV": "roundhill",
+    "WEED": "roundhill",
+    "RDTE": "roundhill",
+    "XDTE": "roundhill",
+    "QDTE": "roundhill",
+    "YBTC": "roundhill",
+    "QYLD": "global-x",
+    "XYLD": "global-x",
+    "RYLD": "global-x",
+    "QYLG": "global-x",
+    "XYLG": "global-x",
+    "BOTZ": "global-x",
+    "LIT": "global-x",
+    "DRIV": "global-x",
+    "AIQ": "global-x",
+    "COPX": "global-x",
+    "URA": "global-x",
+    "GXG": "global-x",
+    "AVUV": "american-century",
+    "AVUS": "american-century",
+    "AVEM": "american-century",
+    "AVDE": "american-century",
+    "AVIV": "american-century",
+    "AVES": "american-century",
+    "AVSC": "american-century",
+    "AVMC": "american-century",
+    "AVMA": "american-century",
+    "AVNM": "american-century",
+    "AVGV": "american-century",
+    "AVGE": "american-century",
+    "FLV": "american-century",
+    "FDG": "american-century",
+    "KORP": "american-century",
+    "VALQ": "american-century",
+    "FTCS": "first-trust",
+    "FDN": "first-trust",
+    "FVD": "first-trust",
+    "FV": "first-trust",
+    "FPE": "first-trust",
+    "FMB": "first-trust",
+    "RDVY": "first-trust",
+    "SKYY": "first-trust",
+    "CIBR": "first-trust",
+    "FTHI": "first-trust",
+    "TQQQ": "proshares",
+    "SQQQ": "proshares",
+    "UPRO": "proshares",
+    "SPXU": "proshares",
+    "PSQ": "proshares",
+    "SH": "proshares",
+    "QLD": "proshares",
+    "QID": "proshares",
+    "BITO": "proshares",
+    "NOBL": "proshares",
+    "BOND": "pimco",
+    "MINT": "pimco",
+    "HYS": "pimco",
+    "CORP": "pimco",
+    "STPZ": "pimco",
+    "COWZ": "pacer",
+    "CALF": "pacer",
+    "GCOW": "pacer",
+    "ECOW": "pacer",
+    "ICOW": "pacer",
+    "HERD": "pacer",
+    "SPXL": "direxion",
+    "SPXS": "direxion",
+    "SOXL": "direxion",
+    "SOXS": "direxion",
+    "TNA": "direxion",
+    "TZA": "direxion",
+    "LABU": "direxion",
+    "LABD": "direxion",
+    "FAS": "direxion",
+    "FAZ": "direxion",
+    "NAIL": "direxion",
+    "TECL": "direxion",
+    "TECS": "direxion",
+    "CGUS": "capital-group",
+    "CGGR": "capital-group",
+    "CGDV": "capital-group",
+    "CGXU": "capital-group",
+    "CGGO": "capital-group",
+    "CGCP": "capital-group",
+    "CGMS": "capital-group",
+    "CGSD": "capital-group",
+    "CGMU": "capital-group",
+    "PULS": "pgim",
+    "JAAA": "janus-henderson",
+    "JBBB": "janus-henderson",
+    "JSI": "janus-henderson",
+    "VNLA": "janus-henderson",
+    "JIII": "janus-henderson",
+    "JAND": "janus-henderson",
+    "PJAN": "innovator",
+    "PJUL": "innovator",
+    "UJAN": "innovator",
+    "BJAN": "innovator",
+    "EJAN": "innovator",
+    "DJAN": "innovator",
+    "KJAN": "innovator",
+    "HGER": "harbor",
+    "HAPY": "harbor",
+    "HARP": "harbor",
+    "SIHY": "harbor",
+    "SIFI": "harbor",
+    "DIVO": "amplify",
+    "BATT": "amplify",
+    "IBUY": "amplify",
+    "BLOK": "amplify",
+    "YYY": "amplify",
+    "CNBS": "amplify",
+    "SDOG": "alps",
+    "ACES": "alps",
+    "AMLP": "alps"
+  },
+  "colors": [
+    {
+      "name": "Amber",
+      "color": "#ffbd5c"
+    },
+    {
+      "name": "Periwinkle",
+      "color": "#96a3ff"
+    },
+    {
+      "name": "Rose",
+      "color": "#ff7d9e"
+    },
+    {
+      "name": "Sky",
+      "color": "#6bc2ff"
+    },
+    {
+      "name": "Violet",
+      "color": "#c794f5"
+    },
+    {
+      "name": "Lime",
+      "color": "#99d66b"
+    },
+    {
+      "name": "Coral",
+      "color": "#ff9e66"
+    },
+    {
+      "name": "Cyan",
+      "color": "#61d6eb"
+    },
+    {
+      "name": "Yellow",
+      "color": "#ffe640"
+    },
+    {
+      "name": "Mint",
+      "color": "#3dd694"
+    },
+    {
+      "name": "Magenta",
+      "color": "#f261e0"
+    },
+    {
+      "name": "Ivory",
+      "color": "#f0f0e8"
+    }
+  ],
+  "automatic": [
+    "#ffbd5c",
+    "#96a3ff",
+    "#ff7d9e",
+    "#6bc2ff",
+    "#c794f5",
+    "#99d66b",
+    "#ff9e66",
+    "#61d6eb"
+  ]
+}

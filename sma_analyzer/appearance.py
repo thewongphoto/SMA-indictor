@@ -12,7 +12,7 @@ _pairs = [(theme.BG, '#F4F8FA'), (theme.SURFACE, '#FFFFFF'),
           (theme.CONTROL, '#E6EDF1'), (theme.TEXT, '#14232E'),
           (theme.MUTED, '#536875'), (theme.ACCENT, '#007C70'),
           (theme.ON_ACCENT, '#FFFFFF'), (theme.NEGATIVE, '#B52C3B'),
-          (theme.BORDER, '#A5B9C4'), (theme.SUNKEN, '#EEF3F6'), (theme.ACCENT_TINT, '#D3F1EC'), (theme.SECONDARY_BAR, '#8DA0AE'), (theme.NEGATIVE_TINT, '#F8DADD'), (theme.WARNING_BG, '#FDF3D7'), (theme.WARNING_TITLE, '#8A5A00'), (theme.WARNING_TEXT, '#5C4A1E'), (theme.rgba('#DCE5EC'), '#243340')]
+          (theme.BORDER, '#A5B9C4'), (theme.SUNKEN, '#EEF3F6'), (theme.ACCENT_TINT, '#D3F1EC'), (theme.SECONDARY_BAR, '#8DA0AE'), (theme.NEGATIVE_TINT, '#F8DADD'), (theme.WARNING_BG, '#FDF3D7'), (theme.DIVIDER, '#D5DFE5'), (theme.ACCENT_BORDER, '#7CC8BE'), (theme.WARNING_TITLE, '#8A5A00'), (theme.WARNING_TEXT, '#5C4A1E'), (theme.rgba('#DCE5EC'), '#243340')]
 # Legacy native surfaces/text are assigned the same semantic roles.
 _pairs += [(value, '#E6EDF1') for value in
            [(0.10,.15,.23,1),(.12,.17,.23,1),(.08,.12,.18,1),(.13,.20,.28,1),(.065,.095,.14,1),(.10,.15,.21,1)]]

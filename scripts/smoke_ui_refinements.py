@@ -175,9 +175,9 @@ class RefinementSmoke(MobileYahooSmoke):
         self.checked("the theme-native search-plus opens Choose a security; Saved SMAs has no hamburger")
         ui.backtest_period._dropdown.select("3Y")
         report=ui.backtest_report
-        assert f"USD {report.crossings.invested:,.0f} contributed" in ui.backtest_gains["crossings"].text
+        assert f"${report.crossings.invested:,.0f} contributed" in ui.backtest_gains["crossings"].text
         assert ui.backtest_contribution.text.startswith(f"{len(report.crossings.indices)} buys each · ")
-        assert ui.backtest_unit.text=="USD 100 per buy"
+        assert ui.backtest_unit.text=="$100 per buy"
         assert ui.backtest_gain.text==f"{report.crossings.return_percent:+.1f}% on contributions"
         assert all("vs crossings" in label.text for label in ui.backtest_differences.values())
         yield from self.frames()
@@ -287,7 +287,7 @@ class RefinementSmoke(MobileYahooSmoke):
         ui.model.store.save(sg.counter,sg.scenario,9,6)
         ui.on_view_saved(ui.model.saved_lines()[0])
         assert ui.model.dataset.currency=="SGD" and "SGD adjusted daily close" in ui.plot_subtitle.text
-        assert ui.backtest_values["crossings"].text.startswith("USD ")
+        assert ui.backtest_values["crossings"].text.startswith("$")  # $ for every listing, by request
         assert ui.backtest_details.text==""
         assert ui.model.store.color_index(sg.counter,sg.scenario,9)==0
         self.checked("SG prices keep SGD on chart; USD price-return comparisons explicitly exclude FX")

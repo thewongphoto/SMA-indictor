@@ -5,9 +5,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from .theme import ACCENT, ACCENT_TINT, ON_ACCENT, BG, SURFACE, CONTROL, MUTED, TEXT, NEGATIVE
-from .widgets import SecurityIdentityButton, RuleSwitch, PreferenceReveal, IconButton, SavedSecurityGroup, Pill
+from .widgets import (SecurityIdentityButton, RuleSwitch, PreferenceReveal, IconButton, SavedSecurityGroup, Pill,
+                      LinesToggle, SavedLineRow, ChangeValue)
+from kivy.uix.anchorlayout import AnchorLayout
 from .watchlist import watchlist, line_state
 from kivy.clock import Clock
+from kivy.graphics import Line, Rectangle
+from .appearance import Color
 
 
 class Experience:
@@ -27,6 +31,16 @@ class Experience:
             self.tab_buttons[key] = button
             self.tab_bar.add_widget(button)
         self.add_widget(self.tab_bar)
+        from .theme import DIVIDER
+        with self.tab_bar.canvas.before:
+            Color(*BG)
+            tab_fill = Rectangle()
+            Color(*DIVIDER)
+            tab_line = Rectangle()
+        def paint_tab_bar(bar, *_):
+            tab_fill.pos, tab_fill.size = bar.pos, bar.size
+            tab_line.pos, tab_line.size = (bar.x, bar.top - dp(1)), (bar.width, dp(1) if bar.height else 0)
+        self.tab_bar.bind(pos=paint_tab_bar, size=paint_tab_bar)
         self.bind(size=self.layout_tabs, pos=self.layout_tabs)
         self.manager.bind(current=self.update_tabs)
         self.page_titles['library'].text = 'Home'
@@ -35,9 +49,7 @@ class Experience:
         self.new_analysis_button.text = '+ Find SMA'
         self.new_analysis_button.size_hint_x=None
         self.new_analysis_button.width=dp(112)
-        self.new_analysis_button.fill=ACCENT_TINT
-        self.new_analysis_button.color=ACCENT
-        self.new_analysis_button.font_size=sp(14)
+        self.style_outline_pill(self.new_analysis_button)
         self.page_titles['library'].parent.add_widget(self.new_analysis_button)
         self.search_submit.text = 'Search'
         self.security_search.hint_text = 'Company name or ticker'
@@ -105,6 +117,24 @@ class Experience:
         self.layout_tabs()
         self.update_tabs()
 
+    def style_outline_pill(self, button):
+        """Design '+ Find SMA': teal text, 1 dp teal-tinted outline, fully rounded, no fill."""
+        from .theme import ACCENT_BORDER
+        button.fill = BG
+        button.color = ACCENT
+        button.font_size = sp(14)
+        button.width = dp(116)
+        button.height = dp(40)
+        button.pos_hint = {'center_y': .5}
+        button._draw()
+        with button.canvas.after:
+            Color(*ACCENT_BORDER)
+            outline = Line(width=dp(1))
+        def paint(widget, *_):
+            outline.rounded_rectangle = (widget.x, widget.y, widget.width, widget.height, widget.height/2)
+        button.bind(pos=paint, size=paint)
+        paint(button)
+
     def build_detail_layout(self):
         """Design 02/2b order: price hero, plain status, chart, ranges, lines, signals, backtest."""
         from .app import Panel, WrappedLabel, LabButton
@@ -147,8 +177,8 @@ class Experience:
         self.detail_hero.add_widget(self.chart_change)
         # Plain-language status before numbers.
         self.detail_status = Panel()
-        self.detail_summary = WrappedLabel(text='', font_size=sp(16), bold=True)
-        self.detail_note = WrappedLabel(text='', color=MUTED, font_size=sp(14))
+        self.detail_summary = WrappedLabel(text='', font_size=sp(19), bold=True)
+        self.detail_note = WrappedLabel(text='', color=MUTED, font_size=sp(16))
         self.detail_status.add_widget(self.detail_summary)
         self.detail_status.add_widget(self.detail_note)
         # Range chips under the chart; scroll sideways only when 44 dp chips cannot fit.
@@ -632,14 +662,27 @@ class Experience:
             heading = BoxLayout(size_hint_y=None,height=dp(58),spacing=dp(4))
             name = SecurityIdentityButton(text=counter,show_ticker=True,stacked=True,pos_hint={'center_y':.5})
             name.set_security(security)
+            name.font_size = sp(17)
+            name.height = dp(52)
+            if name.ticker_label is not None:
+                name.ticker_label.font_size = sp(12)
             name.bind(on_release=lambda _, key=counter:self.toggle_saved_security(key))
             heading.add_widget(name)
-            quote = BoxLayout(orientation='vertical',size_hint_x=.6)
-            quote.add_widget(WrappedLabel(text=(f"{card['currency']} {card['price']:,.2f}" if card['price'] is not None else 'No cached close'),
+            quote = BoxLayout(orientation='vertical',size_hint_x=.6,spacing=dp(2))
+            quote.add_widget(WrappedLabel(text=(f"${card['price']:,.2f}" if card['price'] is not None else 'No cached close'),
                                  bold=True,halign='right',font_size=sp(16)))
             change=card['change']
-            quote.add_widget(WrappedLabel(text=(f'{change:+.1f}%' if change is not None else 'Change unavailable'),
-                color=NEGATIVE if change is not None and change<0 else ACCENT,halign='right',font_size=sp(12)))
+            change_box = AnchorLayout(anchor_x='right', size_hint_y=None, height=dp(22))
+            if change is None:
+                change_box.add_widget(WrappedLabel(text='Change unavailable', color=MUTED, halign='right', font_size=sp(12)))
+            else:
+                direction = 'up' if change > 0 else 'down' if change < 0 else 'flat'
+                value = ChangeValue()
+                value.value_label.font_size = sp(13)
+                value.show(f'{abs(change):.1f}%', direction,
+                           NEGATIVE if change < 0 else ACCENT if change > 0 else MUTED)
+                change_box.add_widget(value)
+            quote.add_widget(change_box)
             heading.add_widget(quote)
             group.add_widget(heading)
             summary = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(4))
@@ -650,37 +693,27 @@ class Experience:
                      if states == {'Above'} else ' · '.join(sorted(states)).upper())
             summary.add_widget(Pill(text=state, negative=bool(card['below']), pos_hint={'center_y': .5}))
             summary.add_widget(Label())
-            arrow = IconButton(kind='up' if expanded else 'down')
+            arrow = LinesToggle(count, expanded=expanded, pos_hint={'center_y': .5})
             arrow.bind(on_release=lambda _,key=counter:self.toggle_saved_security(key))
-            toggle_text = WrappedLabel(text='Hide lines' if expanded else f"{count} saved line{'s' if count != 1 else ''}",
-                                       color=MUTED, halign='right', size_hint_x=None, width=dp(110),
-                                       pos_hint={'center_y': .5})
-            arrow.bind(kind=lambda widget, kind, label=toggle_text, count=count: setattr(
-                label, 'text', 'Hide lines' if kind == 'up' else f"{count} saved line{'s' if count != 1 else ''}"))
-            summary.add_widget(toggle_text)
             summary.add_widget(arrow)
             group.add_widget(summary)
             body = BoxLayout(orientation='vertical',size_hint_y=None,spacing=dp(8))
             body.bind(minimum_height=body.setter('height'))
             for line in card['lines']:
-                row=BoxLayout(size_hint_y=None,height=dp(72),spacing=dp(6))
-                swatch=LegendSymbol(line_color(self.model.store.color_index(line.counter,line.scenario,line.period)))
-                row.add_widget(swatch)
-                view=LabButton(text=f'{line.display_name}\n{line.target_frequency} signals / year · Alert '+('on' if line.push_enabled else 'off'),
-                    halign='left',pos_hint={'center_y':.5})
-                view.fill=SURFACE
-                view.bind(size=lambda widget,_:setattr(widget,'text_size',(widget.width-dp(4),None)))
-                def fit_row(widget,size,row=row):
-                    widget.height=max(dp(48),size[1]+dp(8))
-                    row.height=widget.height+dp(8)
-                view.bind(texture_size=fit_row)
+                row=BoxLayout(size_hint_y=None,height=dp(64),spacing=dp(8))
+                view=SavedLineRow(line.display_name,
+                    f'{line.target_frequency} signals / year · Alert '+('on' if line.push_enabled else 'off'),
+                    line_color(self.model.store.color_index(line.counter,line.scenario,line.period)),
+                    pos_hint={'center_y':.5})
+                view.bind(height=lambda widget,height,row=row:setattr(row,'height',max(dp(56),height)))
                 view.bind(on_release=lambda _,line=line:self.on_view_saved(line))
+                swatch=view.swatch
                 row.add_widget(view)
                 state_label=Pill(text=card['states'][line.id].upper(),negative=card['states'][line.id]=='Below',
                     pos_hint={'center_y':.5})
                 row.add_widget(state_label)
                 body.add_widget(row)
-                rows[line.id]={'view':view,'title':view,'state':state_label,'swatch':swatch}
+                rows[line.id]={'view':view,'title':view.name_label,'state':state_label,'swatch':swatch}
             reveal = PreferenceReveal(body,detach_when_hidden=True)
             group.add_widget(reveal)
             reveal.show(expanded)

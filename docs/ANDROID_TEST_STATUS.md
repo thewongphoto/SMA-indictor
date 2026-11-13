@@ -1,6 +1,6 @@
 # Validation and build status
 
-Current source: **0.14.2**. The matching Android build tag is **apk-v0.14.2**.
+Current source: **0.14.3**. The matching Android build tag is **apk-v0.14.3**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.

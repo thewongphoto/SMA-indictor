@@ -111,7 +111,7 @@ class YahooSmoke(App):
         assert tuple(ui.chart.view_range)==(0,1699)
         self.checked("long-history optimization and full MAX chart")
         ui.backtest_period._dropdown.select("Max")
-        assert ui.backtest_values["crossings"].text.startswith("USD ")
+        assert ui.backtest_values["crossings"].text.startswith("$")
         assert ui.backtest_report.end==1699
         self.checked("currency and calendar backtest")
         calls = len(self.client.calls)

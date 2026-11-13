@@ -19,7 +19,7 @@ const defaultState = {
   archive: [],
   colors: [],
   settings: {},
-  version: "0.14.2",
+  version: "0.14.3",
 };
 const money = (value) =>
   Number(value).toLocaleString(undefined, {
@@ -797,7 +797,7 @@ export default function App() {
                   <div className="backtest-title">
                     <h2>Backtest</h2>
                     <span className="small">
-                      {chart.preview ? "$" : "USD "}100 per buy
+                      $100 per buy
                     </span>
                   </div>
                   <p className="muted">
@@ -840,7 +840,7 @@ export default function App() {
                     {chart.backtest.span}
                   </p>
                   {chart.backtest.rows.map((row, i) => {
-                    const prefix = chart.preview ? "$" : "USD ";
+                    const prefix = "$";
                     const largest = Math.max(
                       1,
                       ...chart.backtest.rows.map((x) => x.ending_value),

@@ -38,7 +38,9 @@ class ChartComparisonTests(TestCase):
         self.assertEqual(comparison_period(None, (), "Max", False), "PAST MAX")
         self.assertEqual(comparison_period(None, (), "1Y", True), "VISIBLE RANGE")
 
-    def test_quote_currency_does_not_imply_a_currency_conversion(self):
-        self.assertEqual(currency_prefix("USD"), "US$")
-        self.assertEqual(currency_prefix("SGD"), "S$")
-        self.assertEqual(currency_prefix("JPY"), "JPY ")
+    def test_every_listing_uses_a_plain_dollar_sign(self):
+        # Owner request (0.14.3): $ for US and SGX listings alike. The chart
+        # caption still names the quote currency; no conversion is implied.
+        self.assertEqual(currency_prefix("USD"), "$")
+        self.assertEqual(currency_prefix("SGD"), "$")
+        self.assertEqual(currency_prefix(""), "")

@@ -48,4 +48,7 @@ def comparison_period(change, dates, timeline, zoomed):
 
 
 def currency_prefix(currency):
-    return {"USD":"US$", "SGD":"S$", "EUR":"€", "GBP":"£"}.get(currency, f"{currency} " if currency else "")
+    # The owner asked for a plain $ for every listing (US and SGX). Charts still
+    # name the quote currency in their caption, e.g. "SGD adjusted daily close".
+    # Data without a quote currency (legacy demo data) still gets no symbol.
+    return "$" if currency else ""

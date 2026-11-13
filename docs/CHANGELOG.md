@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.14.2** /
-**apk-v0.14.2**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.14.3** /
+**apk-v0.14.3**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.14.3 | Owner corrections to the design: "+ Find SMA" is an outlined pill; the tab bar has its top divider; Home cards show larger company names, a $ price with drawn ▲/▼ change arrows, the design's "Hide lines"/"N saved lines" toggle, and each line's name in bold with its colour to the right, above "N signals / year"; the Charts status card text is larger. Prices use $ for every listing (US and SGX); chart captions still name the quote currency. |
 | 0.14.2 | Completes the November design on Android, which 0.14.0 had only partly applied: Charts follows designs 02/2b (large price, plain-language status, range and signal chips, Find best SMA, and the new backtest card with horizon chips, buys/date summary, gain bars and the 500-sample statistic); Settings follows 04 (cards for notification types, background check, appearance, market data and legal); search follows 10/11 (teal Search, name-first results with Open/Analyse, recent securities, guided example card); Home pills and summary (01), empty Home (12), offline warning card (13), search error card (14), edit-line sheet (09), calculating overlay (07) and the first-open email screen (06, when signup is configured). The web backtest card matches 2b. Calculations, saved data and alert rules are unchanged. |
 | 0.14.1 | Each saved line chooses its own signal types: Buy signal and both Impending buy signals can be switched per line in the Alerts tab on Android and iPhone web, under the existing master switches in Settings. Upgrades keep every type On, archive/restore keeps the choices, and lines with no type On make no scheduled requests. |
 | 0.14.0 | Applies the November UI/UX handover to Android and a new iPhone web app: four tabs, cached watchlist status, frequency presets, editable saved lines, themes, readable backtests and cancel controls. Adds conditional opt-in signup, a private Python web worker, browser checks and deployment instructions. |

@@ -125,7 +125,8 @@
   pinned checksums in ios/native-sources.json. Never disable TLS/checksums.
 - Chart changes use the first/last finite adjusted closes inside the fractional
   visible bounds, without interpolation or network calls. Percent is relative
-  to the left close; use quote currency. Match both arrows/values to direction,
+  to the left close. Amounts show a plain $ for every listing (owner request,
+  0.14.3); the chart caption still names the quote currency (e.g. SGD). Match both arrows/values to direction,
   with neutral flat/empty states. Presets say PAST 3M/etc; pinch uses actual EOD
   endpoint dates. Keep full dates readable on narrow phones.
 - The approved app icon is Crosspoint (proposal 1), corrected so the turquoise

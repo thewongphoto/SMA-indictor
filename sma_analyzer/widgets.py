@@ -527,6 +527,84 @@ class Pill(Label):
         self._pill_rect.pos, self._pill_rect.size = self.pos, self.size
 
 
+class LinesToggle(ButtonBehavior, BoxLayout):
+    """'Hide lines ▴' / 'N saved lines ▾' (design 01): semibold muted text with a drawn
+    triangle, so no font glyph is needed. ``kind`` is 'up' when the lines are shown."""
+    kind = StringProperty("down")
+
+    def __init__(self, count, expanded=False, **kwargs):
+        kwargs.setdefault("size_hint", (None, None))
+        kwargs.setdefault("height", dp(44))
+        super().__init__(spacing=dp(6), **kwargs)
+        self.count = count
+        self.label = Label(font_size=sp(13), bold=True, color=theme.MUTED, size_hint_x=None)
+        self.label.bind(texture_size=self._fit)
+        self.add_widget(self.label)
+        self.triangle = Widget(size_hint=(None, None), size=(dp(9), dp(6)), pos_hint={"center_y": .5})
+        self.triangle.bind(pos=self._paint, size=self._paint)
+        self.add_widget(self.triangle)
+        self.bind(kind=self._update)
+        self.kind = "up" if expanded else "down"
+        self._update()
+
+    @property
+    def text(self):
+        return self.label.text
+
+    def _update(self, *_):
+        count = self.count
+        self.label.text = "Hide lines" if self.kind == "up" else f"{count} saved line{'s' if count != 1 else ''}"
+        self._paint()
+
+    def _fit(self, *_):
+        self.label.width = self.label.texture_size[0] + dp(2)
+        self.width = self.label.width + self.spacing + self.triangle.width + dp(4)
+
+    def _paint(self, *_):
+        t = self.triangle
+        t.canvas.clear()
+        with t.canvas:
+            Color(*theme.MUTED)
+            if self.kind == "up":
+                Triangle(points=[t.x, t.y, t.right, t.y, t.center_x, t.top])
+            else:
+                Triangle(points=[t.x, t.top, t.right, t.top, t.center_x, t.y])
+
+
+class SavedLineRow(ButtonBehavior, BoxLayout):
+    """Design 01 line row: bold name with its colour swatch to the right, details below."""
+    def __init__(self, name, details, color, **kwargs):
+        super().__init__(orientation="vertical", size_hint_y=None, spacing=dp(2), padding=(0, dp(8)), **kwargs)
+        self.bind(minimum_height=self.setter("height"))
+        top = BoxLayout(size_hint_y=None, height=dp(24), spacing=dp(8))
+        self.name_label = Label(text=name, bold=True, font_size=sp(15), color=theme.TEXT, size_hint_x=None,
+                                halign="left", valign="middle", shorten=True, shorten_from="right")
+        self.name_label.bind(texture_size=self._fit_name)
+        top.add_widget(self.name_label)
+        self.swatch = LegendSymbol(color, pos_hint={"center_y": .5})
+        top.add_widget(self.swatch)
+        top.add_widget(Widget())
+        self.add_widget(top)
+        self.details_label = Label(text=details, font_size=sp(13), color=theme.MUTED, size_hint_y=None,
+                                   height=dp(20), halign="left", valign="middle")
+        self.details_label.bind(size=lambda widget, size: setattr(widget, "text_size", size))
+        self.add_widget(self.details_label)
+        self.bind(width=self._fit_name)
+
+    @property
+    def text(self):
+        return f"{self.name_label.text}\n{self.details_label.text}"
+
+    def _fit_name(self, *_):
+        limit = max(dp(40), self.width - dp(40))
+        self.name_label.text_size = (None, None)
+        self.name_label.texture_update()
+        natural = self.name_label.texture_size[0]
+        self.name_label.width = min(natural + dp(2), limit)
+        if natural > limit:
+            self.name_label.text_size = (limit, None)
+
+
 class LegendSymbol(Widget):
     def __init__(self, color, plus=False, **kwargs):
         super().__init__(size_hint=(None, None), size=(dp(26), dp(24)), **kwargs)

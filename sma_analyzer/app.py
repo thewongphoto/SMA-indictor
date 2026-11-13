@@ -718,7 +718,7 @@ class AnalyzerScreen(Experience, FloatLayout):
                 f"{sma_label(result.period)} · "
                 f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
                 f"{len(report.crossings.indices)} buys per comparison")
-            prefix = "USD " if self.yahoo_enabled else "$"
+            prefix = "$"
             values = [f"a. Upward crossings: {prefix}{report.crossings.ending_value:,.2f}"]
             for key,title in (("dca","b. Equal periods"),("random","c. Most common random")):
                 scenario = getattr(report,key)
@@ -2060,7 +2060,7 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     def _add_investment_horizon(self, container, callback, default="1Y", heading_text=None, heading_muted=False):
         """Shared horizon chips/Custom input for the guide and the selected SMA (design 2b)."""
-        prefix = "USD " if self.yahoo_enabled else "$"
+        prefix = "$"
         heading = WrappedLabel(text=heading_text or f"If you invested {prefix}100 per buy for the past:",
                                bold=not heading_muted, color=MUTED if heading_muted else TEXT,
                                font_size=sp(13 if heading_muted else 14))
@@ -2292,7 +2292,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.backtest_years.focus = False
         self.backtest_custom_holder.show(custom,animate=True)
         self.backtest_report = None
-        prefix = "USD " if self.yahoo_enabled else "$"
+        prefix = "$"
         self.backtest_unit.text = f"{prefix}100 per buy"
         self.backtest_contribution.text = ""
         self.backtest_gain.text = ""
@@ -2312,7 +2312,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         try:
             data, result = self.model.dataset, self.model.result
             dates = data.dates if not getattr(data, "is_simulated", True) else None
-            prefix = "USD " if dates else "$"
+            prefix = "$"
             self.backtest_unit.text = f"{prefix}100 per buy"
             sessions = period_sessions(self.backtest_period.text, self.backtest_years.text, len(data.prices), dates)
             report = compare_investments(data.prices, result.sma, result.events, sessions, dates)

@@ -25,11 +25,13 @@ jobs:
       - run: python -m unittest tests.test_web_service -v
       - run: npm ci --prefix web
       - run: npm test --prefix web
+      - run: bash scripts/check_contact_sql.sh
       - run: npm run build --prefix web
       - run: python -m playwright install --with-deps chromium
       - run: python -m scripts.smoke_web
       - run: python -m scripts.smoke_local_web
       - run: python -m scripts.smoke_setup_feedback
+      - run: python -m scripts.smoke_signup_web
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,3 +40,4 @@ jobs:
             artifacts/web-ui/
             artifacts/local-web/
             artifacts/setup-feedback/
+            artifacts/signup-web/

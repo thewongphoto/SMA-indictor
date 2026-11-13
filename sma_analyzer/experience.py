@@ -764,6 +764,11 @@ class Experience:
     def build_signup(self):
         """Expose opt-in signup only after the configured server advertises it."""
         from .contact import base_url, capabilities
+        from .app import platform
+        import os
+        # Desktop can opt in explicitly; mobile uses the configured public origin.
+        if platform not in ('android','ios') and 'SMA_CONTACT_BASE_URL' not in os.environ:
+            return
         if not base_url():
             return
         future = self.market_executor.submit(capabilities)
@@ -815,6 +820,7 @@ class Experience:
         with self.model.store._connect() as db:
             row=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
         self.contact_editor.text=json.loads(row[0]) if row else ''
+        self.contact_editor.bind(focus=self._editor_focus)
         entry=BoxLayout(size_hint_y=None,height=dp(48),spacing=dp(8))
         entry.add_widget(self.contact_editor)
         self.contact_submit=LabButton(text='Save',primary=True,size_hint_x=None,width=dp(84))
@@ -879,6 +885,15 @@ class Experience:
         popup = ScreenPopup(self, title='', title_size=0, separator_height=0, content=scroll, size_hint=(1, 1),
                             background='', background_color=BG, auto_dismiss=False)
         self.welcome_popup = popup
+        self.welcome_scroll = scroll
+        def fit(*_):
+            popup.size = self.size
+            popup.center = self.center
+        popup.size_hint = (None,None)
+        self.bind(size=fit,pos=fit)
+        popup.bind(on_dismiss=lambda *_:self.unbind(size=fit,pos=fit))
+        self.welcome_editor.bind(focus=self._editor_focus)
+        fit()
         def done(*_):
             with self.model.store._connect() as db:
                 db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_seen','true')")
@@ -894,31 +909,77 @@ class Experience:
                 self.welcome_status.text = 'Enter your email, or choose Skip for now.'
                 return
             self.contact_editor.text = email
-            self.submit_contact()
-            done()
+            self.welcome_editor.focus = False
+            self.welcome_status.text = 'Sending…'
+            self.welcome_continue.disabled = True
+            def accepted(_email):
+                if not popup._is_open:return
+                self.welcome_status.color = ACCENT
+                self.welcome_status.text = 'Email saved and forwarded to the developer.'
+                self.welcome_continue.text = 'Open the app'
+                self.welcome_continue.unbind(on_release=proceed)
+                self.welcome_continue.bind(on_release=done)
+            def failed(message):
+                if popup._is_open:
+                    self.welcome_status.color = NEGATIVE
+                    self.welcome_status.text = message
+            self.submit_contact(on_success=accepted,on_error=failed)
         self.welcome_skip.bind(on_release=done)
         self.welcome_continue.bind(on_release=proceed)
         self.welcome_editor.bind(on_text_validate=proceed)
         popup.open()
 
-    def submit_contact(self,*_):
+    def submit_contact(self,*_,on_success=None,on_error=None):
         import uuid,json
         from .contact import submit
+        from .notifications import validate_email
+        try:
+            email=validate_email(self.contact_editor.text)
+            if not email:raise ValueError('Enter a valid email address, like name@example.com.')
+        except ValueError as error:
+            self.contact_status.text=str(error)
+            if on_error:on_error(str(error))
+            if hasattr(self,'welcome_continue'):self.welcome_continue.disabled=False
+            return
         with self.model.store._connect() as db:
             row=db.execute("SELECT value FROM preferences WHERE key='release_install_id'").fetchone()
             identifier=json.loads(row[0]) if row else str(uuid.uuid4())
             db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_install_id',?)",(json.dumps(identifier),))
+            saved=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
+            if saved and json.loads(saved[0])==email:
+                self.contact_status.text='This email is already saved.'
+                if hasattr(self,'welcome_continue'):self.welcome_continue.disabled=False
+                if on_success:on_success(email)
+                return
+            pending=db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()
+            pending=json.loads(pending[0]) if pending else None
+            if not pending or pending.get('email')!=email:
+                pending={'email':email,'request_id':str(uuid.uuid4())}
+            db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_pending',?)",(json.dumps(pending),))
+        self.contact_editor.focus=False
         self.contact_submit.disabled=True
+        self.contact_editor.disabled=True
+        if hasattr(self,'welcome_editor'):self.welcome_editor.disabled=True
         self.contact_status.text='Sending…'
-        future=self.market_executor.submit(submit,self.contact_editor.text,identifier)
+        future=self.market_executor.submit(submit,email,identifier,pending['request_id'])
         def finish(_):
             if self.closed:return
             self.contact_submit.disabled=False
+            self.contact_editor.disabled=False
+            if hasattr(self,'welcome_editor'):self.welcome_editor.disabled=False
+            if hasattr(self,'welcome_continue'):self.welcome_continue.disabled=False
             try:
-                email=future.result()
+                accepted=future.result()
                 with self.model.store._connect() as db:
-                    db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_email',?)",(json.dumps(email),))
-                self.contact_status.text='Email sent to the developer.'
-            except ValueError as error:self.contact_status.text=str(error)
-            except Exception:self.contact_status.text='Email was not sent. Check your connection and try again.'
+                    db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_email',?)",(json.dumps(accepted),))
+                    db.execute("DELETE FROM preferences WHERE key='release_contact_pending'")
+                self.contact_status.text='Email saved and forwarded to the developer.'
+                if on_success:on_success(accepted)
+            except Exception as error:
+                if getattr(error,'code','')=='expired':
+                    with self.model.store._connect() as db:
+                        db.execute("DELETE FROM preferences WHERE key='release_contact_pending'")
+                message=str(error) if isinstance(error,ValueError) else 'Email acceptance could not be confirmed. Retry with the same address, or skip for now.'
+                self.contact_status.text=message
+                if on_error:on_error(message)
         future.add_done_callback(lambda _:Clock.schedule_once(finish,0))

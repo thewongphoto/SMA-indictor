@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.13.8**. Automatically publish completed, validated Android
+Current source: **0.16.0**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 
 ## Before publishing
@@ -27,6 +27,8 @@ python -m scripts.smoke_ui --library-flow-only
 python -m scripts.smoke_mobile_yahoo_ui
 python -m scripts.smoke_ui_refinements
 python -m scripts.smoke_ui_flow
+python -m scripts.smoke_ui_redesign
+python -m scripts.smoke_ui_signup
 python -m scripts.smoke_ui_motion
 KCFG_GRAPHICS_MAXFPS=12 python -m scripts.smoke_ui_color_logos
 python -m scripts.smoke_notification_jobs

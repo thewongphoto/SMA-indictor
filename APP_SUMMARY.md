@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.15.0**. Android and desktop are active. Native iPhone
+Current source: **0.16.0**. Android and desktop are active. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -173,3 +173,24 @@ The [free setup guide](docs/PRIVATE_IPHONE_INSTALLATION.md) explains the seven
 variables, SQL and physical iPhone acceptance checks. Existing Python-worker mode
 remains available when both old worker variables are set. The native Android
 engine and scheduler are unchanged by the web implementation.
+
+
+## Optional release-update signup (0.16.0)
+
+The first-open welcome page and Settings email editor are enabled only when the
+public Vercel capability check confirms Resend variables and the separate signup
+SQL. Android uses the same public service; no delivery credentials ship in the APK.
+The welcome page precedes the private web sign-in and offers Skip for now.
+Explicit Continue/Save forwards the submitted address only to kelwong98@gmail.com;
+this is independent of stock alerts and never restores Gmail authorization.
+Success requires Resend acceptance, which does not prove final inbox delivery.
+
+Both clients retain one submission UUID through uncertain retries. Supabase claims
+and Resend idempotency keys prevent concurrent/accepted retries from sending
+again. A newly submitted address change creates a new intent. Supabase stores
+keyed hashes, counts and delivery metadata, not email addresses or raw IPs.
+Unique consenting installations are counted, rather than total downloads; address
+changes count as additional accepted submissions. Global/install/IP limits protect
+the free quota. No automatic release campaign or email to the submitting user is
+sent. The owner setup and manual delivery check are documented in the
+[email guide](docs/EMAIL_SIGNUP_SETUP.md).

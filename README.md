@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.15.0**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.16.0**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone | Runs Python calculations and saved data locally in Safari/Home Screen. Vercel + Supabase setup enables scheduled Web Push. Native releases remain paused. |
 
@@ -20,6 +20,7 @@ for a successful run and download its **sma-android-test** artifact.
 - [APK signing, package security and Play Protect review](docs/ANDROID_PACKAGE_SECURITY.md).
 - [Run on a Mac](START_HERE_MAC.md).
 - [Deploy the iPhone web app through Vercel](docs/PRIVATE_IPHONE_INSTALLATION.md).
+- [Enable optional release-update email signup](docs/EMAIL_SIGNUP_SETUP.md).
 - [All current guides](docs/1.Directory.md), [release history](docs/CHANGELOG.md),
   [validation status](docs/ANDROID_TEST_STATUS.md) and [cleanup record](docs/MAINTENANCE.md).
 
@@ -64,6 +65,10 @@ The first calculation downloads the Python runtime; stock lookups need connectiv
 Use saved-parameter export/import for backups. Free-service availability and iOS
 settings control background alert reliability.
 
+Optional email signup uses Vercel + Resend to forward submitted addresses to the
+owner. Follow the [email setup guide](docs/EMAIL_SIGNUP_SETUP.md) or open `/setup/email`.
+Skip keeps the app usable without supplying an address.
+
 ## Development
 
 Use Python 3.12 for desktop and the pinned Python 3.11 Linux toolchain for APK
@@ -79,7 +84,7 @@ remain available through `bash run-desktop.command --demo`; they are separate
 from real histories and saved parameters.
 
 The [developer release checklist](docs/ANDROID_RELEASE_CHECKLIST.md) lists the
-unit and all eight UI gates. Keep signing keys, caches and local databases out
+unit and all native UI gates. Keep signing keys, caches and local databases out
 of Git. Install APK updates over the existing app; preserve its signing key and
 package ID. [Signing guide](docs/ANDROID_SIGNING.md).
 

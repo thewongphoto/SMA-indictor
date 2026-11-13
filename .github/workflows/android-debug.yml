@@ -57,6 +57,7 @@ jobs:
           xvfb-run -a python -m scripts.smoke_ui_refinements 2>&1 | tee artifacts/ui-refinements.log
           xvfb-run -a python -m scripts.smoke_ui_flow 2>&1 | tee artifacts/ui-flow.log
           xvfb-run -a python -m scripts.smoke_ui_redesign 2>&1 | tee artifacts/ui-redesign.log
+          xvfb-run -a python -m scripts.smoke_ui_signup 2>&1 | tee artifacts/ui-signup.log
           xvfb-run -a python -m scripts.smoke_ui_motion 2>&1 | tee artifacts/ui-motion.log
           # Exercise a deliberately slow frame clock: continuity must not rely on a fixed FPS.
           KCFG_GRAPHICS_MAXFPS=12 xvfb-run -a python -m scripts.smoke_ui_color_logos 2>&1 | tee artifacts/ui-color-logos.log
@@ -146,6 +147,8 @@ jobs:
             artifacts/ui-refinements-smoke.json
             artifacts/ui-flow.log
             artifacts/ui-flow-smoke.json
+            artifacts/ui-signup.log
+            artifacts/signup-ui/
             artifacts/ui-motion.log
             artifacts/ui-motion-smoke.json
             artifacts/ui-color-logos.log

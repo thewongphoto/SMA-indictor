@@ -337,6 +337,11 @@ export default function Setup() {
           </p>
         )}
       </section>
+      <section className="card">
+        <h2>Optional: release-update email signup</h2>
+        <p>Forward voluntary signup emails to the developer using Resend.</p>
+        <a href="/setup/email">Set up the email landing page</a>
+      </section>
       <p>
         Free-service quotas, inactive project pausing, market-data availability
         and iPhone settings can delay or prevent alerts. A successful push

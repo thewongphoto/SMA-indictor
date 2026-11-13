@@ -806,7 +806,7 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     @property
     def editors(self):
-        return (self.security_search, self.custom_target, self.alert_session, self.guide_backtest_years) + ((self.backtest_years,) if hasattr(self, "backtest_years") else ()) + ((self.rename_editor,) if hasattr(self,"rename_editor") else ())
+        return (self.security_search, self.custom_target, self.alert_session, self.guide_backtest_years) + tuple(getattr(self,name) for name in ("backtest_years","rename_editor","contact_editor","welcome_editor") if hasattr(self,name))
 
     def finish_editing(self):
         for editor in self.editors:
@@ -829,6 +829,10 @@ class AnalyzerScreen(Experience, FloatLayout):
             return True
         if any(editor.focus for editor in self.editors):
             self.finish_editing()
+            return True
+        welcome=getattr(self,'welcome_popup',None)
+        if welcome is not None and welcome._is_open:
+            self.welcome_skip.dispatch('on_release')
             return True
         if len(self._page_stack) > 1:
             self.go_back()
@@ -865,6 +869,11 @@ class AnalyzerScreen(Experience, FloatLayout):
             if editor.focus:
                 if editor is getattr(self,"rename_editor",None):
                     self._position_rename_popup()
+                    return
+                if editor is getattr(self,'welcome_editor',None):
+                    popup=getattr(self,'welcome_popup',None)
+                    if popup is not None and popup._is_open:
+                        self.welcome_scroll.scroll_to(editor,padding=dp(20),animate=False)
                     return
                 scroll = (self.search_scroll if editor is self.security_search else
                           self.parameter_scroll if editor is self.custom_target else

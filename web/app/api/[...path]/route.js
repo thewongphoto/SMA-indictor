@@ -6,14 +6,23 @@ import {
   bodyObject,
 } from "../../../lib/auth";
 import { searchMarket, historyMarket } from "../../../lib/market";
+import {
+  contactCapabilities,
+  contactStatus,
+  submitContact,
+} from "../../../lib/contact";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 async function handler(req, { params }) {
   const path = (await params).path.join("/");
-  const readOnly = ["state", "log", "contact-capabilities", "session"].includes(
-    path,
-  );
+  const readOnly = [
+    "state",
+    "log",
+    "contact-capabilities",
+    "session",
+    "contact-status",
+  ].includes(path);
   const methods = path.startsWith("jobs/")
     ? ["GET", "DELETE"]
     : readOnly
@@ -56,6 +65,33 @@ async function handler(req, { params }) {
     !authenticated(req)
   )
     return json({ error: "Sign in to your private app." }, 401);
+  if (path === "contact-status") return json(await contactStatus());
+  if (
+    (path === "contact-capabilities" || path === "contact-email") &&
+    (process.env.RESEND_API_KEY ||
+      !process.env.PYTHON_API_URL ||
+      !process.env.PYTHON_API_TOKEN)
+  ) {
+    if (path === "contact-capabilities")
+      return json(await contactCapabilities());
+    try {
+      const result = await submitContact(await bodyObject(req, 4096), {
+        ip: (
+          req.headers.get("x-vercel-forwarded-for") ||
+          req.headers.get("x-forwarded-for") ||
+          "unknown"
+        )
+          .split(",")[0]
+          .trim(),
+      });
+      return json(result.payload, result.status);
+    } catch {
+      return json(
+        { error: "The signup could not be processed. You can skip for now." },
+        400,
+      );
+    }
+  }
   if (path === "session")
     return json({
       storage:

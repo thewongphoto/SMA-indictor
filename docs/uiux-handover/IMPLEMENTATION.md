@@ -28,7 +28,7 @@ instructions in HOW_TO_COMMIT are historical reference, not the release scope.
 | Alerts | Phone switch plus three signal-type switches per line (0.14.1); three global master types | Stored preferences; clear notice that server delivery is not implemented |
 | Settings | Theme, optional contact, diagnostics, request log, cache controls, legal copy | Theme, optional contact, diagnostic log, export, cache clear, archive and private sign-in |
 | Loading/cancel | Existing native presplash; continuous stroke animation plus Cancel during scoring | Loading/calculation overlay and Cancel; stale results ignored |
-| Email | Hidden without configured HTTPS endpoint/capability | Hidden unless server SMTP capability is enabled |
+| Email | Optional first-open welcome and Settings editor; Vercel capability gate | Same welcome/editor, Vercel + Resend capability gate |
 
 The Python calculation, adjusted-close, calendar365, saved identity and native
 notification engines are unchanged. The web worker calls those same modules;
@@ -86,10 +86,9 @@ calculation, persistence, colour/visibility independence, offline snapshots and
 320/390/768 layouts. Captures are retained in validation artifacts. These are
 fixture checks, not physical Android/iPhone acceptance tests.
 
-Vercel still needs a connected project, private access secrets and the HTTPS
-persistent worker. Optional email additionally needs SMTP configuration. The
-Android signup base URL is deliberately empty until that deployment exists.
-No native iOS build is released and no Play Protect clearance is claimed.
+The original persistent-worker requirement is superseded by 0.15.0 below.
+The optional email configuration is superseded by 0.16.0 below. No native iOS
+build is released and no Play Protect clearance is claimed.
 
 ## 0.15.0 local calculation and alert deployment
 
@@ -101,3 +100,13 @@ keys locally and prepares idempotent SQL for four SGT schedules. This supersedes
 the earlier requirement for a persistent Python host and the earlier statement
 that web notification delivery was unimplemented. Deployment configuration and
 physical iPhone checks are in the [current guide](../PRIVATE_IPHONE_INSTALLATION.md).
+
+## 0.16.0 optional welcome email
+
+The full-screen first-open design now uses Vercel + Resend to forward voluntary
+signups to the owner. Android uses the same public endpoint. It remains hidden
+until the Resend key and separate signup SQL are ready, and Skip always leaves
+the app usable. Input errors and failed requests stay in the form; confirmation
+requires provider acceptance. Local submission IDs, durable claims and provider
+idempotency prevent duplicate retries. Counts describe consenting installations,
+not total downloads. See the [email guide](../EMAIL_SIGNUP_SETUP.md).

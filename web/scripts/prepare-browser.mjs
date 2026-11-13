@@ -88,3 +88,8 @@ await copyFile(
   join(web, "setup/supabase.sql"),
   join(web, "public/setup/supabase.sql"),
 );
+
+await copyFile(
+  join(web, "setup/contact.sql"),
+  join(web, "public/setup/contact.sql"),
+);

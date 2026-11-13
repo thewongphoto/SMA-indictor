@@ -196,9 +196,12 @@ app, not a multi-user account system or native Android-to-iPhone cloud sync.
 
 ## Email and remaining acceptance checks
 
-Optional signup remains hidden unless a separately configured email service
-advertises support. Supabase notification setup does not enable SMTP signup or
-restore the retired Gmail integration.
+Optional release-update signup uses Vercel functions and Resend. Follow the
+[beginner email setup guide](EMAIL_SIGNUP_SETUP.md), or open `/setup/email` on
+your website. Add `RESEND_API_KEY` and run the separate email SQL; keep your seven
+notification variables and existing scheduling setup. Signup stays hidden until
+configured. Gmail is only the forwarding recipient; no Google authorization or
+Gmail password is needed.
 
 The browser suite exercises the real Pyodide runtime and checks results against
 Python, offline reload/backtesting, persistence, backup import and setup UI.

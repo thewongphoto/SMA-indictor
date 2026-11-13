@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.15.0** /
-**apk-v0.15.0**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.16.0** /
+**apk-v0.16.0**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.16.0 | Adds the optional full-screen email welcome and Settings editor on iPhone web/Android, with Vercel forwarding opt-in signups to the owner through Resend. Adds separate Supabase rate-limit/idempotency/count metadata, acceptance/error/retry handling and a beginner `/setup/email` guide. Signup stays hidden until configured. |
 | 0.15.0 | Runs web SMA/backtests locally using the shared Python engine in Pyodide/NumPy, retains parameters in IndexedDB, adds backup import, and implements Supabase-scheduled Web Push with an owner setup page. Keeps legacy worker mode and native Android behaviour. |
 | 0.14.3 | Owner corrections to the design: "+ Find SMA" is an outlined pill; the tab bar has its top divider; Home cards show larger company names, a $ price with drawn ▲/▼ change arrows, the design's "Hide lines"/"N saved lines" toggle, and each line's name in bold with its colour to the right, above "N signals / year"; the Charts status card text is larger. Prices use $ for every listing (US and SGX); chart captions still name the quote currency. |
 | 0.14.2 | Completes the November design on Android, which 0.14.0 had only partly applied: Charts follows designs 02/2b (large price, plain-language status, range and signal chips, Find best SMA, and the new backtest card with horizon chips, buys/date summary, gain bars and the 500-sample statistic); Settings follows 04 (cards for notification types, background check, appearance, market data and legal); search follows 10/11 (teal Search, name-first results with Open/Analyse, recent securities, guided example card); Home pills and summary (01), empty Home (12), offline warning card (13), search error card (14), edit-line sheet (09), calculating overlay (07) and the first-open email screen (06, when signup is configured). The web backtest card matches 2b. Calculations, saved data and alert rules are unchanged. |

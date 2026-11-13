@@ -10,6 +10,10 @@ Follow the [beginner setup guide](../docs/PRIVATE_IPHONE_INSTALLATION.md) or ope
 No persistent Python host is required. The older `web_worker/` mode remains
 available only when both `PYTHON_API_URL` and `PYTHON_API_TOKEN` are configured.
 
+Optional signup forwards addresses to the owner through a Vercel function and
+Resend. See the [email setup guide](../docs/EMAIL_SIGNUP_SETUP.md) or `/setup/email`.
+Only `RESEND_API_KEY` and the separate contact SQL are added to an existing setup.
+
 ```sh
 npm ci --prefix web
 npm run build --prefix web
@@ -30,6 +34,8 @@ python -m pip install requests certifi tzdata playwright
 python -m playwright install chromium
 python -m scripts.smoke_web
 python -m scripts.smoke_local_web
+python -m scripts.smoke_setup_feedback
+python -m scripts.smoke_signup_web
 ```
 
 The first checks legacy worker compatibility. The second uses actual in-browser

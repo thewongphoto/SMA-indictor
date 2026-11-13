@@ -1,9 +1,20 @@
 # Validation and build status
 
-Current source: **0.15.0**. The matching Android build tag is **apk-v0.15.0**.
+Current source: **0.16.0**. The matching Android build tag is **apk-v0.16.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.16.0 validates optional email forwarding with **359 Python tests
+(357 passed, two optional checks skipped)** and **18 JavaScript tests**, plus
+production builds, real Pyodide/browser flows, welcome validation/retry/Skip
+fixtures and isolated PostgreSQL claims, quotas, counts and migration reruns.
+Email-provider calls are mocked; these tests send no emails and do not establish
+live Gmail delivery. All 11 local native UI gates passed, including offline/library flows, both Yahoo
+fixtures, refinements, flow, redesign, signup, motion, slow-clock colour/logo and
+notification-job checks. The Android workflow adds the signup fixture to its
+retained gates. Configure Resend and perform the manual
+acceptance check in the [email guide](EMAIL_SIGNUP_SETUP.md).
 
 Release 0.14.2 rebuilds the Android Charts, backtest, Settings, search, Home,
 edit-line, calculating and first-open screens to the November design. Its UI

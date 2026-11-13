@@ -142,7 +142,10 @@ export default function App() {
     return value;
   }
   useEffect(() => {
-    setWelcome(!localStorage.getItem("sma-welcome-done"));
+    setWelcome(
+      !localStorage.getItem("sma-welcome-done") ||
+        new URLSearchParams(location.search).get("welcome") === "1",
+    );
     setTheme(localStorage.getItem("sma-theme") || "system");
     setStandalone(
       matchMedia("(display-mode: standalone)").matches ||
@@ -439,6 +442,20 @@ export default function App() {
       line.target_frequency === chart.result?.target,
   );
   const below = state.cards.reduce((sum, card) => sum + card.below, 0);
+  if (welcome)
+    return (
+      <Signup
+        variant="welcome"
+        onDone={() => {
+          localStorage.setItem("sma-welcome-done", "1");
+          const url = new URL(location.href);
+          url.searchParams.delete("welcome");
+          history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+          setWelcome(false);
+        }}
+        onUnavailable={() => setWelcome(false)}
+      />
+    );
   if (auth === null && loading)
     return (
       <main className="login">
@@ -531,14 +548,6 @@ export default function App() {
         )}
         {tab === "library" && (
           <>
-            {welcome && (
-              <Signup
-                onDone={() => {
-                  localStorage.setItem("sma-welcome-done", "1");
-                  setWelcome(false);
-                }}
-              />
-            )}
             {!standalone && (
               <div className="card install">
                 <span>Add to Home Screen for a full-screen view.</span>

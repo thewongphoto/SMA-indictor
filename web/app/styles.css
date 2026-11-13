@@ -805,3 +805,136 @@ a {
 .setup-result p:last-child {
   margin-bottom: 0;
 }
+.email-welcome {
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: auto;
+  padding: max(40px, env(safe-area-inset-top)) 28px
+    max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  background: var(--bg);
+}
+.email-welcome .welcome-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.email-welcome h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.email-welcome .welcome-intro {
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+}
+.welcome-points {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 22px 18px;
+  display: grid;
+  gap: 22px;
+}
+.welcome-points > div {
+  display: flex;
+  gap: 14px;
+}
+.welcome-points strong {
+  font-size: 16px;
+  line-height: 1.35;
+}
+.welcome-points p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.welcome-dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+.email-welcome form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+.email-welcome form input {
+  margin-top: 8px;
+  min-height: 56px;
+}
+.email-welcome .primary {
+  width: 100%;
+  min-height: 56px;
+  font-size: 16px;
+  border-radius: 16px;
+}
+.email-welcome form > .primary {
+  margin-top: auto;
+}
+.welcome-actions {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 0;
+}
+.welcome-actions .text {
+  color: var(--text);
+  font-size: 16px;
+}
+.welcome-actions p {
+  font-size: 12px;
+  margin: 0;
+}
+.email-confirmation {
+  padding: 22px 18px;
+  background: var(--accent-tint);
+  border-radius: 18px;
+  overflow-wrap: anywhere;
+}
+.email-confirmation strong {
+  color: var(--accent);
+}
+.email-confirmation p {
+  color: var(--text);
+}
+.email-settings form > .primary {
+  width: 100%;
+  margin-top: 10px;
+}
+.email-settings input[aria-invalid="true"],
+.email-welcome input[aria-invalid="true"] {
+  border-color: var(--negative);
+}
+.email-loading {
+  justify-content: center;
+  align-items: center;
+}
+.email-loading > img {
+  width: 80px;
+  border-radius: 20px;
+}
+@media (max-width: 359px) {
+  .email-welcome {
+    padding-left: 20px;
+    padding-right: 20px;
+    gap: 18px;
+  }
+  .email-welcome h1 {
+    font-size: 26px;
+  }
+  .welcome-points {
+    padding: 18px 16px;
+    gap: 16px;
+  }
+}

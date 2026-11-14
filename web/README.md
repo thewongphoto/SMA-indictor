@@ -12,7 +12,9 @@ available only when both `PYTHON_API_URL` and `PYTHON_API_TOKEN` are configured.
 
 Optional signup forwards addresses to the owner through a Vercel function and
 Resend. See the [email setup guide](../docs/EMAIL_SIGNUP_SETUP.md) or `/setup/email`.
-Only `RESEND_API_KEY` and the separate contact SQL are added to an existing setup.
+The current protocol 2 contact SQL stores a private active/removed registry and
+source/version history for owner email summaries. Rerun the script when upgrading
+from 0.16.0; existing Resend credentials stay unchanged.
 
 ```sh
 npm ci --prefix web

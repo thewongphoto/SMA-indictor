@@ -51,7 +51,39 @@ class SignupSmoke(FlowSmoke):
         ui.welcome_skip.dispatch('on_release')
         yield from self.frames()
         assert not ui.welcome_popup._is_open
+        # Modify, failed removal, retry and re-add all use the same native UI/API adapter.
+        ui.show_settings()
+        with patch('sma_analyzer.contact.submit',return_value='changed@example.com') as send:
+            ui.contact_editor.text='changed@example.com'
+            ui.contact_submit.dispatch('on_release')
+            yield lambda:not ui.contact_submit.disabled
+            assert send.call_args.args[3]=='save'
+        with patch('sma_analyzer.contact.submit',side_effect=ValueError('Fixture removal rejected')):
+            ui.contact_remove.dispatch('on_release')
+            yield lambda:not ui.contact_submit.disabled
+            assert 'rejected' in ui.contact_status.text
+            assert ui.contact_editor.text=='changed@example.com'
+        with ui.model.store._connect() as db:
+            removal=json.loads(db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()[0])
+            assert removal['operation']=='remove'
+        with patch('sma_analyzer.contact.submit',return_value='changed@example.com') as send:
+            ui.contact_retry.dispatch('on_release')
+            yield lambda:not ui.contact_submit.disabled
+            assert send.call_args.args[2]==removal['request_id']
+            assert send.call_args.args[3]=='remove'
+            assert ui.contact_editor.text=='' and ui.welcome_editor.text==''
+            assert ui.contact_remove.disabled and ui.contact_retry.disabled
+        with ui.model.store._connect() as db:
+            assert db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone() is None
+            assert db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone() is None
+        with patch('sma_analyzer.contact.submit',return_value='new@example.com') as send:
+            ui.contact_editor.text='new@example.com'
+            ui.contact_submit.dispatch('on_release')
+            yield lambda:not ui.contact_submit.disabled
+            assert send.call_args.args[3]=='save'
+        ui.settings_content.export_to_png(str(out/'email-settings.png'))
         self.checked('email welcome validates input, retains failed requests for retry, confirms acceptance before Open, persists email and supports Skip; delivery mocked')
+        self.checked('settings modifies, retries failed removal with the same request ID, clears all local email values only after acceptance and permits re-add; delivery mocked')
 
 if __name__=='__main__':
     app=SignupSmoke();app.run();temporary.cleanup();raise SystemExit(1 if app.failed else 0)

@@ -18,7 +18,11 @@ for this directory; calculations and provider state are serialized. Calculation
 jobs are temporary: a restart retains saved parameters, but the user must rerun
 an unfinished calculation. `--preview` is exclusively for synthetic fixtures.
 
-Optional signup requires all of `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`,
+The current Next.js app handles signup changes through Vercel + Resend even
+in calculation-worker mode. Use the [email setup guide](../docs/EMAIL_SIGNUP_SETUP.md);
+SMTP variables do not enable its form.
+
+The retained standalone worker signup endpoint requires all of `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`,
 `CONTACT_FROM`, `CONTACT_TO`; `SMTP_PORT` defaults to 587 with required STARTTLS.
 The capability endpoint enables the form only when all five are present.
 The worker sends an explicitly submitted signup to the configured developer,

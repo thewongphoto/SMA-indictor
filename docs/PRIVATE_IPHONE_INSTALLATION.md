@@ -198,7 +198,9 @@ app, not a multi-user account system or native Android-to-iPhone cloud sync.
 
 Optional release-update signup uses Vercel functions and Resend. Follow the
 [beginner email setup guide](EMAIL_SIGNUP_SETUP.md), or open `/setup/email` on
-your website. Add `RESEND_API_KEY` and run the separate email SQL; keep your seven
+your website. Add `RESEND_API_KEY` and run the separate email SQL (rerun it for
+protocol 2 when upgrading from 0.16.0). Email notifications now include add/modify/
+remove, app source/version and private active/removed address summaries. Keep your seven
 notification variables and existing scheduling setup. Signup stays hidden until
 configured. Gmail is only the forwarding recipient; no Google authorization or
 Gmail password is needed.

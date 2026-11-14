@@ -66,12 +66,7 @@ async function handler(req, { params }) {
   )
     return json({ error: "Sign in to your private app." }, 401);
   if (path === "contact-status") return json(await contactStatus());
-  if (
-    (path === "contact-capabilities" || path === "contact-email") &&
-    (process.env.RESEND_API_KEY ||
-      !process.env.PYTHON_API_URL ||
-      !process.env.PYTHON_API_TOKEN)
-  ) {
+  if (path === "contact-capabilities" || path === "contact-email") {
     if (path === "contact-capabilities")
       return json(await contactCapabilities());
     try {

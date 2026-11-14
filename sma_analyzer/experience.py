@@ -828,12 +828,24 @@ class Experience:
         self.contact_submit.bind(on_release=self.submit_contact)
         entry.add_widget(self.contact_submit)
         panel.add_widget(entry)
+        actions=BoxLayout(size_hint_y=None,height=dp(44),spacing=dp(8))
+        self.contact_remove=LabButton(text='Remove email')
+        self.contact_remove.color=NEGATIVE
+        self.contact_retry=LabButton(text='Retry last change')
+        self.contact_remove.bind(on_release=lambda *_:self.submit_contact(operation='remove'))
+        self.contact_retry.bind(on_release=lambda *_:self.submit_contact(retry=True))
+        actions.add_widget(self.contact_remove)
+        actions.add_widget(self.contact_retry)
+        panel.add_widget(actions)
         panel.add_widget(WrappedLabel(text='Optional. Used only to send you release updates from the developer. '
-                                           'Voluntary signups are counted; this is not a total download count.',
+                                           'Adds, changes and removals are emailed to the developer with their app source. '
+                                           'Removal clears this app\'s address; the developer retains private address/removal history. '
+                                           'Uninstalling or clearing app data cannot send a removal notice.',
                                       color=MUTED,font_size=sp(12)))
         self.contact_status=WrappedLabel(text='',color=MUTED)
         panel.add_widget(self.contact_status)
         self.settings_content.add_widget(panel,index=len(self.settings_content.children))
+        self.refresh_contact_actions()
         # A dismissible first-open invitation leaves the app fully usable.
         with self.model.store._connect() as db:
             seen=db.execute("SELECT value FROM preferences WHERE key='release_contact_seen'").fetchone()
@@ -858,7 +870,7 @@ class Experience:
         points = Panel()
         for title, detail in (('Release updates', 'The developer emails you when a new version is ready.'),
                               ('A signup count', 'It shows how many people chose to sign up.'),
-                              ('Nothing else', 'Your email is not used for any other purpose.')):
+                              ('Your signup history', 'Your address, app source and add/change/remove history are kept privately by the developer for release updates.')):
             points.add_widget(WrappedLabel(text='•  ' + title, bold=True, font_size=sp(15)))
             points.add_widget(WrappedLabel(text=detail, color=MUTED, font_size=sp(13)))
         body.add_widget(points)
@@ -878,7 +890,7 @@ class Experience:
         self.welcome_skip.font_size = sp(15)
         self.welcome_skip._draw()
         body.add_widget(self.welcome_skip)
-        body.add_widget(WrappedLabel(text='You can add or change your email later in Settings.', color=MUTED,
+        body.add_widget(WrappedLabel(text='You can add, change or remove your email later in Settings. Removal keeps a private developer history.', color=MUTED,
                                      font_size=sp(12), halign='center'))
         scroll = ScrollView(do_scroll_x=False)
         scroll.add_widget(body)
@@ -929,13 +941,33 @@ class Experience:
         self.welcome_editor.bind(on_text_validate=proceed)
         popup.open()
 
-    def submit_contact(self,*_,on_success=None,on_error=None):
+    def refresh_contact_actions(self):
+        with self.model.store._connect() as db:
+            saved=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
+            pending=db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()
+        self.contact_remove.disabled=not saved
+        self.contact_retry.disabled=not pending
+
+    def submit_contact(self,*_,on_success=None,on_error=None,operation='save',retry=False):
         import uuid,json
         from .contact import submit
         from .notifications import validate_email
+        if self.contact_submit.disabled:return
+        with self.model.store._connect() as db:
+            saved=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
+            pending=db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()
+            protocol=db.execute("SELECT value FROM preferences WHERE key='release_contact_protocol'").fetchone()
+        saved=json.loads(saved[0]) if saved else ''
+        pending=json.loads(pending[0]) if pending else None
+        if retry and pending:
+            operation=pending.get('operation','save')
+            value=pending['email']
+        else:value=saved if operation=='remove' else self.contact_editor.text
         try:
-            email=validate_email(self.contact_editor.text)
+            email=validate_email(value)
             if not email:raise ValueError('Enter a valid email address, like name@example.com.')
+            if pending and (pending.get('email')!=email or pending.get('operation','save')!=operation):
+                raise ValueError('Retry the last change before submitting another email change.')
         except ValueError as error:
             self.contact_status.text=str(error)
             if on_error:on_error(str(error))
@@ -945,23 +977,22 @@ class Experience:
             row=db.execute("SELECT value FROM preferences WHERE key='release_install_id'").fetchone()
             identifier=json.loads(row[0]) if row else str(uuid.uuid4())
             db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_install_id',?)",(json.dumps(identifier),))
-            saved=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
-            if saved and json.loads(saved[0])==email:
+            if not pending and operation=='save' and saved==email and protocol and protocol[0]=='2':
                 self.contact_status.text='This email is already saved.'
                 if hasattr(self,'welcome_continue'):self.welcome_continue.disabled=False
                 if on_success:on_success(email)
                 return
-            pending=db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()
-            pending=json.loads(pending[0]) if pending else None
-            if not pending or pending.get('email')!=email:
-                pending={'email':email,'request_id':str(uuid.uuid4())}
+            if not pending:
+                pending={'email':email,'request_id':str(uuid.uuid4()),'operation':operation}
             db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_pending',?)",(json.dumps(pending),))
         self.contact_editor.focus=False
         self.contact_submit.disabled=True
+        self.contact_remove.disabled=True
+        self.contact_retry.disabled=True
         self.contact_editor.disabled=True
         if hasattr(self,'welcome_editor'):self.welcome_editor.disabled=True
         self.contact_status.text='Sending…'
-        future=self.market_executor.submit(submit,email,identifier,pending['request_id'])
+        future=self.market_executor.submit(submit,email,identifier,pending['request_id'],operation)
         def finish(_):
             if self.closed:return
             self.contact_submit.disabled=False
@@ -971,9 +1002,17 @@ class Experience:
             try:
                 accepted=future.result()
                 with self.model.store._connect() as db:
-                    db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_email',?)",(json.dumps(accepted),))
+                    if operation=='remove':db.execute("DELETE FROM preferences WHERE key='release_contact_email'")
+                    else:db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_email',?)",(json.dumps(accepted),))
+                    db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_protocol','2')")
                     db.execute("DELETE FROM preferences WHERE key='release_contact_pending'")
-                self.contact_status.text='Email saved and forwarded to the developer.'
+                if operation=='remove':
+                    self.contact_editor.text=''
+                    if hasattr(self,'welcome_editor'):self.welcome_editor.text=''
+                    self.contact_status.text='Email removed from this app. The developer has been notified.'
+                else:
+                    self.contact_editor.text=accepted
+                    self.contact_status.text='Email saved and forwarded to the developer.'
                 if on_success:on_success(accepted)
             except Exception as error:
                 if getattr(error,'code','')=='expired':
@@ -982,4 +1021,5 @@ class Experience:
                 message=str(error) if isinstance(error,ValueError) else 'Email acceptance could not be confirmed. Retry with the same address, or skip for now.'
                 self.contact_status.text=message
                 if on_error:on_error(message)
+            self.refresh_contact_actions()
         future.add_done_callback(lambda _:Clock.schedule_once(finish,0))

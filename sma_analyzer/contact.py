@@ -22,15 +22,16 @@ def capabilities():
     response.raise_for_status()
     return response.json().get('enabled') is True
 
-def submit(email, install_id=None, request_id=None):
+def submit(email, install_id=None, request_id=None, operation='save'):
     email=validate_email(email)
     if not email: raise ContactError('Enter a valid email address, like name@example.com.')
+    if operation not in ('save','remove'): raise ContactError('Invalid email change.')
     if not base_url(): raise ContactError('Release update signup is not configured.')
     import requests
     from .version import APP_VERSION
     response=requests.post(base_url()+'/api/contact-email',json={'email':email,
         'install_id':install_id or str(uuid.uuid4()),'request_id':request_id or str(uuid.uuid4()),
-        'platform':'android','version':APP_VERSION},timeout=25)
+        'platform':'android','version':APP_VERSION,'operation':operation},timeout=55)
     try:result=response.json()
     except ValueError:raise ContactError('Email acceptance could not be confirmed. Try again later.') from None
     if not response.ok or result.get('sent') is not True:

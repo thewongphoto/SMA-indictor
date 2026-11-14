@@ -7,7 +7,7 @@ const POINTS = [
     "A voluntary signup count",
     "Helps count people who choose to sign up. This is not a total download count.",
   ],
-  ["Nothing else", "Your email is used only for release updates."],
+  ["Your signup history", "Your address, app source and add/change/remove history are kept privately by the developer for release updates."],
 ];
 export default function Signup({
   onDone,
@@ -22,7 +22,9 @@ export default function Signup({
     [status, setStatus] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [accepted, setAccepted] = useState(false);
+    [accepted, setAccepted] = useState(false),
+    [pendingChange, setPendingChange] = useState(null);
+  const inFlight = useRef(false);
   const callbacks = useRef({ onDone, onUnavailable });
   callbacks.current = { onDone, onUnavailable };
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function Signup({
       .finally(() => {
         if (live) setLoading(false);
       });
+    try { setPendingChange(JSON.parse(localStorage.getItem("sma-contact-pending"))); } catch {}
     const stored = localStorage.getItem("sma-contact-email") || "";
     setSaved(stored);
     setEmail(stored);
@@ -56,69 +59,63 @@ export default function Signup({
   }, []);
   async function submit(event) {
     event.preventDefault();
-    setError("");
-    setStatus("");
-    const value = email.trim();
-    if (!value || !event.currentTarget.checkValidity()) {
+    if (!email.trim() || !event.currentTarget.checkValidity()) {
       setError("Enter a valid email address, like name@example.com.");
       return;
     }
-    if (value === saved) {
-      setAccepted(true);
-      setStatus("This email is already saved.");
+    await sendChange("save", email.trim());
+  }
+  async function sendChange(operation, value, retry = false) {
+    if (inFlight.current) return;
+    setError("");
+    setStatus("");
+    let pending;
+    try { pending = JSON.parse(localStorage.getItem("sma-contact-pending")); } catch {}
+    if (retry && pending) { operation = pending.operation || "save"; value = pending.email; }
+    if (pending && (pending.email !== value || (pending.operation || "save") !== operation)) {
+      setError("Retry the pending change before submitting another email change.");
       return;
     }
+    if (!pending && operation === "save" && value === saved && localStorage.getItem("sma-contact-protocol") === "2") {
+      setAccepted(true); setStatus("This email is already saved."); return;
+    }
+    inFlight.current = true;
     setBusy(true);
     try {
       let id = localStorage.getItem("sma-install-id");
-      if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem("sma-install-id", id);
-      }
-      let pending;
-      try {
-        pending = JSON.parse(localStorage.getItem("sma-contact-pending"));
-      } catch {}
-      if (!pending || pending.email !== value) {
-        pending = { email: value, request_id: crypto.randomUUID() };
+      if (!id) { id = crypto.randomUUID(); localStorage.setItem("sma-install-id", id); }
+      if (!pending) {
+        const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        pending = { email: value, operation, request_id: crypto.randomUUID(), platform: ios ? "ios-web" : "web", version: packageInfo.version };
         localStorage.setItem("sma-contact-pending", JSON.stringify(pending));
       }
+      setPendingChange(pending);
       const response = await fetch("/api/contact-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: value,
-            install_id: id,
-            request_id: pending.request_id,
-            platform: "ios-web",
-            version: packageInfo.version,
-          }),
-          signal: AbortSignal.timeout(25000),
-        }),
-        result = await response.json();
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...pending, operation, install_id: id, platform: pending.platform || "web", version: pending.version || packageInfo.version }),
+        signal: AbortSignal.timeout(55000),
+      });
+      const result = await response.json();
       if (!response.ok || result.sent !== true) {
-        if (result.code === "expired")
-          localStorage.removeItem("sma-contact-pending");
-        throw new Error(
-          result.error ||
-            "Email acceptance could not be confirmed. Try again, or skip for now.",
-        );
+        if (result.code === "expired") { localStorage.removeItem("sma-contact-pending"); setPendingChange(null); }
+        throw new Error(result.error || "The email change could not be confirmed. Retry, or skip for now.");
       }
-      localStorage.setItem("sma-contact-email", value);
       localStorage.removeItem("sma-contact-pending");
-      setSaved(value);
-      setAccepted(true);
-      setStatus("Email saved and forwarded to the developer.");
+      localStorage.setItem("sma-contact-protocol", "2");
+      setPendingChange(null);
+      if (operation === "remove") {
+        localStorage.removeItem("sma-contact-email"); setSaved(""); setEmail(""); setAccepted(false);
+        setStatus("Email removed from this app. The developer has been notified.");
+      } else {
+        localStorage.setItem("sma-contact-email", value); setSaved(value); setEmail(value); setAccepted(true);
+        setStatus(result.unchanged ? "This email is already saved." : "Email saved and forwarded to the developer.");
+      }
       window.dispatchEvent(new Event("sma-contact-saved"));
     } catch (failure) {
-      setError(
-        failure.name === "TimeoutError" || failure.name === "AbortError"
-          ? "Email acceptance could not be confirmed. Retry with the same address, or skip for now."
-          : failure.message,
-      );
-    } finally {
-      setBusy(false);
-    }
+      setError(failure.name === "TimeoutError" || failure.name === "AbortError"
+        ? "The email change could not be confirmed. Retry the pending change, or skip for now."
+        : failure.message);
+    } finally { inFlight.current = false; setBusy(false); }
   }
   if (!enabled) {
     if (welcome && loading)
@@ -162,8 +159,8 @@ export default function Signup({
         <>
           <h3>YOUR EMAIL</h3>
           <p>
-            Optional release updates. Each new signup or address change is
-            forwarded to the developer.
+            Optional release updates. Each addition, change or removal is forwarded
+            to the developer with its app source and private signup summary.
           </p>
         </>
       )}
@@ -173,6 +170,7 @@ export default function Signup({
           <p>{saved}</p>
           <button
             className="text"
+            disabled={busy}
             onClick={() => {
               setAccepted(false);
               setStatus("");
@@ -202,16 +200,16 @@ export default function Signup({
               required
             />
           </label>
-          {error && (
-            <p id="contact-error" className="negative" role="alert">
-              {error}
-            </p>
-          )}
           <button className="primary" disabled={busy}>
             {busy ? "Sending…" : welcome ? "Continue" : "Save email"}
           </button>
         </form>
       )}
+      {error && <p id="contact-error" className="negative" role="alert">{error}</p>}
+      {!accepted && status && <p role="status">{status}</p>}
+      {pendingChange && <button className="text" disabled={busy} onClick={() => sendChange(pendingChange.operation || "save", pendingChange.email, true)}>Retry pending change</button>}
+      {saved && <button className="text negative" disabled={busy} onClick={() => sendChange("remove", saved)}>{busy ? "Sending…" : "Remove email"}</button>}
+      <p className="small contact-retention">Removing clears this app's saved address and stops its release-update signup. The developer retains the address and removal history in private records and notification emails. Clearing app data or uninstalling cannot send a removal notice.</p>
       {welcome && (
         <footer className="welcome-actions">
           {accepted ? (
@@ -229,7 +227,7 @@ export default function Signup({
               Skip for now
             </button>
           )}
-          <p>You can add or change your email later in Settings.</p>
+          <p>You can add, change or remove your email later in Settings.</p>
         </footer>
       )}
       {!welcome && (

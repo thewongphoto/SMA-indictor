@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.16.0** /
-**apk-v0.16.0**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.17.0** /
+**apk-v0.17.0**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.17.0 | Tracks email additions, modifications and explicit removals from Android/web, with automatic source/version and an owner-only notification containing active/removed address summaries. Adds private Supabase registry/history, frozen email snapshots, retry/revision guards and Remove/Retry controls. Requires rerunning the email SQL for protocol 2. |
 | 0.16.0 | Adds the optional full-screen email welcome and Settings editor on iPhone web/Android, with Vercel forwarding opt-in signups to the owner through Resend. Adds separate Supabase rate-limit/idempotency/count metadata, acceptance/error/retry handling and a beginner `/setup/email` guide. Signup stays hidden until configured. |
 | 0.15.0 | Runs web SMA/backtests locally using the shared Python engine in Pyodide/NumPy, retains parameters in IndexedDB, adds backup import, and implements Supabase-scheduled Web Push with an owner setup page. Keeps legacy worker mode and native Android behaviour. |
 | 0.14.3 | Owner corrections to the design: "+ Find SMA" is an outlined pill; the tab bar has its top divider; Home cards show larger company names, a $ price with drawn ▲/▼ change arrows, the design's "Hide lines"/"N saved lines" toggle, and each line's name in bold with its colour to the right, above "N signals / year"; the Charts status card text is larger. Prices use $ for every listing (US and SGX); chart captions still name the quote currency. |

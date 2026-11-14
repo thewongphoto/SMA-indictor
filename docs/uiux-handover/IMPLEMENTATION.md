@@ -110,3 +110,13 @@ the app usable. Input errors and failed requests stay in the form; confirmation
 requires provider acceptance. Local submission IDs, durable claims and provider
 idempotency prevent duplicate retries. Counts describe consenting installations,
 not total downloads. See the [email guide](../EMAIL_SIGNUP_SETUP.md).
+
+
+## 0.17.0 signup changes and summaries
+
+Source/version remain automatic. Settings adds explicit Remove email and Retry
+controls on both platforms. Optional signup wording now discloses the private
+address/removal history retained for owner notifications. Add/modify/remove
+messages contain active and removed address tables, with source and last change
+per installation. This supersedes 0.16.0's hash-only storage; rerun the protocol 2
+email SQL. See the [email guide](../EMAIL_SIGNUP_SETUP.md).

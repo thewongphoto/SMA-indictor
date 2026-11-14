@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.16.0**. Android and desktop are active. Native iPhone
+Current source: **0.17.0**. Android and desktop are active. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -175,22 +175,42 @@ remains available when both old worker variables are set. The native Android
 engine and scheduler are unchanged by the web implementation.
 
 
-## Optional release-update signup (0.16.0)
+## Optional release-update signup (0.17.0)
 
-The first-open welcome page and Settings email editor are enabled only when the
-public Vercel capability check confirms Resend variables and the separate signup
-SQL. Android uses the same public service; no delivery credentials ship in the APK.
-The welcome page precedes the private web sign-in and offers Skip for now.
-Explicit Continue/Save forwards the submitted address only to kelwong98@gmail.com;
-this is independent of stock alerts and never restores Gmail authorization.
-Success requires Resend acceptance, which does not prove final inbox delivery.
+The first-open welcome page and Settings editor are enabled after Vercel confirms
+Resend variables and email SQL protocol 2. Android uses the same public service;
+no delivery credentials ship in the APK. Source/version are automatic, with no
+source selector. New web clients label iOS browsers `ios-web` and other browsers
+`web`; native APK requests label `android`. These are client labels, not verified
+OS identities. The web welcome precedes private sign-in and supports Skip.
 
-Both clients retain one submission UUID through uncertain retries. Supabase claims
-and Resend idempotency keys prevent concurrent/accepted retries from sending
-again. A newly submitted address change creates a new intent. Supabase stores
-keyed hashes, counts and delivery metadata, not email addresses or raw IPs.
-Unique consenting installations are counted, rather than total downloads; address
-changes count as additional accepted submissions. Global/install/IP limits protect
-the free quota. No automatic release campaign or email to the submitting user is
-sent. The owner setup and manual delivery check are documented in the
+Explicit Save or Remove notifies kelwong98@gmail.com through Resend. The server
+infers add/modify/remove from the installation's accepted registry state. The
+email shows old/new address, source, version and Singapore-time change date, then
+active and removed address tables, each with last action/source/version/date and
+an installation reference. Replacing an address marks its old row removed with
+last action modify. One address can remain active on another device after removal
+on one installation. Clearing app data or uninstalling cannot report a removal.
+
+Supabase stores the private address registry, removal history, immutable event
+snapshots and full prepared email payloads behind RLS and service-role-only RPCs.
+Public endpoints return acceptance metadata only, never other users' addresses.
+Raw installation IDs and IP addresses are hashed. The UI discloses history
+retention; explicit removal clears local email values after notification acceptance
+and durable registry commit, while retaining the owner's private history.
+
+Clients retain the same request UUID across failed/uncertain attempts and provide
+Retry controls. Prepared payloads remain byte-stable across source, version, sender,
+summary or template changes on retries. Per-installation revisions stop an older
+failed event from replacing a newer accepted change; pending uncertain operations
+must be resolved before a different change. Provider acceptance without a durable
+commit is reported as retryable, not completed. Unchanged saves/removals send
+nothing. Global/IP/installation caps continue protecting the free quota.
+
+Rerun `/setup/email` SQL to upgrade from the hash-only 0.16.0 schema. Its earlier
+addresses cannot be recovered from hashes; users can explicitly save again to
+join the registry. No existing saved local email is automatically submitted on
+upgrade. SMTP worker contact forwarding is superseded by the shared Resend route,
+including when legacy calculation-worker mode is selected. Stock notifications
+and the retirement of Gmail/Google authorization remain unchanged. See the
 [email guide](docs/EMAIL_SIGNUP_SETUP.md).

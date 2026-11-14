@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.16.0**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.17.0**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone | Runs Python calculations and saved data locally in Safari/Home Screen. Vercel + Supabase setup enables scheduled Web Push. Native releases remain paused. |
 
@@ -66,7 +66,9 @@ Use saved-parameter export/import for backups. Free-service availability and iOS
 settings control background alert reliability.
 
 Optional email signup uses Vercel + Resend to forward submitted addresses to the
-owner. Follow the [email setup guide](docs/EMAIL_SIGNUP_SETUP.md) or open `/setup/email`.
+owner on each add, modify or remove. Notifications include source/version and
+private active/removed address summaries. Rerun the email SQL to upgrade to protocol 2.
+Follow the [email setup guide](docs/EMAIL_SIGNUP_SETUP.md) or open `/setup/email`.
 Skip keeps the app usable without supplying an address.
 
 ## Development

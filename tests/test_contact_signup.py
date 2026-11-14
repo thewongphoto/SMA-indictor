@@ -32,6 +32,21 @@ class ContactSignupTests(TestCase):
         with patch('requests.post',return_value=response),self.assertRaises(contact.ContactError) as result:contact.submit('person@example.com')
         self.assertEqual(result.exception.code,'expired')
 
+    def test_remove_sends_an_explicit_operation_and_the_same_installation_identity(self):
+        response=Mock(ok=True);response.json.return_value={'sent':True,'change':'remove'}
+        with patch('requests.post',return_value=response) as post:
+            contact.submit('person@example.com','installation','request','remove')
+            payload=post.call_args.kwargs['json']
+            self.assertEqual(payload['operation'],'remove')
+            self.assertEqual(payload['install_id'],'installation')
+            self.assertEqual(payload['request_id'],'request')
+            self.assertEqual(payload['platform'],'android')
+
+    def test_unknown_operation_does_not_send(self):
+        with patch('requests.post') as post,self.assertRaises(ValueError):
+            contact.submit('person@example.com',operation='clear-everyone')
+        post.assert_not_called()
+
     def test_invalid_address_never_makes_a_network_request(self):
         with patch('requests.post') as post:
             for email in ('','not-an-email','person@example.com\nBcc: other@example.com'):

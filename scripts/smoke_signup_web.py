@@ -37,7 +37,7 @@ def main():
                 assert page.request.get(ORIGIN+'/api/contact-capabilities').json() == {'enabled': False}
                 assert page.request.get(ORIGIN+'/api/contact-status').status == 401
                 assert page.request.post(ORIGIN+'/api/contact-email', data={'email': 'fixture@example.com'}).status == 503
-                page.route('**/api/contact-capabilities', lambda route: route.fulfill(json={'enabled': True}))
+                page.route('**/api/contact-capabilities', lambda route: route.fulfill(json={'enabled': True, 'protocol': 2}))
                 sends = []
                 state = {'fail': True}
                 def deliver(route):
@@ -80,8 +80,40 @@ def main():
                 expect(page.get_by_role('status')).to_contain_text('Email saved and forwarded')
                 assert sends[-1]['request_id'] != first['request_id']
                 assert page.evaluate('localStorage.getItem("sma-contact-email")') == 'changed@example.com'
+                assert sends[-1]['platform']=='web' and sends[-1]['operation']=='save'
+                assert sends[-1]['version']=='0.17.0'
+                state['fail']=True
+                page.get_by_role('button',name='Remove email',exact=True).click()
+                expect(page.locator('#contact-error')).to_contain_text('Fixture service unavailable')
+                assert page.evaluate('localStorage.getItem("sma-contact-email")')=='changed@example.com'
+                removal=sends[-1]
+                assert removal['operation']=='remove'
+                page.reload()
+                state['fail']=False
+                page.get_by_role('button',name='Retry pending change',exact=True).click()
+                expect(page.get_by_role('status')).to_contain_text('Email removed from this app')
+                assert sends[-1]['request_id']==removal['request_id']
+                assert page.evaluate('localStorage.getItem("sma-contact-email")') is None
+                assert page.evaluate('localStorage.getItem("sma-contact-pending")') is None
+                expect(page.get_by_label('Email address')).to_have_value('')
+                page.get_by_label('Email address').fill('readded@example.com')
+                page.get_by_role('button',name='Continue',exact=True).click()
+                expect(page.get_by_role('status')).to_contain_text('Email saved and forwarded')
+                assert sends[-1]['request_id']!=removal['request_id']
                 page.get_by_role('button', name='Open the app', exact=True).click()
                 expect(page.get_by_label('Access password')).to_be_visible()
+                page.get_by_label('Access password').fill(env['APP_PASSWORD'])
+                page.get_by_role('button',name='Continue',exact=True).click()
+                page.get_by_role('button',name='Settings',exact=True).click()
+                settings=page.locator('.email-settings')
+                settings.get_by_role('button',name='Use a different email',exact=True).click()
+                settings.get_by_label('Email address').fill('settings@example.com')
+                settings.get_by_role('button',name='Save email',exact=True).click()
+                expect(settings.get_by_role('status')).to_contain_text('Email saved and forwarded')
+                settings.get_by_role('button',name='Remove email',exact=True).click()
+                expect(settings.get_by_role('status')).to_contain_text('Email removed from this app')
+                assert sends[-1]['email']=='settings@example.com' and sends[-1]['operation']=='remove'
+                page.screenshot(path=str(OUT/'settings-removed.png'),full_page=True)
                 # A fresh installation shows the full design at small phone widths.
                 page.evaluate('localStorage.clear()')
                 page.goto(ORIGIN+'/?welcome=1')
@@ -91,7 +123,7 @@ def main():
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), width
                     page.screenshot(path=str(OUT/f'welcome-{width}.png'), full_page=True)
                 # Owner setup instructions and separate SQL remain available.
-                page.route('**/api/contact-status', lambda route: route.fulfill(json={'ready': True, 'provider_configured': True, 'schema_ready': True, 'recipient': 'kelwong98@gmail.com', 'sender': 'onboarding@resend.dev', 'signed_up_installations': 2, 'accepted_submissions': 3}))
+                page.route('**/api/contact-status', lambda route: route.fulfill(json={'ready': True, 'protocol': 2, 'provider_configured': True, 'schema_ready': True, 'recipient': 'kelwong98@gmail.com', 'sender': 'onboarding@resend.dev', 'signed_up_installations': 2, 'accepted_submissions': 3, 'active_entries': 1, 'removed_entries': 2}))
                 page.goto(ORIGIN+'/setup/email')
                 expect(page.get_by_text('Configuration is ready.', exact=False)).to_be_visible()
                 page.get_by_role('button', name='Prepare email SQL').click()
@@ -100,9 +132,19 @@ def main():
                 assert 'RESEND_API_KEY' not in sql
                 page.get_by_role('button', name='Check email setup', exact=True).click()
                 expect(page.locator('.setup-result')).to_contain_text('Accepted submissions, including changes: 3')
+                expect(page.locator('.setup-result')).to_contain_text('ready — protocol 2')
+                ios=browser.new_context(viewport={'width':390,'height':844},service_workers='block',user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile Safari/604.1')
+                ios_page=ios.new_page()
+                ios_page.route('**/api/contact-capabilities',lambda route:route.fulfill(json={'enabled':True,'protocol':2}))
+                ios_page.route('**/api/contact-email',deliver)
+                ios_page.goto(ORIGIN+'/?welcome=1')
+                ios_page.get_by_label('Email address').fill('ios@example.com')
+                ios_page.get_by_role('button',name='Continue',exact=True).click()
+                expect(ios_page.get_by_role('status')).to_contain_text('Email saved and forwarded')
+                assert sends[-1]['platform']=='ios-web'
                 assert not errors, errors
                 browser.close()
-            print('PASS: disabled service, optional Skip, validation, failed/retried intent, acceptance confirmation, address changes, same-address deduplication, 320px welcome and owner SQL/setup; no real emails.')
+            print('PASS: add/modify/remove/re-add on welcome and Settings, failed removal/reload/retry, local cleanup, automatic web/iOS source/version, same-address deduplication, narrow layouts and protocol 2 setup; no real emails.')
         finally:
             server.terminate()
             try:

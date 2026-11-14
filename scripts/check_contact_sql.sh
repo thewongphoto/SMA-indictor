@@ -17,13 +17,15 @@ create role service_role bypassrls;
 SQL
 docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < web/setup/contact.sql
 docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < web/tests/contact.sql
+docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < web/tests/contact-lifecycle.sql
 # Applying the optional migration again must preserve existing accepted records.
 docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 < web/setup/contact.sql
 docker exec -i "$container" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL'
 do $$ begin
- if (select count(*) from sma_contact_submissions where state='accepted')<>1 then
+ if not exists(select 1 from sma_contact_submissions where id=repeat('a',64) and state='accepted')
+ or not exists(select 1 from sma_contact_addresses where email='newer@example.com' and active) then
   raise exception 'Migration rerun lost accepted submissions';
  end if;
 end $$;
 SQL
-echo 'PASS: PostgreSQL claims, retries, rate limits, expiry, consent counts, restricted access and idempotent migration.'
+echo 'PASS: PostgreSQL add/modify/remove, source/version snapshots, frozen payloads, stale retries, rates, restricted registry and idempotent migration.'

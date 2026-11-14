@@ -7,7 +7,20 @@ notification setup stays in place.
 
 This feature is optional: **Skip for now** opens the app without submitting an
 email. The welcome screen and Settings email card appear only after setup is
-complete. Android 0.16.0 uses the same Vercel endpoint as the iPhone web app.
+complete. Android 0.17.0 uses the same Vercel endpoint as the iPhone web app.
+
+## Upgrading an existing email setup
+
+For **0.17.0**, keep your existing Resend key and Vercel variables. Open
+`/setup/email`, prepare/copy the latest SQL, and run it in the same Supabase
+project. This upgrades the original hash-only journal to **protocol 2** with a
+private address/history registry. Check setup afterwards; the form stays hidden
+until the updated schema is ready. Use the updated APK for explicit removals.
+
+Earlier 0.16.0 submissions stored only hashes, so their addresses cannot be
+reconstructed for the summary. An existing user can choose **Use a different
+email** and save the same prefilled address again to join the new registry.
+The app does not submit old addresses automatically on upgrade.
 
 ## 1. Create your free Resend account
 
@@ -47,7 +60,9 @@ code; users cannot choose a different forwarding destination.
 3. Open your existing Supabase project → **SQL Editor → New query**.
 4. Paste the complete script and click **Run**.
 
-This script adds signup counts and protection against repeated/abusive requests.
+This script adds the private address registry, source/version/change history,
+signup counts and protection against repeated/abusive requests. Rerun it even
+if you ran the older 0.16.0 email SQL.
 It contains no secret and is safe to rerun. It does not replace your notification
 SQL, change notification keys, or recreate scheduled jobs.
 The reviewable source is [web/setup/contact.sql](../web/setup/contact.sql).
@@ -71,26 +86,60 @@ rejects it, check that your account email is the Gmail recipient, your API key
 has Sending access, and your sender is the default or a verified domain.
 If the form fails, it keeps the address available for retry; Skip still works.
 
-Use **Settings → Your email → Use a different email** to submit a change.
-Every newly submitted address change is forwarded too. Submitting the same
-already-saved address sends nothing; uncertain retries reuse the same delivery
-key. A request older than 23 hours without confirmation must be submitted again
-explicitly after the expiry message.
+Use **Settings → Your email → Use a different email** to modify an address,
+or **Remove email** to remove it from that installation's release-update signup.
+Android offers **Save**, **Remove email** and **Retry last change**. Web offers
+**Retry pending change** if a request needs confirmation. Removal clears the
+saved local address after acceptance and durable recording. Until then, errors
+retain the address and request ID so the user can retry without duplicate mail.
+
+## Email format and summary
+
+Each successful change notifies only **kelwong98@gmail.com**, with:
+
+- **Last change:** add, modify or remove.
+- Previous/current address, source app, app version and change time in SGT.
+- **Existing users:** every tracked active address, with source, version, last
+  action, time and installation reference.
+- **Removed emails:** replaced/removed addresses with the same details. A replaced
+  address has last change **modify**; an explicit removal has **remove**.
+
+The source is automatic: **Android APK**, **iOS web app**, or **Web app**.
+These are client labels, not verified device identities. One address can appear
+on more than one installation; removing it from Android leaves an iPhone signup
+active until it is removed there too. Re-adding an address records **add** again.
+The summary is a frozen snapshot of previously accepted changes plus the change
+being reported. Concurrent emails can have different snapshots.
+
+Vercel controls the format in [web/lib/contact-message.js](../web/lib/contact-message.js).
+Editing/deploying that template updates both platforms. Prepared messages remain
+unchanged for retries even if a new template is deployed meanwhile.
 
 ## What is stored and sent
 
-- The address is saved locally on the device after service acceptance and is
-  forwarded to your Gmail. Resend processes the message for delivery.
-- Supabase stores keyed hashes, timestamps, anonymous installation counts and
-  provider acceptance metadata. It stores no email addresses or raw IPs in these
-  signup tables. The count measures consenting installations, not all downloads.
-- Address changes increase the accepted-submission count, without increasing
-  the installation count for that device.
-- Server limits are 20 attempts/hour, 80/day and 2,000/month globally, plus five
-  per installation and per IP/hour. Retried attempts also use these limits.
-  These caps leave headroom under the free plan; check Resend's current limits.
-- This forwards signup details only. It does not automatically send release
-  campaigns to users, send stock alerts by email, or authorize any other use.
+- Supabase now retains actual addresses, active/removed status, source app,
+  version, last action/time and change history for the owner's summaries. This
+  supersedes the hash-only 0.16.0 design. RLS and service-role-only functions
+  block public access to the registry; public API responses never contain the lists.
+- The app explains that removal keeps a private developer history. Removed
+  addresses are historical records and must not be sent release updates. The
+  owner also retains copies of notification emails in Gmail/Resend.
+- Addresses are saved locally only after acceptance and registry commit.
+  Removal clears the local saved address and pending address values. Uninstalling
+  or clearing app/browser data cannot send a removal notice; use **Remove email** first.
+- Full roster snapshots and prepared message bodies are retained for retries,
+  then pruned after 24 hours on subsequent signup activity. Individual event
+  details and the active/removed registry remain. Installation IDs and IPs are
+  hashed; raw IPs are not stored.
+- Submitting an unchanged saved address or an already-removed address sends no
+  new email. Uncertain retries reuse the same ID and frozen payload. A pending
+  change must be resolved before another one; expired requests require an explicit
+  new submission after the expiry message.
+- Counts measure consenting installations and accepted changes, not total
+  downloads or verified unique people. No automatic release campaigns or stock
+  alert emails are sent to users.
+- Server limits remain 20 attempts/hour, 80/day and 2,000/month globally, plus
+  five per installation and per IP/hour. Retries use these limits too.
 
 Automated tests mock delivery and send no real emails. Verify a real submission
 yourself after adding your key; never share that key to troubleshoot the form.

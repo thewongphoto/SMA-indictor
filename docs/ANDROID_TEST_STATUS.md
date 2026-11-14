@@ -1,9 +1,19 @@
 # Validation and build status
 
-Current source: **0.16.0**. The matching Android build tag is **apk-v0.16.0**.
+Current source: **0.17.0**. The matching Android build tag is **apk-v0.17.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.17.0 host validation ran **361 Python tests (359 passed, two optional
+checks skipped)** and **23 JavaScript tests**. Real PostgreSQL fixtures verify
+add/modify/remove/re-add, source/version and message snapshots, duplicate/stale
+requests, private-registry access, expiry and migration reruns. Browser/native
+signup fixtures cover failed removal, persistent retry IDs, local address cleanup
+and re-add. All 11 native UI gates passed, including offline/library, Yahoo
+fixtures, redesign, signup, keyboard/gesture/motion, slow-clock colours/logos and
+notification-job checks. Email calls remain mocked; no real delivery was exercised. Rerun the
+protocol 2 SQL as described in the [email guide](EMAIL_SIGNUP_SETUP.md).
 
 Release 0.16.0 validates optional email forwarding with **359 Python tests
 (357 passed, two optional checks skipped)** and **18 JavaScript tests**, plus

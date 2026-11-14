@@ -30,7 +30,7 @@ export default function EmailSetup() {
   }, []);
   async function prepare() {
     try {
-      const response = await fetch("/setup/contact.sql");
+      const response = await fetch("/setup/contact.sql", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load the email setup SQL.");
       setSql(await response.text());
     } catch (failure) {
@@ -54,7 +54,7 @@ export default function EmailSetup() {
       <a href="/setup">‹ Back to server setup</a>
       <h1>Set up release-update emails</h1>
       <p>
-        Vercel receives each voluntary signup and calls Resend to forward it to{" "}
+        Vercel records each email addition, modification or removal and calls Resend to notify{" "}
         <strong>kelwong98@gmail.com</strong>. Gmail is the recipient; no Gmail
         password or Google authorization is needed.
       </p>
@@ -103,13 +103,15 @@ export default function EmailSetup() {
         </p>
       </section>
       <section className="card">
-        <h2>4. Create signup protection and count tables</h2>
+        <h2>4. Create or upgrade the private signup registry</h2>
         <p>
           Click Prepare email SQL, then copy the complete script. Open your
           existing Supabase project → SQL Editor → New query, paste it, and
-          click Run. This adds email-signup metadata and rate limits without
-          changing your notification jobs or secrets. Email addresses and raw IP
-          addresses are not stored in these tables.
+          click Run. Rerun this updated script even if email setup worked on
+          0.16.0. It adds protocol 2 and a private address/history registry without
+          changing your notification jobs or secrets. The registry retains addresses,
+          source apps, versions and add/modify/remove history for your email summaries.
+          Public app users cannot read the registry. Raw IP addresses are not stored.
         </p>
         <button onClick={prepare}>Prepare email SQL</button>
         {sql && (
@@ -162,7 +164,7 @@ export default function EmailSetup() {
                   </li>
                   <li>
                     Signup tables/functions:{" "}
-                    {status.schema_ready ? "ready" : "run the email SQL"}
+                    {status.schema_ready ? "ready — protocol 2" : "rerun the latest email SQL (protocol 2)"}
                   </li>
                   <li>Recipient: {status.recipient}</li>
                   <li>Sender: {status.sender}</li>
@@ -174,6 +176,9 @@ export default function EmailSetup() {
                     Accepted submissions, including changes:{" "}
                     {status.accepted_submissions}
                   </li>
+                  <li>Active address records: {status.active_entries || 0}</li>
+                  <li>Removed address records: {status.removed_entries || 0}</li>
+                  {status.legacy_accepted > 0 && <li>Earlier hash-only submissions: {status.legacy_accepted}. These addresses cannot appear in summaries until those users explicitly save again.</li>}
                 </ul>
               </>
             )
@@ -196,8 +201,12 @@ export default function EmailSetup() {
         </p>
       </section>
       <p>
-        Signup is optional. Each distinct submitted address change is forwarded
-        too; repeated requests with the same submission ID are deduplicated.
+        Signup is optional. Settings offers Use a different email and Remove email.
+        Every accepted add/modify/remove sends a notification with its source and app
+        version, followed by existing-user and removed-email tables. A replaced address
+        appears in the removed table with last change modify. Removal clears the saved
+        address on that installation and keeps a private history record. Uninstalling or
+        clearing browser/app data cannot send a removal notice. Repeated requests are deduplicated.
         This does not send market alerts by email or automatically send release
         campaigns to users. Form limits protect the free email quota.
       </p>

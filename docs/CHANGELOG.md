@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.17.0** /
-**apk-v0.17.0**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.18.0** /
+**apk-v0.18.0**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.18.0 | Fixes the Android tab divider after safe-area/keyboard moves; restores the original teal price line on both platforms. Brings native chart presentation to iPhone web: shared Manrope/logo assets, dollar headline prices, company identity, axes/legend, exact Python upward-crossing pluses, daily close/SMA touch inspection, native range/pinch rules, and visibility-aware overlays. Saved parameters and calculations are unchanged. |
 | 0.17.0 | Tracks email additions, modifications and explicit removals from Android/web, with automatic source/version and an owner-only notification containing active/removed address summaries. Adds private Supabase registry/history, frozen email snapshots, retry/revision guards and Remove/Retry controls. Requires rerunning the email SQL for protocol 2. |
 | 0.16.0 | Adds the optional full-screen email welcome and Settings editor on iPhone web/Android, with Vercel forwarding opt-in signups to the owner through Resend. Adds separate Supabase rate-limit/idempotency/count metadata, acceptance/error/retry handling and a beginner `/setup/email` guide. Signup stays hidden until configured. |
 | 0.15.0 | Runs web SMA/backtests locally using the shared Python engine in Pyodide/NumPy, retains parameters in IndexedDB, adds backup import, and implements Supabase-scheduled Web Push with an owner setup page. Keeps legacy worker mode and native Android behaviour. |

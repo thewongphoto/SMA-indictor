@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.17.0**. Android and desktop are active. Native iPhone
+Current source: **0.18.0**. Android and desktop are active. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -214,3 +214,32 @@ upgrade. SMTP worker contact forwarding is superseded by the shared Resend route
 including when legacy calculation-worker mode is selected. Stock notifications
 and the retirement of Gmail/Google authorization remain unchanged. See the
 [email guide](docs/EMAIL_SIGNUP_SETUP.md).
+
+
+## Chart presentation parity (0.18.0)
+
+Android remains the visual/interaction reference. Its bottom-tab divider now
+uses raw y + height geometry, avoiding Kivy's stale cached top alias during
+Android safe-area/IME moves. It is painted at construction as well as on layout.
+
+The web detail has the same company identity/logo, $ headline, visible-range
+change, plain-language status, chart card, axes, legend and range order. Bundled
+Manrope Regular/Bold files are copied from native assets at build time; browser
+faux bold is disabled. Company logos use native square rounded tiles. The
+original teal price stroke and a readable light-theme teal are shared through
+`sma_analyzer/assets/chart-style.json`, explicitly allowlisted in native builds.
+
+Both browser calculation modes now return exact Python crossing events for
+every saved SMA. SVG plus markers use each event's fractional intersection,
+not its confirming session. Chart visibility hides both a line and its markers.
+One-finger inspection selects an actual finite daily close and reports the
+selected SMA plus other shown SMA values, preserving warm-up/gap states.
+Two-finger pinch anchors to the gesture midpoint and respects the native full
+history/one-session limits. A remaining finger cannot accidentally start an
+inspection after pinching; Zoom out restores the chosen preset. Live ranges
+retain calendar-month clamping and 365-day years, measured daily endpoints and
+independent backtesting controls. The quote-currency code remains in descriptive
+chart captions; amounts use $ on both platforms, without implying FX conversion.
+
+The UI implementations remain native Kivy and web SVG. The shared Python SMA,
+backtest, identity, alert and persistence contracts are unchanged.

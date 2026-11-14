@@ -2,7 +2,9 @@
 
 Next.js frontend for Safari and Add to Home Screen. Python calculations run
 locally using a dedicated Pyodide/NumPy worker and the shared native engine.
-Saved parameters, histories and settings stay in IndexedDB. Vercel proxies Yahoo
+Saved parameters, histories and settings stay in IndexedDB. The SVG chart follows
+the native viewport, uses shared brand/teal assets, and renders exact Python
+crossing pluses and close/SMA touch inspection. Vercel proxies Yahoo
 requests and sends Web Push; Supabase provides durable alert state and scheduling.
 
 Follow the [beginner setup guide](../docs/PRIVATE_IPHONE_INSTALLATION.md) or open
@@ -33,9 +35,10 @@ Browser validation:
 
 ```sh
 python -m pip install requests certifi tzdata playwright
-python -m playwright install chromium
+python -m playwright install chromium webkit
 python -m scripts.smoke_web
 python -m scripts.smoke_local_web
+python -m scripts.smoke_chart_webkit
 python -m scripts.smoke_setup_feedback
 python -m scripts.smoke_signup_web
 ```

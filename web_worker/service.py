@@ -65,7 +65,8 @@ class Service:
         for line in model.store.list_lines(data.counter,data.scenario):
             try:
                 saved_result = model.result_for_dataset(data,line.period,line.target_frequency)
-                lines.append(dict(**self.line(line),sma=saved_result.sma))
+                lines.append(dict(**self.line(line),sma=saved_result.sma,
+                                  events=[asdict(e) for e in saved_result.events]))
             except ValueError:
                 continue
         report = None

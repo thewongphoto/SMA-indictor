@@ -1,4 +1,7 @@
 """Shared presentation tokens from the approved November design."""
+import json
+from pathlib import Path
+
 def rgba(value):
     return tuple(int(value[i:i+2], 16)/255 for i in (1, 3, 5)) + (1,)
 
@@ -21,6 +24,8 @@ DIVIDER = rgba('#1B2730')
 ACCENT_BORDER = rgba('#1E4F49')
 WARNING_TITLE = rgba('#FBBF24')
 WARNING_TEXT = rgba('#E7D9B0')
+CHART_STYLE = json.loads((Path(__file__).parent/'assets/chart-style.json').read_text())
+PRICE = rgba(CHART_STYLE['price']['dark'])
 
 def register_fonts():
     from pathlib import Path

@@ -34,13 +34,17 @@ class Experience:
         from .theme import DIVIDER
         with self.tab_bar.canvas.before:
             Color(*BG)
-            tab_fill = Rectangle()
+            self.tab_fill = Rectangle()
             Color(*DIVIDER)
-            tab_line = Rectangle()
+            self.tab_divider = Rectangle()
         def paint_tab_bar(bar, *_):
-            tab_fill.pos, tab_fill.size = bar.pos, bar.size
-            tab_line.pos, tab_line.size = (bar.x, bar.top - dp(1)), (bar.width, dp(1) if bar.height else 0)
+            self.tab_fill.pos, self.tab_fill.size = bar.pos, bar.size
+            # Kivy's cached top alias can still contain the previous y during
+            # a pos notification (e.g. Android IME/inset moves). Use raw geometry.
+            self.tab_divider.pos = (bar.x, bar.y + bar.height - dp(1))
+            self.tab_divider.size = (bar.width, dp(1) if bar.height else 0)
         self.tab_bar.bind(pos=paint_tab_bar, size=paint_tab_bar)
+        paint_tab_bar(self.tab_bar)
         self.bind(size=self.layout_tabs, pos=self.layout_tabs)
         self.manager.bind(current=self.update_tabs)
         self.page_titles['library'].text = 'Home'

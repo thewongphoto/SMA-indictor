@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.17.0**. Automatically publish completed, validated Android
+Current source: **0.18.0**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 
 ## Before publishing
@@ -67,6 +67,7 @@ Do not carry a result from an older APK forward as if the new build was tested.
 
 For the 0.14 UI redesign, also run `python -m scripts.smoke_ui_redesign`,
 `npm ci --prefix web`, `npm run build --prefix web`, and
-`python -m scripts.smoke_web` (requires Playwright Chromium). The browser check
-uses an isolated simulated worker and never sends email. Native iOS remains
+`python -m scripts.smoke_web` (requires Playwright Chromium). Browser checks include the isolated worker, real local Python runtime and
+WebKit chart inspection (`python -m scripts.smoke_chart_webkit`). Install both
+Chromium and WebKit with Playwright. All email delivery remains disabled/mocked. Native iOS remains
 paused; do not trigger its workflow for the web app.

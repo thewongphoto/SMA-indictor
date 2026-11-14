@@ -17,6 +17,7 @@ _pairs = [(theme.BG, '#F4F8FA'), (theme.SURFACE, '#FFFFFF'),
 _pairs += [(value, '#E6EDF1') for value in
            [(0.10,.15,.23,1),(.12,.17,.23,1),(.08,.12,.18,1),(.13,.20,.28,1),(.065,.095,.14,1),(.10,.15,.21,1)]]
 _pairs += [(value, '#14232E') for value in [(.92,.95,.98,1),(.94,.96,.98,1),(.93,.96,.98,1)]]
+_pairs += [(theme.PRICE, theme.CHART_STYLE['price']['light'])]
 
 def mapped(value):
     if not _light or len(value) != 4 or value[3] == 0:

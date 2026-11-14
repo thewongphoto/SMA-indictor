@@ -120,3 +120,15 @@ address/removal history retained for owner notifications. Add/modify/remove
 messages contain active and removed address tables, with source and last change
 per installation. This supersedes 0.16.0's hash-only storage; rerun the protocol 2
 email SQL. See the [email guide](../EMAIL_SIGNUP_SETUP.md).
+
+
+## 0.18.0 Android/web chart parity
+
+Android is the owner's visual reference. The web chart now includes its company
+identity, dollar headline, plain-language status, plot axes/legend, exact upward
+crossing plus markers and close/SMA inspection. Pinch and calendar ranges follow
+the native viewport rules; visibility hides markers with their line. Shared
+font/logo assets are copied from native, faux font weights are disabled, and
+both price strokes use the restored teal from one shared asset. Android's tab
+divider uses current raw geometry after insets/keyboard movement. These display
+changes do not alter the shared Python calculations or saved lines.

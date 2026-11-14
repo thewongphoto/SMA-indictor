@@ -5,6 +5,7 @@ from kivy.metrics import dp
 from scripts.smoke_ui_flow import FlowSmoke, temporary
 from sma_analyzer.appearance import mapped
 from sma_analyzer.theme import TEXT, BG
+from kivy.graphics import Rectangle
 
 
 class RedesignSmoke(FlowSmoke):
@@ -12,6 +13,22 @@ class RedesignSmoke(FlowSmoke):
         yield from super().steps()
         ui=self.screen
         out=Path('artifacts/redesign-ui');out.mkdir(parents=True,exist_ok=True)
+        # Move the root like Android inset/IME updates. The cached Kivy top alias
+        # used to leave the canvas divider at the previous root's y position.
+        ui.size_hint=(None,None)
+        Window.size=(390,844)
+        for destination in ('library','results','alerts','settings'):
+            ui.select_tab(destination)
+            yield from self.frames(12)
+            for bottom in (28, 360, 20, 0):
+                ui.pos=(0,bottom);ui.size=(390,844-bottom-32)
+                yield from self.frames(5)
+                expected=ui.tab_bar.y+ui.tab_bar.height-dp(1)
+                assert abs(ui.tab_divider.pos[1]-expected)<.1, (ui.tab_divider.pos,expected)
+                assert ui.tab_divider.size==(ui.tab_bar.width,dp(1))
+            ui.export_to_png(str(out/f'divider-{destination}.png'))
+        ui.pos=(0,0);ui.size=Window.size;ui.size_hint=(1,1)
+        self.checked('tab divider follows the actual tab bar through safe-area/keyboard moves on all four pages')
         for width in (320,390):
             Window.size=(width,844)
             for destination in ('library','results','alerts','settings'):

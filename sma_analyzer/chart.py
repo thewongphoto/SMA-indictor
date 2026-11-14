@@ -17,8 +17,8 @@ from .axis import date_ticks
 from .line_names import sma_label
 from .palette import line_color as palette_color
 
-from .theme import MUTED, rgba
-PRICE_COLOR = rgba("#DCE5EC")
+from .theme import MUTED, PRICE
+PRICE_COLOR = PRICE
 ACTIVE_COLOR = (1.0, 0.74, 0.36, 1)
 SAVED_COLORS = ((0.59, 0.64, 1, 1), (1, 0.49, 0.62, 1), (0.42, 0.76, 1, 1))
 

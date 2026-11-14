@@ -1,9 +1,18 @@
 # Validation and build status
 
-Current source: **0.17.0**. The matching Android build tag is **apk-v0.17.0**.
+Current source: **0.18.0**. The matching Android build tag is **apk-v0.18.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.18.0 host validation ran **363 Python tests (361 passed, two optional
+checks skipped)** and **32 JavaScript tests**. All 11 native UI gates passed,
+including the new inset/keyboard divider regression on all four pages. Real
+Chromium touch input checks close/SMA inspection, two-finger zoom, pinch release
+and hidden-line markers against the shared Python results. WebKit checks actual
+touch capture, dragged inspection, multiple saved SMA values/intersections, both
+teal themes, native brand assets and 320/390/430 layouts. These are controlled
+fixture tests, not physical-device acceptance or live Yahoo observations.
 
 Release 0.17.0 host validation ran **361 Python tests (359 passed, two optional
 checks skipped)** and **23 JavaScript tests**. Real PostgreSQL fixtures verify

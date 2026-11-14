@@ -43,6 +43,9 @@ class WebServiceTests(TestCase):
                          [len(chart['result']['events'])]*3)
         args=dict(key=self.key,period=expected.period,target=4)
         state=self.call('save',args)
+        saved_chart=self.call('chart',args)
+        self.assertEqual(saved_chart['lines'][0]['events'],saved_chart['result']['events'])
+        self.assertTrue(any(event['position'] is not None for event in saved_chart['lines'][0]['events']))
         line=state['cards'][0]['lines'][0]
         state=self.call('line',dict(id=line['id'],name='Long-term trend',color=2,visible=False,push_enabled=True))
         self.assertFalse(state['cards'][0]['lines'][0]['visible'])
@@ -69,6 +72,19 @@ class WebServiceTests(TestCase):
             card=self.call('state')['cards'][0]
         self.assertIsNotNone(card['price'])
         self.assertIn(next(iter(card['states'].values())),('Above','Below','On line'))
+
+    def test_browser_adapter_exposes_native_fractional_crossings_for_each_saved_overlay(self):
+        from dataclasses import asdict
+        from web.python.browser import calculate
+        from sma_analyzer.engine import simple_moving_average,crossover_events
+        from sma_analyzer.mock_data import generate_mock_data
+        sample=generate_mock_data('DEMO-US','Oscillating',sessions=700)
+        result=calculate(dict(data=dict(prices=sample.prices,dates=sample.dates,preview=True),
+            period=50,target=4,lines=[dict(id=1,period=20),dict(id=2,period=50)]))
+        for line in result['lines']:
+            average=simple_moving_average(sample.prices,line['period'])
+            self.assertEqual(line['events'],[asdict(event) for event in crossover_events(sample.prices,average)])
+            self.assertTrue(any(event['position']!=event['index'] for event in line['events']))
 
     def test_invalid_frequency_and_unknown_jobs(self):
         for target in (0,-1,2.5,True):

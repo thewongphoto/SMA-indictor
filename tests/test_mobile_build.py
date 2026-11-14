@@ -28,6 +28,18 @@ class MobileBuildTests(unittest.TestCase):
         self.assertIn("androidx.work:work-runtime:",config["app"]["android.gradle_dependencies"])
         self.assertNotIn("play-services-auth",config["app"]["android.gradle_dependencies"])
 
+    def test_shared_chart_asset_has_a_narrow_native_packaging_allowlist(self):
+        import fnmatch
+        config=configparser.ConfigParser();config.read(Path(__file__).parents[1]/'buildozer.spec')
+        def included(name):
+            excluded=any(fnmatch.fnmatch(name,p) for p in config['app']['source.exclude_patterns'].split(','))
+            if any(fnmatch.fnmatch(name,p) for p in config['app']['source.include_patterns'].split(',')):excluded=False
+            return not excluded and name.rsplit('.',1)[-1] in config['app']['source.include_exts'].split(',')
+        self.assertTrue(included('sma_analyzer/assets/chart-style.json'))
+        self.assertTrue(included('sma_analyzer/assets/fonts/OFL.txt'))
+        self.assertFalse(included('token.json'))
+        self.assertFalse(included('sma_analyzer/user-emails.json'))
+
     def test_one_pass_mobile_scores_match_reference_arithmetic_gaps_and_equality(self):
         rng=random.Random(7)
         prices=[100+rng.randint(-5,5)*.1 for _ in range(300)]

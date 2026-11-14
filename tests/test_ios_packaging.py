@@ -25,14 +25,16 @@ class IOSPackagingTests(TestCase):
         (source/"sma_analyzer/assets/logos").mkdir(parents=True)
         for name,value in (("main.py","print('app')"),("sma_analyzer/app.py","# UI"),
                            ("sma_analyzer/cache.sqlite3","private"),("sma_analyzer/token.json","secret"),
-                           ("sma_analyzer/assets/logos/brand.png","png"),("sma_analyzer/assets/logos/CREDITS.txt","credits")):
+                           ("sma_analyzer/assets/logos/brand.png","png"),("sma_analyzer/assets/logos/CREDITS.txt","credits"),
+                           ("sma_analyzer/assets/chart-style.json",'{"price":{}}'),
+                           ("sma_analyzer/assets/private.json","must not ship")):
             (source/name).write_text(value)
         destination = self.directory/"stage"
         destination.mkdir()
         (destination/"old-token.json").write_text("must not ship")
         stage_app(destination,source)
         names = {str(file.relative_to(destination)) for file in destination.rglob("*") if file.is_file()}
-        self.assertEqual(names,{"main.py","sma_analyzer/app.py","sma_analyzer/assets/logos/brand.png","sma_analyzer/assets/logos/CREDITS.txt"})
+        self.assertEqual(names,{"main.py","sma_analyzer/app.py","sma_analyzer/assets/logos/brand.png","sma_analyzer/assets/logos/CREDITS.txt","sma_analyzer/assets/chart-style.json"})
         with self.assertRaises(ValueError):
             stage_app(source,source)
 

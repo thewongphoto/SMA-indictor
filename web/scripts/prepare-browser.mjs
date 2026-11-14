@@ -11,6 +11,20 @@ import { resolve, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 const web = resolve(dirname(fileURLToPath(import.meta.url)), ".."),
   repo = resolve(web, "..");
+// Copy the native brand assets verbatim and derive both price-line themes from
+// the same source. No runtime font/logo API or independent web colour selection.
+const assets = join(repo, "sma_analyzer/assets");
+await mkdir(join(web, "public/fonts"), { recursive: true });
+for (const name of ["Manrope-Regular.ttf", "Manrope-Bold.ttf"])
+  await copyFile(join(assets, "fonts", name), join(web, "public/fonts", name));
+await copyFile(join(assets, "app-icon.png"), join(web, "public/app-icon.png"));
+await mkdir(join(web, "public/logos"), { recursive: true });
+for (const name of await readdir(join(assets, "logos")))
+  if (name.endsWith(".png"))
+    await copyFile(join(assets, "logos", name), join(web, "public/logos", name));
+const chartStyle = JSON.parse(await readFile(join(assets, "chart-style.json"), "utf8"));
+await writeFile(join(web, "app/chart-theme.css"),
+  `/* Generated from sma_analyzer/assets/chart-style.json. */\n:root { --price: ${chartStyle.price.dark}; }\nhtml[data-theme="light"] { --price: ${chartStyle.price.light}; }\n@media (prefers-color-scheme: light) { html[data-theme="system"] { --price: ${chartStyle.price.light}; } }\n`);
 const out = join(web, "public/python");
 await mkdir(join(out, "sma_analyzer"), { recursive: true });
 const files = [

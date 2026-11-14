@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import time
 import urllib.request
+from bisect import bisect_left
+from datetime import date,timedelta
 from playwright.sync_api import sync_playwright, expect
 from sma_analyzer.mock_data import generate_mock_data
 from sma_analyzer.engine import optimize_sma
@@ -50,9 +52,58 @@ def main():
                 page.get_by_role('button',name='Save',exact=True).wait_for(timeout=120000)
                 expect(page.get_by_text(f'Price is {"above" if sample.prices[-1]>expected.sma[-1] else "below"} its {expected.period}-day line',exact=True)).to_be_visible()
                 assert not any(url.endswith('/api/optimize') or url.endswith('/api/chart') for url in requests)
+                # Actual touch input must inspect both the close and selected SMA.
+                plot=page.locator('.chart-plot');plot.scroll_into_view_if_needed()
+                expect(page.locator('.chart-identity')).to_contain_text('Apple Inc.')
+                expect(page.locator('.chart-identity img')).to_have_attribute('src','/logos/apple.png')
+                expect(page.locator('.price')).to_have_text(f'${sample.prices[-1]:,.2f}')
+                page.evaluate('document.fonts.ready')
+                assert page.evaluate('document.fonts.check("700 14px Manrope")')
+                start=bisect_left(sample.dates,(date.fromisoformat(sample.dates[-1])-timedelta(days=365)).isoformat())
+                end=len(sample.prices)-1
+                expected_crossings=[e.plot_index for e in expected.events if start<=e.plot_index<=end]
+                marker_positions=plot.locator('[data-crossing]').evaluate_all('(items)=>items.map(item=>Number(item.dataset.position))')
+                assert marker_positions==expected_crossings,(marker_positions,expected_crossings)
+                assert expected_crossings
+                price_path=plot.locator('[data-series="price"]')
+                assert price_path.evaluate('(item)=>getComputedStyle(item).stroke')=='rgb(77, 222, 196)'
+                cdp=context.new_cdp_session(page)
+                def touch(kind,points):cdp.send('Input.dispatchTouchEvent',{'type':kind,'touchPoints':points})
+                box=plot.bounding_box();scale=box['width']/640
+                def finger(identity,fraction):return {'id':identity,'x':box['x']+(68+550*fraction)*scale,'y':box['y']+185*scale}
+                touch('touchStart',[finger(1,.4)])
+                index=round(start+.4*(end-start))
+                inspection=page.locator('.chart-inspection')
+                expect(inspection).to_contain_text(f'Adj. close: ${sample.prices[index]:,.4f}')
+                expect(inspection).to_contain_text(f'SMA ({expected.period} days): ${expected.sma[index]:,.4f}')
+                touch('touchMove',[finger(1,.75)])
+                index=round(start+.75*(end-start))
+                expect(inspection).to_contain_text(f'Adj. close: ${sample.prices[index]:,.4f}')
+                expect(inspection).to_contain_text(f'SMA ({expected.period} days): ${expected.sma[index]:,.4f}')
+                assert plot.locator('.inspection-points circle').count()>=2
+                page.screenshot(path=str(OUT/'chart-touch-inspection.png'))
+                touch('touchEnd',[])
+                # Real two-finger gestures zoom, and the remaining finger must not
+                # accidentally restart inspection before a new one-finger gesture.
+                touch('touchStart',[finger(2,.3),finger(3,.7)])
+                page.wait_for_timeout(60)
+                touch('touchMove',[finger(2,.1),finger(3,.9)])
+                expect(page.get_by_role('button',name='Zoom out',exact=True)).to_be_visible()
+                expect(inspection).to_have_count(0)
+                touch('touchEnd',[finger(2,.1)])
+                touch('touchMove',[finger(2,.2)])
+                expect(inspection).to_have_count(0)
+                touch('touchEnd',[])
+                page.locator('.ranges').get_by_role('button',name='1Y',exact=True).click()
+                assert not any(url.endswith('/api/optimize') or url.endswith('/api/chart') for url in requests)
                 page.get_by_role('button',name='Save',exact=True).click();page.get_by_role('button',name='Saved',exact=True).wait_for()
                 page.get_by_role('button',name='Edit',exact=True).click();page.get_by_label('Name',exact=True).fill('Local research');page.get_by_role('button',name='Rose',exact=True).click();page.get_by_role('button',name='Done',exact=True).click()
                 expect(page.get_by_role('dialog')).to_have_count(0)
+                page.get_by_role('switch',name='Show Local research').click()
+                expect(plot.locator('[data-crossing]')).to_have_count(0)
+                expect(plot.locator('[data-series^="saved-"]')).to_have_count(0)
+                page.get_by_role('switch',name='Show Local research').click()
+                expect(plot.locator('[data-crossing]')).to_have_count(len(expected_crossings))
                 page.get_by_role('button',name='Alerts',exact=True).click()
                 expect(page.get_by_role('switch',name='Alerts for Local research')).to_have_attribute('aria-checked','true')
                 page.get_by_role('switch',name='Buy signal for Local research',exact=True).click()

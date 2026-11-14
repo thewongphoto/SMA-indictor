@@ -40,7 +40,8 @@ def stage_app(destination, source=ROOT, smoke=False):
     for item in (source / "sma_analyzer").glob("*.py"):
         shutil.copy2(item, package / item.name)
     for item in (source / "sma_analyzer/assets").rglob("*"):
-        if item.is_file() and item.suffix.lower() in (".png", ".jpg", ".kv", ".atlas", ".txt", ".ttf"):
+        if item.is_file() and (item.suffix.lower() in (".png", ".jpg", ".kv", ".atlas", ".txt", ".ttf")
+                              or item == source / "sma_analyzer/assets/chart-style.json"):
             target = package / "assets" / item.relative_to(source / "sma_analyzer/assets")
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, target)

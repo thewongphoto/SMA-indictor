@@ -26,7 +26,8 @@ def calculate(payload):
     lines = []
     for line in payload.get('lines', []):
         try:
-            lines.append(dict(line, sma=simple_moving_average(prices, int(line['period']))))
+            average = simple_moving_average(prices, int(line['period']))
+            lines.append(dict(line, sma=average, events=[asdict(e) for e in crossover_events(prices,average)]))
         except ValueError:
             continue
     report = None

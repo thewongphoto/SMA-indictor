@@ -31,3 +31,4 @@ web/.env*
 web/public/python/
 web/public/python-runtime/
 web/public/setup/
+web/app/chart-theme.css

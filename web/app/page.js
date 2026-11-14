@@ -7,6 +7,8 @@ import { localApi, remote } from "./local-service";
 import PushControls from "./push-controls";
 import { syncPush } from "./push-client";
 import { stored, clearSnapshots } from "./cache";
+import CompanyLogo from "./company-logo";
+import packageInfo from "../package.json";
 
 const labels = {
   library: "Home",
@@ -22,7 +24,7 @@ const defaultState = {
   archive: [],
   colors: [],
   settings: {},
-  version: "0.15.0",
+  version: packageInfo.version,
 };
 const money = (value) =>
   Number(value).toLocaleString(undefined, {
@@ -30,11 +32,7 @@ const money = (value) =>
     minimumFractionDigits: 2,
   });
 function Logo({ security }) {
-  return security?.logo_url ? (
-    <img className="company-logo" src={security.logo_url} alt="" />
-  ) : (
-    <span className="company-logo fallback">{security?.name?.[0] || "S"}</span>
-  );
+  return <CompanyLogo security={security} />;
 }
 function MotionLogo() {
   return (
@@ -498,14 +496,14 @@ export default function App() {
       }}
       onBlurCapture={() => setKeyboard(false)}
     >
-      <header>
+      <header className={tab === "results" ? "detail-header" : undefined}>
         {!["library", "alerts", "settings"].includes(tab) && (
           <button className="text" onClick={() => navigate("library")}>
             ‹ Back
           </button>
         )}
         <h1>
-          {tab === "results" && chart ? chart.security.ticker : labels[tab]}
+          {tab === "results" && chart ? `${chart.security.ticker}${chart.result ? ` · ${selected?.name || `SMA (${chart.result.period} days)`}` : ""}` : labels[tab]}
         </h1>
         {tab === "library" ? (
           <button className="outline" onClick={() => navigate("search")}>
@@ -602,7 +600,7 @@ export default function App() {
                       </span>
                       <span className="quote">
                         <strong>
-                          {card.price === null ? "—" : money(card.price)}
+                          {card.price === null ? "—" : `$${money(card.price)}`}
                         </strong>
                         <small
                           className={card.change < 0 ? "negative" : "positive"}

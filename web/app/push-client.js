@@ -14,11 +14,7 @@ export function syncPush() {
     .then(async () => {
       const { core, persist } = await pushData();
       if (!core.push.enabled && !core.push.disable_pending) return;
-      if (
-        !navigator.onLine ||
-        localStorage.getItem("sma-offline-session") !== "1"
-      )
-        return;
+      if (!navigator.onLine) return;
       try {
         if (core.push.disable_pending) {
           await remote("push/disable", {

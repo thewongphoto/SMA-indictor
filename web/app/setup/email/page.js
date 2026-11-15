@@ -138,8 +138,8 @@ export default function EmailSetup() {
           ) : error ? (
             <>
               <p>{error}</p>
-              <a href="/" target="_blank" rel="noopener">
-                Sign in to SMA
+              <a href="/setup/login?next=/setup/email" target="_blank" rel="noopener">
+                Owner sign in
               </a>
               <p>
                 If sign-in was required, return to this tab and check again.

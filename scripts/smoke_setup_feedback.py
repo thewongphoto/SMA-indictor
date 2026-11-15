@@ -20,7 +20,7 @@ def main():
             with sync_playwright() as p:
                 browser=p.chromium.launch(args=['--no-sandbox'])
                 page=browser.new_page(viewport={'width':390,'height':844})
-                scenario={'status':401,'value':{'error':'Sign in to your private app.'},'hold':False}
+                scenario={'status':401,'value':{'error':'Owner sign-in is required for server setup.'},'hold':False}
                 held=[]
                 def respond(route):
                     if scenario['hold']:held.append(route)
@@ -31,8 +31,9 @@ def main():
                 button=page.get_by_role('button',name='Check setup',exact=True)
                 button.click()
                 result=page.locator('.setup-result')
-                expect(result).to_contain_text('Sign in to your private app.')
-                expect(result.get_by_role('link',name='Sign in to SMA in a new tab')).to_have_attribute('target','_blank')
+                expect(result).to_contain_text('Owner sign-in is required for server setup.')
+                expect(result.get_by_role('link',name='Owner sign in in a new tab')).to_have_attribute('target','_blank')
+                expect(result.get_by_role('link',name='Owner sign in in a new tab')).to_have_attribute('href','/setup/login')
                 expect(result).to_be_in_viewport()
                 page.screenshot(path=str(OUT/'signin-result.png'))
                 scenario['status']=200

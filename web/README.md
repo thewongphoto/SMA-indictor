@@ -6,11 +6,18 @@ Saved parameters, histories and settings stay in IndexedDB. The SVG chart follow
 the native viewport, uses shared brand/teal assets, and renders exact Python
 crossing pluses and close/SMA touch inspection. Vercel proxies Yahoo
 requests and sends Web Push; Supabase provides durable alert state and scheduling.
+Normal app opening, optional signup, market lookup and per-device notification
+controls need no password. `APP_PASSWORD` and `AUTH_SECRET` protect owner setup
+and diagnostics at `/setup/login`; keep existing values in Vercel. Public push
+configuration contains only readiness and the VAPID public key, plus an owner
+session flag. Device UUIDs remain unguessable capabilities for device operations;
+there is no public device-list or shared-library API.
 
 Follow the [beginner setup guide](../docs/PRIVATE_IPHONE_INSTALLATION.md) or open
 `/setup` on the deployed website for the seven Vercel variables and prepared SQL.
 No persistent Python host is required. The older `web_worker/` mode remains
-available only when both `PYTHON_API_URL` and `PYTHON_API_TOKEN` are configured.
+available only to signed-in owners when both `PYTHON_API_URL` and
+`PYTHON_API_TOKEN` are configured. Password-free visitors always use local storage.
 
 Optional signup forwards addresses to the owner through a Vercel function and
 Resend. See the [email setup guide](../docs/EMAIL_SIGNUP_SETUP.md) or `/setup/email`.
@@ -41,6 +48,7 @@ python -m scripts.smoke_local_web
 python -m scripts.smoke_chart_webkit
 python -m scripts.smoke_setup_feedback
 python -m scripts.smoke_signup_web
+python -m scripts.smoke_public_access_web
 ```
 
 The first checks legacy worker compatibility. The second uses actual in-browser

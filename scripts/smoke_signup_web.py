@@ -34,7 +34,7 @@ def main():
                 page.on('pageerror', lambda error: errors.append(str(error)))
                 # Real unconfigured API hides the welcome page and requires no email.
                 page.goto(ORIGIN)
-                expect(page.get_by_label('Access password')).to_be_visible()
+                expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
                 assert page.request.get(ORIGIN+'/api/contact-capabilities').json() == {'enabled': False}
                 assert page.request.get(ORIGIN+'/api/contact-status').status == 401
                 assert page.request.post(ORIGIN+'/api/contact-email', data={'email': 'fixture@example.com'}).status == 503
@@ -51,7 +51,7 @@ def main():
                 page.goto(ORIGIN+'/?welcome=1')
                 expect(page.get_by_role('heading', name='Welcome to SMA Stock Analyzer')).to_be_visible()
                 page.get_by_role('button', name='Skip for now').click()
-                expect(page.get_by_label('Access password')).to_be_visible()
+                expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
                 assert not sends
                 page.goto(ORIGIN+'/?welcome=1')
                 page.get_by_role('button', name='Continue', exact=True).click()
@@ -102,9 +102,8 @@ def main():
                 expect(page.get_by_role('status')).to_contain_text('Email saved and forwarded')
                 assert sends[-1]['request_id']!=removal['request_id']
                 page.get_by_role('button', name='Open the app', exact=True).click()
-                expect(page.get_by_label('Access password')).to_be_visible()
-                page.get_by_label('Access password').fill(env['APP_PASSWORD'])
-                page.get_by_role('button',name='Continue',exact=True).click()
+                expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
+                expect(page.get_by_label('Access password')).to_have_count(0)
                 page.get_by_role('button',name='Settings',exact=True).click()
                 settings=page.locator('.email-settings')
                 settings.get_by_role('button',name='Use a different email',exact=True).click()

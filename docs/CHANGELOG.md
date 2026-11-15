@@ -1,12 +1,13 @@
 # Release history
 
-The latest source version and requested Android build are **0.18.0** /
-**apk-v0.18.0**. A tag or source commit does not prove native compilation passed.
+The latest source version and requested Android build are **0.18.1** /
+**apk-v0.18.1**. A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.18.1 | Removes the shared password from normal web app opening, market lookup and per-device alert controls. Saved lines remain device-local. Moves owner sign-in to `/setup/login`; setup diagnostics, the legacy worker library and scheduler stay protected. Existing environment values and database schemas remain compatible. |
 | 0.18.0 | Fixes the Android tab divider after safe-area/keyboard moves; restores the original teal price line on both platforms. Brings native chart presentation to iPhone web: shared Manrope/logo assets, dollar headline prices, company identity, axes/legend, exact Python upward-crossing pluses, daily close/SMA touch inspection, native range/pinch rules, and visibility-aware overlays. Saved parameters and calculations are unchanged. |
 | 0.17.0 | Tracks email additions, modifications and explicit removals from Android/web, with automatic source/version and an owner-only notification containing active/removed address summaries. Adds private Supabase registry/history, frozen email snapshots, retry/revision guards and Remove/Retry controls. Requires rerunning the email SQL for protocol 2. |
 | 0.16.0 | Adds the optional full-screen email welcome and Settings editor on iPhone web/Android, with Vercel forwarding opt-in signups to the owner through Resend. Adds separate Supabase rate-limit/idempotency/count metadata, acceptance/error/retry handling and a beginner `/setup/email` guide. Signup stays hidden until configured. |

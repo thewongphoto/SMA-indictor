@@ -44,7 +44,7 @@ async function handler(req, { params }) {
       return json({ error: "Private access has not been configured." }, 503);
     let body;
     try {
-      body = await req.json();
+      body = await bodyObject(req, 4096);
     } catch {
       return json({ error: "Invalid request" }, 400);
     }
@@ -60,11 +60,22 @@ async function handler(req, { params }) {
       "Set-Cookie":
         "sma_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
     });
-  if (
-    !["contact-capabilities", "contact-email"].includes(path) &&
-    !authenticated(req)
-  )
-    return json({ error: "Sign in to your private app." }, 401);
+  // Device-local libraries need no shared password. Never expose the legacy
+  // worker's single-owner state or owner diagnostics through these public APIs.
+  const owner = authenticated(req);
+  if (path === "session")
+    return json({
+      storage:
+        owner && process.env.PYTHON_API_URL && process.env.PYTHON_API_TOKEN
+          ? "worker"
+          : "local",
+      owner,
+    });
+  const publicPaths = [
+    "contact-capabilities", "contact-email", "market/search", "market/history",
+  ];
+  if (!publicPaths.includes(path) && !owner)
+    return json({ error: "Owner sign-in is required for server setup." }, 401);
   if (path === "contact-status") return json(await contactStatus());
   if (path === "contact-capabilities" || path === "contact-email") {
     if (path === "contact-capabilities")
@@ -87,13 +98,6 @@ async function handler(req, { params }) {
       );
     }
   }
-  if (path === "session")
-    return json({
-      storage:
-        process.env.PYTHON_API_URL && process.env.PYTHON_API_TOKEN
-          ? "worker"
-          : "local",
-    });
   if (path === "market/search" || path === "market/history") {
     try {
       const body = await bodyObject(req);
@@ -109,11 +113,6 @@ async function handler(req, { params }) {
       );
     }
   }
-  if (
-    path === "contact-capabilities" &&
-    (!process.env.PYTHON_API_URL || !process.env.PYTHON_API_TOKEN)
-  )
-    return json({ enabled: false });
   if (!process.env.PYTHON_API_URL || !process.env.PYTHON_API_TOKEN)
     return json(
       { error: "The calculation service is not configured yet." },

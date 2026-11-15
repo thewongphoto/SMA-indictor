@@ -46,11 +46,21 @@ async function handler(req, { params }) {
       );
     }
   }
-  if (!authenticated(req))
-    return json({ error: "Sign in to your private app." }, 401);
+  const owner = authenticated(req);
+  const deviceActions = ["public-config", "sync", "disable", "test"];
+  if (!deviceActions.includes(action) && !owner)
+    return json({ error: "Owner sign-in is required for server setup." }, 401);
   if (req.method !== "GET" && !sameOrigin(req))
     return json({ error: "Origin not allowed" }, 403);
   try {
+    if (action === "public-config" && req.method === "GET") {
+      const config = await pushConfig(
+        `${req.headers.get("x-forwarded-proto") || new URL(req.url).protocol.replace(":", "")}://${req.headers.get("host")}`,
+      );
+      // Clients need only availability and the VAPID public key. Project details,
+      // scheduler checks and the cross-device run journal remain owner-only.
+      return json({ ready: config.ready, public_key: config.public_key, owner });
+    }
     if (action === "config" && req.method === "GET")
       return json(
         await pushConfig(

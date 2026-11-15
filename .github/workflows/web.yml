@@ -34,6 +34,7 @@ jobs:
       - run: python -m scripts.smoke_chart_webkit
       - run: python -m scripts.smoke_setup_feedback
       - run: python -m scripts.smoke_signup_web
+      - run: python -m scripts.smoke_public_access_web
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -44,3 +45,4 @@ jobs:
             artifacts/chart-webkit/
             artifacts/setup-feedback/
             artifacts/signup-web/
+            artifacts/public-access-web/

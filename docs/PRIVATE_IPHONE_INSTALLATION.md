@@ -1,8 +1,9 @@
 # Free iPhone setup: Vercel + Supabase
 
-Version **0.15.0** runs the existing Python SMA/backtest engine on your phone
+Version **0.18.1** runs the existing Python SMA/backtest engine on your phone
 using Pyodide in a browser worker. Saved lines, settings and downloaded prices
-live in IndexedDB. Vercel handles private sign-in, Yahoo HTTPS requests and Web
+live in IndexedDB. The app opens without a password. Vercel handles owner-only
+setup sign-in, Yahoo HTTPS requests and Web
 Push delivery. Supabase stores alert subscriptions, the enabled line parameters,
 closing snapshots needed by opening reminders, and the delivery journal.
 
@@ -42,8 +43,8 @@ name below) and a **Value** (your own value). Select **Production** for each.
 
 | Key | Value |
 | --- | --- |
-| `APP_PASSWORD` | Your chosen website login password. |
-| `AUTH_SECRET` | A different random secret of at least 32 characters for sessions. |
+| `APP_PASSWORD` | Your chosen owner setup password. App users do not need it. |
+| `AUTH_SECRET` | A different random secret of at least 32 characters for owner sessions. |
 | `SUPABASE_URL` | Your project URL, e.g. `https://your-project.supabase.co`. |
 | `SUPABASE_SECRET_KEY` | Your Supabase **secret** key, starting `sb_secret_`. |
 
@@ -53,18 +54,21 @@ Do not paste private values into chat, GitHub, screenshots or `NEXT_PUBLIC_`
 variables. Supabase requests run on Vercel, not in browser code.
 
 Leave `PYTHON_API_URL` and `PYTHON_API_TOKEN` unset for this local approach.
-If those two are both configured, the app deliberately retains the older worker
-mode so existing users do not silently lose access to worker-stored parameters.
+If those two are both configured, signed-in owners retain the older worker mode
+so they do not lose access to worker-stored parameters. Sign in at `/setup/login?next=/`
+to open that library. Password-free visitors use their own local library and
+cannot read or change the worker's shared state.
 Export that library before choosing to switch modes; native Android data is not
 synchronized automatically.
 
 ## 3. Deploy the new code and open notification setup
 
-After the 0.15.0 changes reach GitHub, Vercel should build the connected `main`
+After the latest changes reach GitHub, Vercel should build the connected `main`
 branch. Open **Deployments** and wait for **Ready**. If it does not start, choose
 **Redeploy** for the latest source deployment. Confirm its commit is current.
 
-Open your production website, sign in using `APP_PASSWORD`, then visit:
+The main website opens directly without sign-in. For owner configuration, visit
+`/setup/login`, sign in using your existing `APP_PASSWORD`, then visit:
 
 ```text
 https://YOUR-PRODUCTION-WEBSITE/setup
@@ -139,7 +143,7 @@ When ready:
 
 1. Open your production website in **Safari on the iPhone**.
 2. Tap **Share → Add to Home Screen → Add**.
-3. Open the new Home Screen icon and sign in.
+3. Open the new Home Screen icon. No password is required.
 4. Save an SMA line, then open **Alerts**.
 5. Tap **Enable notifications → Allow**.
 6. Wait until preferences are synced, then tap **Send test notification**.

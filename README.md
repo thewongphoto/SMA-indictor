@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.18.0**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.18.1**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone | Runs Python calculations and saved data locally in Safari/Home Screen. Vercel + Supabase setup enables scheduled Web Push. Native releases remain paused. |
 
@@ -60,6 +60,8 @@ matching is not a claim of profitability. Yahoo data remains for private use.
 ## iPhone web setup
 
 Follow the [free Vercel + Supabase walkthrough](docs/PRIVATE_IPHONE_INSTALLATION.md).
+The app opens without a password; saved lines stay on each device. The existing
+`APP_PASSWORD` is only for owner setup/diagnostics at `/setup/login`.
 After deployment, open `/setup` for key generation and the prepared scheduling SQL.
 The first calculation downloads the Python runtime; stock lookups need connectivity.
 Use saved-parameter export/import for backups. Free-service availability and iOS

@@ -73,8 +73,7 @@ export default function App() {
   const guideReturn = useRef(null);
   const [tab, setTab] = useState("library"),
     [state, setState] = useState(defaultState),
-    [auth, setAuth] = useState(null),
-    [password, setPassword] = useState(""),
+    [ready, setReady] = useState(false),
     [loading, setLoading] = useState(true);
   const [error, setError] = useState(""),
     [offline, setOffline] = useState(false),
@@ -98,44 +97,25 @@ export default function App() {
     jobRef = useRef(null);
   const backend = useRef("local");
   async function api(path, body, method) {
-    try {
-      if (path === "login" || path === "logout") {
-        const value = await remote(path, body, method);
-        localStorage.setItem(
-          "sma-offline-session",
-          path === "login" ? "1" : "0",
-        );
-        return value;
+    if (path === "state") {
+      if (navigator.onLine) {
+        backend.current = (await remote("session")).storage;
+        localStorage.setItem("sma-storage-mode", backend.current);
+      } else {
+        backend.current = localStorage.getItem("sma-storage-mode") || "local";
       }
-      if (path === "state") {
-        if (navigator.onLine) {
-          backend.current = (await remote("session")).storage;
-          localStorage.setItem("sma-storage-mode", backend.current);
-          localStorage.setItem("sma-offline-session", "1");
-        } else {
-          backend.current = localStorage.getItem("sma-storage-mode") || "local";
-          if (localStorage.getItem("sma-offline-session") !== "1") {
-            const e = new Error("Sign in while online first.");
-            e.status = 401;
-            throw e;
-          }
-        }
-      }
-      if (backend.current === "local")
-        return await localApi(path, body, method);
-      const value = await remote(path, body, method);
-      return Array.isArray(value.cards)
-        ? { ...value, storage: "worker" }
-        : value;
-    } catch (error) {
-      if (error.status === 401) setAuth(false);
-      throw error;
     }
+    if (backend.current === "local")
+      return await localApi(path, body, method);
+    const value = await remote(path, body, method);
+    return Array.isArray(value.cards)
+      ? { ...value, storage: "worker" }
+      : value;
   }
   async function refresh() {
     const value = await api("state");
     setState(value);
-    setAuth(true);
+    setReady(true);
     await stored("state", value);
     return value;
   }
@@ -195,13 +175,13 @@ export default function App() {
       .then((value) => {
         if (value) {
           setState(value);
-          if (!navigator.onLine) setAuth(true);
+          if (!navigator.onLine) setReady(true);
         }
       })
       .catch(() => {});
     refresh()
       .catch((error) => {
-        if (navigator.onLine && error.status !== 401) setError(error.message);
+        if (navigator.onLine) setError(error.message);
       })
       .finally(() => {
         setLoading(false);
@@ -238,17 +218,6 @@ export default function App() {
   }
   function fail(error) {
     setError(error.message || String(error));
-  }
-  async function login(event) {
-    event.preventDefault();
-    try {
-      await api("login", { password });
-      setPassword("");
-      await refresh();
-      setError("");
-    } catch (e) {
-      fail(e);
-    }
   }
   async function openChart(security, line = null, cached = false) {
     const token = ++generation.current;
@@ -454,37 +423,11 @@ export default function App() {
         onUnavailable={() => setWelcome(false)}
       />
     );
-  if (auth === null && loading)
+  if (!ready && loading)
     return (
       <main className="login">
         <MotionLogo />
         <h1>Opening your SMA app…</h1>
-      </main>
-    );
-  if (auth === false)
-    return (
-      <main className="login">
-        <img src="/app-icon.png" alt="" />
-        <h1>Your private SMA app</h1>
-        <p>Sign in to open your saved lines.</p>
-        <form onSubmit={login}>
-          <label>
-            Access password
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          <button className="primary">Continue</button>
-        </form>
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
       </main>
     );
   return (
@@ -1249,18 +1192,7 @@ export default function App() {
               </p>
             </section>
             <p className="center">Version {state.version}</p>
-            <button
-              onClick={async () => {
-                await api("logout", {});
-                setTab("library");
-                await clearSnapshots();
-                setState(defaultState);
-                setChart(null);
-                setAuth(false);
-              }}
-            >
-              Sign out
-            </button>
+            <p className="center"><a href="/setup">Owner server setup</a></p>
           </>
         )}
         {tab === "archive" && (

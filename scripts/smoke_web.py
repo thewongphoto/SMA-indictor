@@ -28,9 +28,15 @@ def main():
                 context=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,color_scheme='dark')
                 page=context.new_page();page.set_default_timeout(20000)
                 errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+                # Even a configured legacy worker must not expose its shared
+                # library to password-free visitors.
                 page.goto('http://127.0.0.1:3111')
-                page.get_by_label('Access password').fill(env['APP_PASSWORD'])
-                page.get_by_role('button',name='Continue',exact=True).click()
+                expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
+                assert page.request.get('http://127.0.0.1:3111/api/session').json()=={'storage':'local','owner':False}
+                assert page.request.get('http://127.0.0.1:3111/api/state').status==401
+                page.goto('http://127.0.0.1:3111/setup/login?next=/')
+                page.get_by_label('Owner password').fill(env['APP_PASSWORD'])
+                page.get_by_role('button',name='Sign in',exact=True).click()
                 expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
                 expect(page.get_by_text('OPTIONAL RELEASE UPDATES')).to_have_count(0)
                 page.screenshot(path=str(OUT/'home-empty.png'))
@@ -44,6 +50,10 @@ def main():
                 page.get_by_role('button',name='Save',exact=True).wait_for(timeout=60000)
                 page.get_by_role('button',name='Save',exact=True).click()
                 expect(page.get_by_role('button',name='Saved',exact=True)).to_be_visible()
+                visitor=browser.new_context()
+                assert visitor.request.get('http://127.0.0.1:3111/api/state').status==401
+                assert visitor.request.post('http://127.0.0.1:3111/api/line',data={'id':1,'custom_name':'unauthorized'}).status==401
+                visitor.close()
                 page.screenshot(path=str(OUT/'chart.png'))
                 page.locator('section.backtest').screenshot(path=str(OUT/'backtest.png'))
                 page.get_by_role('button',name='Edit',exact=True).click()
@@ -95,7 +105,7 @@ def main():
                 expect(page.get_by_text('No archived lines.')).to_be_visible()
                 assert not errors,errors
                 browser.close()
-            print('PASS: private login, submit-only search, Python calculation, save/edit/colour, visibility vs alerts, per-line signal types, themes, narrow layouts, offline reopening, archive/restore; email hidden without server configuration.')
+            print('PASS: public visitors retain local storage; owner-only legacy worker login, submit-only search, Python calculation, save/edit/colour, visibility vs alerts, per-line signal types, themes, narrow layouts, offline reopening, archive/restore; email hidden without server configuration.')
         finally:
             for process in (web,worker):
                 process.terminate()

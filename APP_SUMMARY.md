@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.18.0**. Android and desktop are active. Native iPhone
+Current source: **0.18.1**. Android and desktop are active. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -162,8 +162,8 @@ cannot be dispatched. [Validation status](docs/ANDROID_TEST_STATUS.md).
 
 The web app now uses the shared pure Python engine/backtest modules inside a
 Pyodide/NumPy browser worker. IndexedDB retains parameters, histories and settings;
-Cancel terminates the calculation worker. Sign-out preserves local saved lines.
-Vercel handles authenticated market requests and Web Push. Supabase stores only
+Cancel terminates the calculation worker. Opening the app needs no password.
+Vercel handles market requests and Web Push. Supabase stores only
 synced alert parameters/subscriptions, required closing snapshots, and delivery
 journals. pg_cron invokes the four shared SGT schedules; event/run claims prevent
 replays. Per-line and global flags both apply, and chart visibility is independent.
@@ -171,7 +171,8 @@ Opening checks use a verified closing snapshot, with no intraday retrieval.
 
 The [free setup guide](docs/PRIVATE_IPHONE_INSTALLATION.md) explains the seven
 variables, SQL and physical iPhone acceptance checks. Existing Python-worker mode
-remains available when both old worker variables are set. The native Android
+remains available to authenticated owners when both old worker variables are set.
+Visitors always use their device-local library. The native Android
 engine and scheduler are unchanged by the web implementation.
 
 
@@ -182,7 +183,7 @@ Resend variables and email SQL protocol 2. Android uses the same public service;
 no delivery credentials ship in the APK. Source/version are automatic, with no
 source selector. New web clients label iOS browsers `ios-web` and other browsers
 `web`; native APK requests label `android`. These are client labels, not verified
-OS identities. The web welcome precedes private sign-in and supports Skip.
+OS identities. The web welcome supports Skip and opens the app directly.
 
 Explicit Save or Remove notifies kelwong98@gmail.com through Resend. The server
 infers add/modify/remove from the installation's accepted registry state. The

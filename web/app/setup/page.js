@@ -154,8 +154,9 @@ export default function Setup() {
                 : "Add SUPABASE_URL and SUPABASE_SECRET_KEY in Vercel, then redeploy.")}
         </p>
         <p>
-          Sign in on the main app first if this page reports “Sign in to your
-          private app.” Keep secret keys out of chat and GitHub.
+          <a href="/setup/login" target="_blank" rel="noopener">Owner sign in</a>{" "}
+          is required for setup checks. The main app opens without a password.
+          Keep secret keys out of chat and GitHub.
         </p>
       </section>
       <section className="card">
@@ -261,8 +262,8 @@ export default function Setup() {
               </p>
               {needsLogin ? (
                 <p>
-                  <a href="/" target="_blank" rel="noopener">
-                    Sign in to SMA in a new tab
+                  <a href="/setup/login" target="_blank" rel="noopener">
+                    Owner sign in in a new tab
                   </a>{" "}
                   using your APP_PASSWORD. Then return to this tab and click
                   Check setup again. Your generated keys stay in this tab.

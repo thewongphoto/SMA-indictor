@@ -1,9 +1,19 @@
 # Validation and build status
 
-Current source: **0.18.0**. The matching Android build tag is **apk-v0.18.0**.
+Current source: **0.18.1**. The matching Android build tag is **apk-v0.18.1**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.18.1 host validation covers password-free opening with and without
+configured owner credentials, public market/device input validation, protected
+owner diagnostics and legacy worker data, cross-origin write rejection,
+owner login/logout and safe return navigation. Browser fixtures also cover
+saved-data reopening, cold offline calculations, optional signup and WebKit
+chart interactions. All 363 Python tests completed (361 passed, two optional
+skips), all 32 JavaScript tests passed, and all 11 native UI gates passed.
+The production web build and six browser smoke checks passed. These tests send
+no real email or push notifications.
 
 Release 0.18.0 host validation ran **363 Python tests (361 passed, two optional
 checks skipped)** and **32 JavaScript tests**. All 11 native UI gates passed,

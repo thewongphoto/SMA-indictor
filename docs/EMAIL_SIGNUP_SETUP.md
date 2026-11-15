@@ -70,7 +70,7 @@ The reviewable source is [web/setup/contact.sql](../web/setup/contact.sql).
 ## 4. Check configuration and send one signup
 
 1. Return to `/setup/email` and click **Check email setup**.
-2. If asked to sign in, open the supplied link, sign in with your app password,
+2. If asked to sign in, open the supplied `/setup/login` link, sign in with your owner setup password (`APP_PASSWORD`),
    then return and check again.
 3. Both **Resend and server variables: present** and **Signup tables/functions:
    ready** should appear. These checks confirm configuration; they do not test

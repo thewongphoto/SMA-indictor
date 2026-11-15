@@ -42,8 +42,9 @@ def main():
                 page.route('**/api/market/search',lambda route:route.fulfill(json={'results':[security]}))
                 page.route('**/api/market/history',lambda route:route.fulfill(json=fixture))
                 page.goto('http://127.0.0.1:3123')
-                page.get_by_label('Access password').fill(env['APP_PASSWORD']);page.get_by_role('button',name='Continue',exact=True).click()
                 page.get_by_text('No saved SMA lines yet').wait_for()
+                expect(page.get_by_label('Access password')).to_have_count(0)
+                assert not context.cookies()
                 page.get_by_role('button',name='Find a security',exact=True).click()
                 page.get_by_placeholder('Company name or ticker').fill('Apple');page.wait_for_timeout(200)
                 assert not any(url.endswith('/api/market/search') for url in requests)
@@ -110,7 +111,8 @@ def main():
                 page.get_by_role('button',name='Settings',exact=True).click()
                 with page.expect_download() as download:page.get_by_role('button',name='Export saved parameters').click()
                 backup=Path(download.value.path());exported=json.loads(backup.read_text());assert exported['cards'][0]['lines'][0]['custom_name']=='Local research';assert not exported['cards'][0]['lines'][0]['alert_buy']
-                page.get_by_role('button',name='Sign out',exact=True).click();page.get_by_label('Access password').fill(env['APP_PASSWORD']);page.get_by_role('button',name='Continue',exact=True).click()
+                page.reload()
+                expect(page.get_by_role('button',name='Sign out',exact=True)).to_have_count(0)
                 page.get_by_role('button',name='Apple Inc.').click();page.get_by_role('button',name='Local research').click()
                 page.get_by_role('button',name='Edit',exact=True).click();expect(page.get_by_role('button',name='Rose',exact=True)).to_have_attribute('aria-pressed','true');page.get_by_role('button',name='Cancel',exact=True).click()
                 page.screenshot(path=str(OUT/'chart-local.png'))
@@ -135,7 +137,7 @@ def main():
                     page.set_viewport_size({'width':width,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
                 assert not errors,errors
                 browser.close()
-            print('PASS: real Pyodide/NumPy equals Python, no server calculations, save/colour/per-line flags, sign-out persistence, cold offline runtime/backtest, backup import, key/SQL setup and narrow layouts.')
+            print('PASS: password-free opening/reopening, real Pyodide/NumPy equals Python, no server calculations, save/colour/per-line flags, cold offline runtime/backtest, backup import, key/SQL setup and narrow layouts.')
         finally:
             server.terminate()
             try:server.wait(timeout=5)

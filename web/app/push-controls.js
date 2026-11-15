@@ -9,7 +9,7 @@ export default function PushControls({ push = {}, storage, onChange }) {
     [installed, setInstalled] = useState(true),
     [runs, setRuns] = useState(null);
   useEffect(() => {
-    remote("push/config")
+    remote("push/public-config")
       .then(setConfig)
       .catch((error) => setMessage(error.message));
     const ios =
@@ -117,7 +117,7 @@ export default function PushControls({ push = {}, storage, onChange }) {
         iPhone controls notification timing and presentation. Focus settings and
         free-service availability can delay alerts.
       </p>
-      {config?.ready && (
+      {config?.ready && config.owner && (
         <button
           className="text"
           onClick={() =>

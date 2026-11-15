@@ -5,9 +5,10 @@ import subprocess
 import time
 import urllib.request
 from playwright.sync_api import sync_playwright, expect
-from sma_analyzer.version import APP_VERSION
+import json
 
 ROOT = Path(__file__).resolve().parents[1]
+WEB_VERSION = json.loads((ROOT/'web/package.json').read_text())['version']
 OUT = ROOT / 'artifacts/signup-web'
 ORIGIN = 'http://127.0.0.1:3177'
 
@@ -82,7 +83,7 @@ def main():
                 assert sends[-1]['request_id'] != first['request_id']
                 assert page.evaluate('localStorage.getItem("sma-contact-email")') == 'changed@example.com'
                 assert sends[-1]['platform']=='web' and sends[-1]['operation']=='save'
-                assert sends[-1]['version']==APP_VERSION
+                assert sends[-1]['version']==WEB_VERSION
                 state['fail']=True
                 page.get_by_role('button',name='Remove email',exact=True).click()
                 expect(page.locator('#contact-error')).to_contain_text('Fixture service unavailable')

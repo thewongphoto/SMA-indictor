@@ -8,7 +8,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 | --- | --- |
 | Android | Signed release APK distribution through GitHub Actions. Source version **0.18.1**. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone | Runs Python calculations and saved data locally in Safari/Home Screen. Vercel + Supabase setup enables scheduled Web Push. Native releases remain paused. |
+| iPhone web | Version **0.18.2**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
@@ -20,6 +20,7 @@ for a successful run and download its **sma-android-test** artifact.
 - [APK signing, package security and Play Protect review](docs/ANDROID_PACKAGE_SECURITY.md).
 - [Run on a Mac](START_HERE_MAC.md).
 - [Deploy the iPhone web app through Vercel](docs/PRIVATE_IPHONE_INSTALLATION.md).
+- [Release web-only fixes and review platform parity](docs/PLATFORM_RELEASES.md).
 - [Enable optional release-update email signup](docs/EMAIL_SIGNUP_SETUP.md).
 - [All current guides](docs/1.Directory.md), [release history](docs/CHANGELOG.md),
   [validation status](docs/ANDROID_TEST_STATUS.md) and [cleanup record](docs/MAINTENANCE.md).

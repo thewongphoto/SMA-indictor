@@ -1,12 +1,14 @@
 # Release history
 
-The latest source version and requested Android build are **0.18.1** /
-**apk-v0.18.1**. A tag or source commit does not prove native compilation passed.
+The latest iPhone web release is **0.18.2**, deployed through Vercel without a new
+Android build. Native source/latest requested tag stay **0.18.1** / **apk-v0.18.1**.
+A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| Web 0.18.2 | Keeps security selection and target crossing controls on Set your preference, using the native default and 4/6/12/Custom choices before explicit calculation. Shares the control with Charts, restores Back/cancel behaviour and guards stale selections/jobs. Adds Chromium/WebKit flow checks, native observation comparison and an independent web-release policy; no new APK tag. |
 | 0.18.1 | Removes the shared password from normal web app opening, market lookup and per-device alert controls. Saved lines remain device-local. Moves owner sign-in to `/setup/login`; setup diagnostics, the legacy worker library and scheduler stay protected. Existing environment values and database schemas remain compatible. |
 | 0.18.0 | Fixes the Android tab divider after safe-area/keyboard moves; restores the original teal price line on both platforms. Brings native chart presentation to iPhone web: shared Manrope/logo assets, dollar headline prices, company identity, axes/legend, exact Python upward-crossing pluses, daily close/SMA touch inspection, native range/pinch rules, and visibility-aware overlays. Saved parameters and calculations are unchanged. |
 | 0.17.0 | Tracks email additions, modifications and explicit removals from Android/web, with automatic source/version and an owner-only notification containing active/removed address summaries. Adds private Supabase registry/history, frozen email snapshots, retry/revision guards and Remove/Retry controls. Requires rerunning the email SQL for protocol 2. |

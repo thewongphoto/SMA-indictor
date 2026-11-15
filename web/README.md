@@ -1,5 +1,8 @@
 # iPhone web app
 
+Current web version: **0.18.2**, independently deployable through `main` without
+an Android APK tag. See [release scope and parity review](../docs/PLATFORM_RELEASES.md).
+
 Next.js frontend for Safari and Add to Home Screen. Python calculations run
 locally using a dedicated Pyodide/NumPy worker and the shared native engine.
 Saved parameters, histories and settings stay in IndexedDB. The SVG chart follows
@@ -46,6 +49,7 @@ python -m playwright install chromium webkit
 python -m scripts.smoke_web
 python -m scripts.smoke_local_web
 python -m scripts.smoke_chart_webkit
+python -m scripts.smoke_builder_web
 python -m scripts.smoke_setup_feedback
 python -m scripts.smoke_signup_web
 python -m scripts.smoke_public_access_web

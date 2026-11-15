@@ -955,6 +955,14 @@ a {
 .chart-identity { display: flex; align-items: center; min-height: 44px; gap: 10px; margin-bottom: 8px; }
 .chart-identity strong { font-size: 15px; }
 .chart-identity .company-logo { width: 28px; height: 28px; padding: 4px; }
+.builder-header h1 { font-size: 18px; }
+.preference-builder .chart-identity { margin-bottom: 20px; }
+.selected-security { width: 100%; text-align: left; }
+.selected-security strong { min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.target-preference form > .primary { width: 100%; margin-top: 12px; }
+.preference-builder { animation: preference-reveal 180ms ease-out; }
+@keyframes preference-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .preference-builder { animation: none; } }
 .chart-change { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 18px; font-weight: 700; }
 .chart-change > span { display: inline-flex; align-items: center; gap: 5px; }
 .change-arrow { width: 12px; height: 12px; margin: 0; flex-shrink: 0; }

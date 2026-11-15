@@ -2,16 +2,31 @@
 
 ## Release policy
 
-- Automatically publish completed, validated fixes/features to GitHub and
-  trigger a new Android APK build unless the user asks to hold a release.
+- Automatically publish completed, validated fixes/features to GitHub unless
+  the user asks to hold a release. Classify the affected platforms first.
+- Web-only presentation/flow fixes deploy through main to Vercel: bump only
+  web/package.json, its lockfile and the web service-worker cache. Do not change
+  the native version/buildozer.spec, create an apk-v tag or start an Android build.
+  The owner explicitly requested independent web releases on 15 November 2026.
+- Android or shared mobile/runtime changes still require a fresh apk-v tag and
+  the complete native gates. Classify by consumers, not just paths: shared Python,
+  assets and the contact API used by Android can affect both clients. Preserve
+  backward compatibility with already-installed APKs when changing server APIs.
 - iOS GitHub releases/builds are **paused at the user's request**. Do not push
   ios-v tags or dispatch the iPhone workflow until explicitly asked to resume.
   The planned iPhone route is Vercel; do not infer its implementation from a
   shared-chat URL whose content has not been supplied.
 - Report publication only after a successful Git push; distinguish source/tag
   publication from completed native builds and downloadable APK artifacts.
-- Run all Android workflow UI gates before publishing a UI fix, including the
-  offline preview and library flow as well as the live-data transport fixtures.
+- Run all Android workflow UI gates before publishing an Android/shared UI fix,
+  including offline/library and transport fixtures. For web-only UI fixes, run
+  the web build/tests and affected Chromium/WebKit flows; compare the affected
+  screens/behaviour against the actual native reference and record the review.
+- Before every UI release review both platforms' affected flow, defaults,
+  controls, charts, navigation, cancellation and saved-state behaviour. Add a
+  regression for any observed mismatch. Report the checked scope and deliberate
+  OS differences; do not claim global parity from a partial chart/UI review.
+  Follow docs/PLATFORM_RELEASES.md; native iOS builds remain paused.
 - Keep README, APP_SUMMARY and docs/1.Directory.md current; use docs/CHANGELOG.md
   rather than restoring obsolete release diaries. Validate local documentation
   links with scripts.check_repository_docs after moves/removals.

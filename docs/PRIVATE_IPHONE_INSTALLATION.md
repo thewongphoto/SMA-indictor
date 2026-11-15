@@ -1,6 +1,6 @@
 # Free iPhone setup: Vercel + Supabase
 
-Version **0.18.1** runs the existing Python SMA/backtest engine on your phone
+Web version **0.18.2** runs the existing Python SMA/backtest engine on your phone
 using Pyodide in a browser worker. Saved lines, settings and downloaded prices
 live in IndexedDB. The app opens without a password. Vercel handles owner-only
 setup sign-in, Yahoo HTTPS requests and Web

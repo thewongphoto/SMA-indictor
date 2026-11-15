@@ -67,6 +67,11 @@ class FlowSmoke(MobileYahooSmoke):
         assert all(a<=b for a,b in zip(samples,samples[1:])),samples
         assert ui.page_titles["search"].text=="Set your preference"
         assert ui.counter.security.name=="Apple Inc." and ui.optimize_button.get_parent_window() is not None
+        self.builder_reference=dict(selected_stage=ui.page_titles["search"].text,
+            default_target=ui.model.target_frequency,
+            presets=[value for value in ui.frequency_buttons if isinstance(value,int)],
+            same_search_screen=ui.manager.current_screen is builder,
+            no_eager_optimization=ui.model.result is None and not ui.busy)
         self.capture("set-preference")
         self.checked("real selection stays on the same screen and reveals target/Optimize with intermediate animation frames")
         ui.search_scroll.scroll_to(ui.optimize_button,animate=False)
@@ -219,6 +224,7 @@ class FlowSmoke(MobileYahooSmoke):
     def on_stop(self):
         self.screen.close()
         Path("artifacts/ui-flow-smoke.json").write_text(json.dumps({"passed":not self.failed,"checks":self.checks,
+            "builder_reference":getattr(self,"builder_reference",None),
             "transport":"controlled mobile HTTP responses; native sleep/notification delivery not exercised"},indent=2))
 
 

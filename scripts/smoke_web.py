@@ -46,6 +46,9 @@ def main():
                 page.wait_for_timeout(300);assert searches==[]
                 page.get_by_role('button',name='Search',exact=True).click()
                 page.get_by_role('button',name='Apple Inc.').click()
+                expect(page.get_by_role('heading',name='Set your preference',exact=True)).to_be_visible()
+                assert page.url.endswith('#search')
+                page.locator('.preference-builder').get_by_role('button',name='4',exact=True).click()
                 page.get_by_role('button',name='Find best SMA for 4 signals / year').click()
                 page.get_by_role('button',name='Save',exact=True).wait_for(timeout=60000)
                 page.get_by_role('button',name='Save',exact=True).click()

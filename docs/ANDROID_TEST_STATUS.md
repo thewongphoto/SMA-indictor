@@ -5,6 +5,13 @@ Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
 
+Web-only 0.18.2 keeps the native source/tag unchanged. Its production build,
+32 JavaScript tests, six Python web-service tests and seven browser smoke suites
+cover the builder, real Pyodide calculations, charts, saved/offline state,
+signup and owner setup. A fresh native builder run and observed native/browser
+comparison cover the affected preference flow. See the [release scope and
+parity review](PLATFORM_RELEASES.md). This release requests no new Android build.
+
 Release 0.18.1 host validation covers password-free opening with and without
 configured owner credentials, public market/device input validation, protected
 owner diagnostics and legacy worker data, cross-origin write rejection,

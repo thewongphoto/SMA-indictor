@@ -8,6 +8,7 @@ import PushControls from "./push-controls";
 import { syncPush } from "./push-client";
 import { stored, clearSnapshots } from "./cache";
 import CompanyLogo from "./company-logo";
+import TargetPreference from "./target-preference";
 import packageInfo from "../package.json";
 
 const labels = {
@@ -83,9 +84,11 @@ export default function App() {
     [matches, setMatches] = useState([]),
     [searching, setSearching] = useState(false);
   const [chart, setChart] = useState(null),
-    [target, setTarget] = useState(4),
+    [builder, setBuilder] = useState(null),
+    [target, setTarget] = useState(12),
     [custom, setCustom] = useState(false),
     [job, setJob] = useState(null),
+    [jobSecurity, setJobSecurity] = useState(""),
     [edit, setEdit] = useState(null),
     [horizon, setHorizon] = useState("Max"),
     [years, setYears] = useState(3),
@@ -94,7 +97,8 @@ export default function App() {
     [keyboard, setKeyboard] = useState(false),
     [standalone, setStandalone] = useState(false);
   const generation = useRef(0),
-    jobRef = useRef(null);
+    jobRef = useRef(null),
+    securitySearch = useRef(null);
   const backend = useRef("local");
   async function api(path, body, method) {
     if (path === "state") {
@@ -212,6 +216,12 @@ export default function App() {
     cancel();
     setLoading(false);
     setEdit(null);
+    if (next === "search") {
+      setBuilder(null);
+      setQuery("");
+      setSubmitted("");
+      setMatches([]);
+    }
     setTab(next);
     setError("");
     history.pushState({ tab: next }, "", `#${next}`);
@@ -219,7 +229,7 @@ export default function App() {
   function fail(error) {
     setError(error.message || String(error));
   }
-  async function openChart(security, line = null, cached = false) {
+  async function openChart(security, line = null, cached = false, destination = "results") {
     const token = ++generation.current;
     setError("");
     setLoading(true);
@@ -238,11 +248,22 @@ export default function App() {
           "Download this chart while online before opening it offline.",
         );
       if (token !== generation.current) return;
-      setChart(value);
-      setTarget(line?.target_frequency || 4);
-      setHorizon("Max");
-      setTab("results");
-      history.pushState({ tab: "results" }, "", "#results");
+      if (destination === "search") {
+        setBuilder(value);
+        setChart(value);
+        setQuery(value.security.ticker);
+        setSubmitted("");
+        setMatches([]);
+      } else {
+        setBuilder(null);
+        setChart(value);
+        const nextTarget = line?.target_frequency || 4;
+        setTarget(nextTarget);
+        setCustom(![4, 6, 12].includes(nextTarget));
+        setHorizon("Max");
+        setTab("results");
+        history.pushState({ tab: "results" }, "", "#results");
+      }
       await stored(cacheKey, value);
     } catch (e) {
       if (token === generation.current) fail(e);
@@ -255,6 +276,7 @@ export default function App() {
     const text = query.trim();
     if (!text || searching) return;
     const token = ++generation.current;
+    setBuilder(null);
     setSearching(true);
     setError("");
     try {
@@ -288,14 +310,21 @@ export default function App() {
       fail(e);
     }
   }
-  async function optimize() {
+  async function optimize(source = chart) {
+    if (!source) return;
     const token = ++generation.current;
+    const frequency = Number(target);
+    if (!Number.isSafeInteger(frequency) || frequency < 1) {
+      setError("Enter a positive whole-number frequency.");
+      return;
+    }
     setError("");
+    setJobSecurity(source.security.ticker);
     setJob("pending");
     try {
       const result = await api("optimize", {
-        key: chart.security.key,
-        target: Number(target),
+        key: source.security.key,
+        target: frequency,
       });
       if (token !== generation.current) {
         await api("jobs/" + result.job, null, "DELETE");
@@ -310,8 +339,12 @@ export default function App() {
         if (next.status === "complete") {
           setChart(next.data);
           setHorizon("Max");
+          if (tab === "search") {
+            setTab("results");
+            history.pushState({ tab: "results" }, "", "#results");
+          }
           await stored(
-            `chart:${chart.security.key}:${next.data.result.period}:${target}`,
+            `chart:${source.security.key}:${next.data.result.period}:${frequency}`,
             next.data,
           );
           break;
@@ -439,14 +472,14 @@ export default function App() {
       }}
       onBlurCapture={() => setKeyboard(false)}
     >
-      <header className={tab === "results" ? "detail-header" : undefined}>
+      <header className={tab === "results" ? "detail-header" : tab === "search" && builder ? "builder-header" : undefined}>
         {!["library", "alerts", "settings"].includes(tab) && (
-          <button className="text" onClick={() => navigate("library")}>
+          <button className="text" onClick={() => tab === "results" && builder ? history.back() : navigate("library")}>
             ‹ Back
           </button>
         )}
         <h1>
-          {tab === "results" && chart ? `${chart.security.ticker}${chart.result ? ` · ${selected?.name || `SMA (${chart.result.period} days)`}` : ""}` : labels[tab]}
+          {tab === "search" && builder ? "Set your preference" : tab === "results" && chart ? `${chart.security.ticker}${chart.result ? ` · ${selected?.name || `SMA (${chart.result.period} days)`}` : ""}` : labels[tab]}
         </h1>
         {tab === "library" ? (
           <button className="outline" onClick={() => navigate("search")}>
@@ -627,6 +660,7 @@ export default function App() {
             <form className="search" onSubmit={search}>
               <input
                 type="search"
+                ref={securitySearch}
                 enterKeyHint="search"
                 placeholder="Company name or ticker"
                 value={query}
@@ -637,8 +671,7 @@ export default function App() {
               </button>
             </form>
             <p>
-              US and Singapore listed stocks and ETFs. Press Search or Enter to
-              look up matches.
+              {builder ? `Selected ${builder.security.ticker} · ${builder.preview ? "Example" : "Daily"} history ready. Search again to choose another security.` : "US and Singapore listed stocks and ETFs. Press Search or Enter to look up matches."}
             </p>
             {submitted && (
               <p>
@@ -650,11 +683,7 @@ export default function App() {
                 className="search-result"
                 key={security.key}
                 onClick={() =>
-                  openChart(
-                    security,
-                    state.cards.find((card) => card.counter === security.key)
-                      ?.lines[0],
-                  )
+                  openChart(security, null, false, "search")
                 }
               >
                 <Logo security={security} />
@@ -666,7 +695,7 @@ export default function App() {
                 </span>
                 <span className="accent">
                   {state.cards.some((card) => card.counter === security.key)
-                    ? "Open ›"
+                    ? "Select ›"
                     : "Analyse ›"}
                 </span>
               </button>
@@ -677,7 +706,7 @@ export default function App() {
             {submitted && !matches.length && (
               <p>No matches. Try a company name or ticker.</p>
             )}
-            {!submitted && (
+            {!submitted && !builder && (
               <>
                 <h3>RECENT SAVED SECURITIES</h3>
                 {state.cards.map((card) => (
@@ -685,7 +714,7 @@ export default function App() {
                     className="search-result"
                     key={card.counter}
                     onClick={() =>
-                      openChart(card.security, card.lines[0], true)
+                      openChart(card.security, null, true, "search")
                     }
                   >
                     <Logo security={card.security} />
@@ -693,10 +722,15 @@ export default function App() {
                   </button>
                 ))}
                 <p className="small">
-                  Recent charts open from downloaded data without a new lookup.
+                  Recent selections use downloaded data without a new lookup.
                 </p>
               </>
             )}
+            {builder && <TargetPreference security={builder.security} target={target} custom={custom}
+              onSecurity={() => securitySearch.current?.focus()}
+              onTarget={(value, isCustom = false) => { setTarget(value); setCustom(isCustom); }}
+              onCustom={() => setCustom(true)} onOptimize={() => optimize(builder)}
+              disabled={offline || Boolean(job)} calendar={!builder.preview} />}
           </>
         )}
         {tab === "results" &&
@@ -721,47 +755,14 @@ export default function App() {
                 </section>
               )}
               <Chart chart={chart} colors={state.colors} />
-              <section className="card">
-                <h3>SIGNALS PER YEAR</h3>
-                <div className="segments">
-                  {[4, 6, 12].map((value) => (
-                    <button
-                      key={value}
-                      aria-pressed={!custom && Number(target) === value}
-                      onClick={() => {
-                        setCustom(false);
-                        setTarget(value);
-                      }}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                  <button aria-pressed={custom} onClick={() => setCustom(true)}>
-                    Custom
-                  </button>
-                </div>
-                {custom && (
-                  <label>
-                    Upward crossings per year
-                    <input
-                      type="number"
-                      min="1"
-                      value={target}
-                      onChange={(e) => setTarget(e.target.value)}
-                    />
-                  </label>
-                )}
-                <button
-                  className="primary"
-                  onClick={optimize}
-                  disabled={offline || Boolean(job)}
-                >
-                  Find best SMA for {target} signals / year
-                </button>
-                <p className="small center">
-                  Matches signal frequency, not profit.
-                </p>
-              </section>
+              <TargetPreference target={target} custom={custom}
+                onTarget={(value, isCustom = false) => { setTarget(value); setCustom(isCustom); }}
+                onCustom={() => {
+                  setCustom(true); setBuilder(chart); setTab("search");
+                  setQuery(chart.security.ticker); setSubmitted(""); setMatches([]);
+                  history.pushState({ tab: "search" }, "", "#search");
+                }}
+                onOptimize={() => optimize(chart)} disabled={offline || Boolean(job)} />
               {chart.lines.length > 0 && (
                 <section className="card">
                   <h3>
@@ -1238,7 +1239,7 @@ export default function App() {
           {["library", "results", "alerts", "settings"].map((key) => (
             <button
               key={key}
-              aria-current={tab === key ? "page" : undefined}
+              aria-current={tab === key || (tab === "search" && key === "results") ? "page" : undefined}
               onClick={() => navigate(key)}
             >
               {labels[key]}
@@ -1250,7 +1251,7 @@ export default function App() {
         <div className="overlay">
           <section className="card">
             <MotionLogo />
-            <h2>Loading your saved lines…</h2>
+            <h2>{tab === "search" ? "Loading security history…" : "Loading your saved lines…"}</h2>
           </section>
         </div>
       )}
@@ -1261,7 +1262,7 @@ export default function App() {
             <h2>Finding your SMA line…</h2>
             <p>
               Matching about {target} upward crossings a year for{" "}
-              {chart?.security.ticker}.
+              {jobSecurity}.
             </p>
             <button onClick={cancel}>Cancel</button>
           </section>

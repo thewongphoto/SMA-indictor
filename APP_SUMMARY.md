@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current source: **0.18.1**. Android and desktop are active. Native iPhone
+Current Android/desktop source: **0.18.1**; iPhone web: **0.18.2**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -159,6 +159,12 @@ columns/preferences remain solely for upgrade compatibility; old email events
 cannot be dispatched. [Validation status](docs/ANDROID_TEST_STATUS.md).
 
 ## iPhone local web runtime (0.15.0)
+
+Web-only presentation fixes deploy independently without an Android tag/build;
+see [release scope and parity checks](docs/PLATFORM_RELEASES.md). Web 0.18.2
+keeps security selection and target controls on **Set your preference**, matching
+the native builder. Defaults/presets, explicit calculation, Custom validation,
+cancel/Back and selected identity are reviewed against both implementations.
 
 The web app now uses the shared pure Python engine/backtest modules inside a
 Pyodide/NumPy browser worker. IndexedDB retains parameters, histories and settings;

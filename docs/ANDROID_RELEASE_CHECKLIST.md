@@ -2,6 +2,9 @@
 
 Current source: **0.18.1**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
+For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
+keep the native version unchanged and push main without an `apk-v` tag. Before
+every UI release review the affected flow against both platform implementations.
 
 ## Before publishing
 

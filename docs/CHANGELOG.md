@@ -1,13 +1,15 @@
 # Release history
 
 The latest iPhone web release is **0.18.2**, deployed through Vercel without a new
-Android build. Native source/latest requested tag stay **0.18.1** / **apk-v0.18.1**.
+Android build for that web release. Native source/latest requested tag are now
+**0.18.2** / **apk-v0.18.2** for the separate Android welcome-startup fix.
 A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| Android 0.18.2 | Shows the email welcome on the first UI frame, before readiness/network replies, without an animated Home-to-welcome interruption. Typing and Skip work immediately; sending stays gated on server readiness. Isolates contact work from Yahoo requests, adds retry/offline/returning-user handling and first-frame regression captures. No web UI, calculation, stored-identity or server-schema changes. |
 | Web 0.18.2 | Keeps security selection and target crossing controls on Set your preference, using the native default and 4/6/12/Custom choices before explicit calculation. Shares the control with Charts, restores Back/cancel behaviour and guards stale selections/jobs. Adds Chromium/WebKit flow checks, native observation comparison and an independent web-release policy; no new APK tag. |
 | 0.18.1 | Removes the shared password from normal web app opening, market lookup and per-device alert controls. Saved lines remain device-local. Moves owner sign-in to `/setup/login`; setup diagnostics, the legacy worker library and scheduler stay protected. Existing environment values and database schemas remain compatible. |
 | 0.18.0 | Fixes the Android tab divider after safe-area/keyboard moves; restores the original teal price line on both platforms. Brings native chart presentation to iPhone web: shared Manrope/logo assets, dollar headline prices, company identity, axes/legend, exact Python upward-crossing pluses, daily close/SMA touch inspection, native range/pinch rules, and visibility-aware overlays. Saved parameters and calculations are unchanged. |

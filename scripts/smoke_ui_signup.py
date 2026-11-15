@@ -10,6 +10,7 @@ class SignupSmoke(FlowSmoke):
         yield from super().steps()
         ui=self.screen
         ready=Future();ready.set_result(True);ui.signup_ready(ready)
+        ui.show_welcome()
         yield from self.frames(12)
         assert ui.welcome_popup._is_open
         out=Path('artifacts/signup-ui');out.mkdir(parents=True,exist_ok=True)

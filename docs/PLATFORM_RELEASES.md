@@ -76,3 +76,21 @@ The existing chart suite checks shared fonts/logos, currency labels, teal price
 strokes, exact crossing markers, close/SMA inspection and zoom in both browser
 engines. This is a review of these affected flows, not a claim that all native
 and web screens or OS delivery behaviour are identical.
+
+## Android 0.18.2 startup review
+
+The recorded Android issue showed Home and then Search before the welcome arrived.
+The native invitation now occupies the first UI frame after the platform splash;
+it does not wait for service readiness and has no modal fade. You can type or Skip
+while email setup is checked; sending still requires server confirmation. Returning
+users go directly to Home, and late replies cannot reopen a skipped invitation.
+The native first-frame fixture holds both email and market workers and checks
+render order, disabled sending, Skip, retry and preserved values. Existing signup
+fixtures retain add/change/remove and server-acceptance checks.
+
+The browser already owns the opening route and shows an opening state while
+checking readiness, so it does not open Home and then interrupt another screen.
+Its form timing is unchanged in this Android-only fix. Field purposes, optional
+Skip, confirmation before completion, data retention and API protocol remain the
+same. The Android system splash and Python/SDL initialization still precede its
+first UI frame; these fixtures do not measure physical-device startup speed.

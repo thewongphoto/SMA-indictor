@@ -766,17 +766,37 @@ class Experience:
         self.inline_lines.add_widget(WrappedLabel(text='The switch shows or hides a line. Hidden lines can still send alerts.',color=MUTED))
 
     def build_signup(self):
-        """Expose opt-in signup only after the configured server advertises it."""
-        from .contact import base_url, capabilities
+        """Render first-open welcome before checking the optional email service."""
+        from .contact import base_url
         from .app import platform
+        import json
         import os
         # Desktop can opt in explicitly; mobile uses the configured public origin.
         if platform not in ('android','ios') and 'SMA_CONTACT_BASE_URL' not in os.environ:
             return
         if not base_url():
             return
-        future = self.market_executor.submit(capabilities)
-        future.add_done_callback(lambda result: Clock.schedule_once(lambda _: self.signup_ready(result),0))
+        self._build_contact_settings()
+        with self.model.store._connect() as db:
+            row=db.execute("SELECT value FROM preferences WHERE key='release_contact_seen'").fetchone()
+        seen=bool(row and json.loads(row[0]))
+        def first_frame(_):
+            if self.closed:return
+            if not seen:self.show_welcome()
+            # The request starts after the welcome is attached, and must never
+            # queue behind Yahoo retrieval or delay the first screen.
+            Clock.schedule_once(lambda _:self.check_signup_service(),0)
+        Clock.schedule_once(first_frame,0)
+
+    def check_signup_service(self,*_):
+        from .contact import capabilities
+        if self.closed or getattr(self,'contact_checking',False):return
+        self._build_contact_settings()
+        self.contact_checking=True
+        self.contact_available=None
+        self._contact_availability_changed()
+        future=self.contact_executor.submit(capabilities)
+        future.add_done_callback(lambda result:Clock.schedule_once(lambda _:self.signup_ready(result),0))
 
     def build_appearance(self):
         import json
@@ -811,12 +831,20 @@ class Experience:
         self.appearance_panel=panel
 
     def signup_ready(self,future):
+        if self.closed:return
+        self._build_contact_settings()
+        try:self.contact_available=future.result() is True
+        except Exception:self.contact_available=False
+        self.contact_checking=False
+        self._contact_availability_changed()
+
+    def _build_contact_settings(self):
+        if hasattr(self,'contact_editor'):return
         from .app import Panel, WrappedLabel, LabButton, EditingField
         import json
-        try:
-            if self.closed or not future.result(): return
-        except Exception:
-            return
+        self.contact_available=None
+        self.contact_checking=False
+        self.contact_sending=False
         panel=Panel()
         panel.add_widget(WrappedLabel(text='YOUR EMAIL',bold=True,color=MUTED,font_size=sp(12)))
         self.contact_editor=EditingField(multiline=False,hint_text='name@example.com',font_size=sp(16),
@@ -848,16 +876,42 @@ class Experience:
                                       color=MUTED,font_size=sp(12)))
         self.contact_status=WrappedLabel(text='',color=MUTED)
         panel.add_widget(self.contact_status)
+        self.contact_check=LabButton(text='Check email service again')
+        self.contact_check.bind(on_release=self.check_signup_service)
+        self.contact_panel=panel
         self.settings_content.add_widget(panel,index=len(self.settings_content.children))
+        self._contact_availability_changed()
+
+    def _contact_availability_changed(self):
+        available=self.contact_available
+        if available is None:
+            message='Checking email service… You can enter your email or skip for now.'
+        elif available is False:
+            message='Email signup is unavailable right now. Check again, or skip and add it later in Settings.'
+        else:message=''
+        self.contact_status.text=message
+        self.contact_check.disabled=available is not False
+        if available is False and self.contact_check.parent is None:
+            self.contact_panel.add_widget(self.contact_check)
+        elif available is not False and self.contact_check.parent is not None:
+            self.contact_panel.remove_widget(self.contact_check)
         self.refresh_contact_actions()
-        # A dismissible first-open invitation leaves the app fully usable.
-        with self.model.store._connect() as db:
-            seen=db.execute("SELECT value FROM preferences WHERE key='release_contact_seen'").fetchone()
-        if not seen:
-            self.show_welcome()
+        welcome=getattr(self,'welcome_popup',None)
+        if welcome is not None and welcome._is_open:
+            self.welcome_status.color=MUTED if available is None else NEGATIVE
+            self.welcome_status.text=message
+            self.welcome_continue.disabled=available is not True or self.contact_sending
+            self.welcome_continue.text='Checking email service…' if available is None else 'Continue'
+            self.welcome_check.disabled=available is not False
+            if available is False and self.welcome_check.parent is None:
+                self.welcome_messages.add_widget(self.welcome_check)
+            elif available is not False and self.welcome_check.parent is not None:
+                self.welcome_messages.remove_widget(self.welcome_check)
 
     def show_welcome(self):
         """Design 06: optional email on first open, with Skip for now."""
+        if self.closed or getattr(getattr(self,'welcome_popup',None),'_is_open',False):return
+        self._build_contact_settings()
         from .app import ScreenPopup, WrappedLabel, LabButton, EditingField, Panel
         from kivy.uix.image import Image
         from kivy.uix.scrollview import ScrollView
@@ -884,7 +938,12 @@ class Experience:
             background_color=BG, foreground_color=TEXT)
         body.add_widget(self.welcome_editor)
         self.welcome_status = WrappedLabel(text='', color=NEGATIVE, font_size=sp(13))
-        body.add_widget(self.welcome_status)
+        self.welcome_messages=BoxLayout(orientation='vertical',size_hint_y=None,spacing=dp(6))
+        self.welcome_messages.bind(minimum_height=self.welcome_messages.setter('height'))
+        self.welcome_messages.add_widget(self.welcome_status)
+        self.welcome_check=LabButton(text='Check again')
+        self.welcome_check.bind(on_release=self.check_signup_service)
+        body.add_widget(self.welcome_messages)
         self.welcome_continue = LabButton(text='Continue', primary=True)
         self.welcome_continue.height = dp(52)
         self.welcome_continue.font_size = sp(16)
@@ -914,8 +973,11 @@ class Experience:
             with self.model.store._connect() as db:
                 db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_seen','true')")
             self.welcome_editor.focus = False
-            popup.dismiss()
+            popup.dismiss(animation=False)
         def proceed(*_):
+            if self.contact_available is not True:
+                self._contact_availability_changed()
+                return
             try:
                 email = validate_email(self.welcome_editor.text)
             except ValueError as error:
@@ -943,14 +1005,17 @@ class Experience:
         self.welcome_skip.bind(on_release=done)
         self.welcome_continue.bind(on_release=proceed)
         self.welcome_editor.bind(on_text_validate=proceed)
-        popup.open()
+        popup.open(animation=False)
+        self._contact_availability_changed()
 
     def refresh_contact_actions(self):
         with self.model.store._connect() as db:
             saved=db.execute("SELECT value FROM preferences WHERE key='release_contact_email'").fetchone()
             pending=db.execute("SELECT value FROM preferences WHERE key='release_contact_pending'").fetchone()
-        self.contact_remove.disabled=not saved
-        self.contact_retry.disabled=not pending
+        ready=self.contact_available is True and not self.contact_sending
+        self.contact_submit.disabled=not ready
+        self.contact_remove.disabled=not ready or not saved
+        self.contact_retry.disabled=not ready or not pending
 
     def submit_contact(self,*_,on_success=None,on_error=None,operation='save',retry=False):
         import uuid,json
@@ -990,15 +1055,17 @@ class Experience:
                 pending={'email':email,'request_id':str(uuid.uuid4()),'operation':operation}
             db.execute("INSERT OR REPLACE INTO preferences VALUES ('release_contact_pending',?)",(json.dumps(pending),))
         self.contact_editor.focus=False
+        self.contact_sending=True
         self.contact_submit.disabled=True
         self.contact_remove.disabled=True
         self.contact_retry.disabled=True
         self.contact_editor.disabled=True
         if hasattr(self,'welcome_editor'):self.welcome_editor.disabled=True
         self.contact_status.text='Sending…'
-        future=self.market_executor.submit(submit,email,identifier,pending['request_id'],operation)
+        future=self.contact_executor.submit(submit,email,identifier,pending['request_id'],operation)
         def finish(_):
             if self.closed:return
+            self.contact_sending=False
             self.contact_submit.disabled=False
             self.contact_editor.disabled=False
             if hasattr(self,'welcome_editor'):self.welcome_editor.disabled=False

@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current Android/desktop source: **0.18.1**; iPhone web: **0.18.2**. Native iPhone
+Current Android/desktop source: **0.18.2**; iPhone web: **0.18.2**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -154,7 +154,7 @@ CACHE hits and notification checks/triggers/delivery outcomes. Tokens, cookies,
 raw response bodies and private paths are excluded. An OS/push acceptance
 record is not proof that a user saw a banner.
 
-Legacy email market-alert delivery and Google authorization remain removed. Optional release-update signup is separate and hidden until the server is configured. Legacy SQLite email
+Legacy email market-alert delivery and Google authorization remain removed. Optional release-update signup is separate and sending requires a configured server. Legacy SQLite email
 columns/preferences remain solely for upgrade compatibility; old email events
 cannot be dispatched. [Validation status](docs/ANDROID_TEST_STATUS.md).
 
@@ -184,8 +184,14 @@ engine and scheduler are unchanged by the web implementation.
 
 ## Optional release-update signup (0.17.0)
 
-The first-open welcome page and Settings editor are enabled after Vercel confirms
-Resend variables and email SQL protocol 2. Android uses the same public service;
+Android 0.18.2 renders the first-open invitation on its first UI frame, without
+waiting for a Vercel response or showing Home first. Typing and Skip work while
+email setup is checked; sending enables only after Resend variables and email SQL
+protocol 2 are confirmed. Failed checks offer Retry without losing typed text.
+Skip persists immediately and late responses never reopen the invitation. A
+dedicated contact worker keeps Yahoo requests from delaying readiness/submission.
+Returning users open Home directly. Browser signup retains its existing opening
+state and configured-only form. Android uses the same public service;
 no delivery credentials ship in the APK. Source/version are automatic, with no
 source selector. New web clients label iOS browsers `ios-web` and other browsers
 `web`; native APK requests label `android`. These are client labels, not verified

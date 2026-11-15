@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.18.1**. Automatically publish completed, validated Android
+Current source: **0.18.2**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
 keep the native version unchanged and push main without an `apk-v` tag. Before
@@ -32,6 +32,7 @@ python -m scripts.smoke_ui_refinements
 python -m scripts.smoke_ui_flow
 python -m scripts.smoke_ui_redesign
 python -m scripts.smoke_ui_signup
+python -m scripts.smoke_startup_signup
 python -m scripts.smoke_ui_motion
 KCFG_GRAPHICS_MAXFPS=12 python -m scripts.smoke_ui_color_logos
 python -m scripts.smoke_notification_jobs

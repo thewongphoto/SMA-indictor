@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.18.1**. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.18.2**. First-open email welcome renders before online checks. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone web | Version **0.18.2**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 

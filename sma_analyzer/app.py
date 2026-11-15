@@ -221,6 +221,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         self.model = model
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sma")
         self.market_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="security")
+        self.contact_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="contact")
         self._cancel_optimization = Event()
         self.yahoo_enabled = hasattr(model.data_provider, "cache")
         self.source_warning = WrappedLabel(text="", color=ERROR, font_size=sp(12))
@@ -2403,6 +2404,9 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     def close(self):
         self.closed = True
+        welcome=getattr(self,"welcome_popup",None)
+        if welcome is not None and welcome._is_open:
+            welcome.dismiss(animation=False)
         self._cancel_optimization.set()
         self.optimization_overlay.dismiss()
         self.manager.transition.stop()
@@ -2419,6 +2423,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         self.chart._cancel_selection()
         self.guide_chart._cancel_selection()
         self.market_executor.shutdown(wait=False, cancel_futures=True)
+        self.contact_executor.shutdown(wait=False, cancel_futures=True)
         self.executor.shutdown(wait=False, cancel_futures=True)
 
 

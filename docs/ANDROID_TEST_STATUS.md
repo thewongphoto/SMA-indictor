@@ -1,9 +1,19 @@
 # Validation and build status
 
-Current source: **0.18.1**. The matching Android build tag is **apk-v0.18.1**.
+Current source: **0.18.2**. The matching Android build tag is **apk-v0.18.2**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Android 0.18.2 adds cold-lifecycle startup checks with held email/Yahoo workers:
+the first rendered frame is an opaque, topmost welcome before readiness completes;
+typing/Skip work immediately, late replies never interrupt Search, offline retry
+retains input and submissions use an independent worker. Returning users retain
+their email and open Home, while an explicitly disabled endpoint makes no request.
+These are controlled Kivy/transport checks, not measured phone launch times.
+All 12 local native UI gates passed, as did 363 Python tests (361 passed, two
+optional skips), the web production build, 32 JavaScript tests, browser signup
+checks and the Chromium/WebKit builder comparison against the native reference.
 
 Web-only 0.18.2 keeps the native source/tag unchanged. Its production build,
 32 JavaScript tests, six Python web-service tests and seven browser smoke suites

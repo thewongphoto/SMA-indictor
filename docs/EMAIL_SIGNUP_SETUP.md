@@ -6,8 +6,13 @@ a Gmail password, or Google authorization. The existing Vercel + Supabase
 notification setup stays in place.
 
 This feature is optional: **Skip for now** opens the app without submitting an
-email. The welcome screen and Settings email card appear only after setup is
-complete. Android 0.17.0 uses the same Vercel endpoint as the iPhone web app.
+email. Android 0.18.2 shows the first-open welcome immediately while checking
+setup in the background. You can type or Skip immediately; Continue enables
+only when setup is ready. If the check fails, use Check again or add the address
+later in Settings. Skipping prevents a late response from interrupting the app.
+The browser keeps its opening state until the configured-only form is available.
+Android uses the same Vercel endpoint as the iPhone web app. No SQL or environment
+changes are needed for this native startup fix.
 
 ## Upgrading an existing email setup
 

@@ -276,7 +276,7 @@ class AnalyzerScreen(GuidedExperience, Experience, FloatLayout):
             self.parameter_content.add_widget(header)
         header.add_widget(WrappedLabel(text="DAILY CLOSING PRICES" if self.yahoo_enabled else "OFFLINE EDUCATIONAL EXAMPLE", color=MUTED,
                                             font_size=sp(11), bold=True))
-        self.heading = WrappedLabel(text="SMA Stock Analyzer", font_size=sp(25), bold=True)
+        self.heading = WrappedLabel(text="Crosspoints", font_size=sp(25), bold=True)
         header.add_widget(self.heading)
         self.introduction = WrappedLabel(text="Find the simple moving average (SMA) that matches a target upward crossing frequency.", color=MUTED)
         header.add_widget(self.introduction)
@@ -1921,7 +1921,7 @@ class AnalyzerScreen(GuidedExperience, Experience, FloatLayout):
             return
         try:
             alert = Alert("phone","test",self.model.dataset.counter,self.model.dataset.scenario,2,12,0,
-                          "SMA Stock Analyzer · Test", "Notification test · Phone notifications are working."
+                          "Crosspoints · Test", "Notification test · Phone notifications are working."
                           if self.yahoo_enabled else "SIMULATED TEST · Phone notifications are working.")
             receipt=phone_notifier_class()().send(alert)
             self._record_notification_test("ok", "Test phone notification posted; OS accepted it. No market signal or API request. " +
@@ -2362,7 +2362,7 @@ class AnalyzerScreen(GuidedExperience, Experience, FloatLayout):
 
 class SMAStockAnalyzerApp(App):
     icon = str(APP_LOGO)
-    title = "SMA Stock Analyzer"
+    title = "Crosspoints"
 
     def build(self):
         Window.clearcolor = BG

@@ -1,8 +1,17 @@
 # Current app behaviour and calculation rules
 
-Current Android/desktop source: **0.19.2**; iPhone web: **0.19.1**. Native iPhone
+Current Android/desktop source: **0.20.0**; iPhone web: **0.20.0**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
+
+The app is named **Crosspoints** from 0.20.0. Android's launcher/window/welcome,
+iPhone web metadata/Home Screen name, welcome/loading text, diagnostics and
+test/owner-email branding use this name. The existing icon, package/bundle IDs,
+storage keys, API routes and notification identities remain compatible. A pending
+owner email retains its previously frozen message for safe retry. A configured
+custom `CONTACT_FROM` remains the owner's choice; update its display name in
+Vercel if it still contains the previous brand. Website reassignment is separate
+from the source rename: [domain migration](docs/CROSSPOINTS_DOMAIN.md).
 
 Android distribution uses an explicitly signed release variant. CI verifies the
 final APK's certificate, release flags, permissions and component protections.
@@ -164,8 +173,8 @@ The lesson runs in a separate temporary model/store. It cannot save lines or
 change real notification jobs. Finish, Back, tab changes and cancelled loading
 restore the original model, target, chart bounds and investment controls;
 late lesson/calculation completions cannot replace it. VOO history remains cached
-by the normal provider. The browser guide remains the reference implementation
-at web 0.19.1; its screens are unchanged by this native-only release.
+by the normal provider. The browser guide remains the reference for the information
+shown. Crosspoints 0.20.0 retains both complete guide implementations.
 
 The independent horizon selector offers 1Y/3Y/5Y/Max and Custom years.
 Each scenario contributes USD 100 per purchase and holds fractional units to

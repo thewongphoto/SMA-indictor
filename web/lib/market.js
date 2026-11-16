@@ -104,7 +104,7 @@ export function dateInZone(milliseconds, zone) {
 let anonymousSession = null,
   retryAfter = 0;
 const HEADERS = {
-  "User-Agent": "SMAStockAnalyzer/0.15.0 (private personal research)",
+  "User-Agent": "Crosspoints/0.20.0 (private personal research)",
   Accept: "application/json",
 };
 async function get(url, headers = {}) {

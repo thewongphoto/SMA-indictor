@@ -1,6 +1,6 @@
 # Free iPhone setup: Vercel + Supabase
 
-Web version **0.18.2** runs the existing Python SMA/backtest engine on your phone
+Crosspoints web version **0.20.0** runs the existing Python SMA/backtest engine on your phone
 using Pyodide in a browser worker. Saved lines, settings and downloaded prices
 live in IndexedDB. The app opens without a password. Vercel handles owner-only
 setup sign-in, Yahoo HTTPS requests and Web
@@ -9,6 +9,10 @@ closing snapshots needed by opening reminders, and the delivery journal.
 
 There is no always-running Python server to rent. Native iOS releases remain
 paused. This is the Safari / Add to Home Screen app.
+
+To assign `crosspoints.vercel.app` to the existing project, use the separate
+[domain migration guide](CROSSPOINTS_DOMAIN.md). Changing the app's displayed
+name does not claim that address or migrate browser storage to a new origin.
 
 ## What you need
 

@@ -57,7 +57,7 @@ def background_task_identifiers(bundle_id="$(PRODUCT_BUNDLE_IDENTIFIER)"):
 
 
 def configure_info(values, bundle_id=BUNDLE_ID):
-    values.update({"CFBundleDisplayName":"SMA Stock Analyzer", "CFBundleIdentifier":"$(PRODUCT_BUNDLE_IDENTIFIER)",
+    values.update({"CFBundleDisplayName":"Crosspoints", "CFBundleIdentifier":"$(PRODUCT_BUNDLE_IDENTIFIER)",
                    "CFBundleShortVersionString":APP_VERSION, "CFBundleVersion":APP_VERSION,
                    "UILaunchStoryboardName":"Launch Screen",
                    "UIStatusBarHidden":False, "UIUserInterfaceStyle":"Dark",

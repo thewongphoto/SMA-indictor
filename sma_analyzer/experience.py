@@ -924,7 +924,7 @@ class Experience(HistoryUI):
         icon = Image(source=str(Path(__file__).parent/'assets/app-icon.png'), size_hint=(None, None),
                      size=(dp(56), dp(56)), fit_mode='contain')
         body.add_widget(icon)
-        body.add_widget(WrappedLabel(text='Welcome to SMA Stock Analyzer', bold=True, font_size=sp(26)))
+        body.add_widget(WrappedLabel(text='Welcome to Crosspoints', bold=True, font_size=sp(26)))
         body.add_widget(WrappedLabel(text='Before you start, you can leave your email. This is all it is used for.',
                                      color=MUTED, font_size=sp(15)))
         points = Panel()

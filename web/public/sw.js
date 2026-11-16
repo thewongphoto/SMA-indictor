@@ -1,4 +1,4 @@
-const CACHE = "sma-shell-0.19.1";
+const CACHE = "sma-shell-0.20.0";
 self.addEventListener("install", (event) =>
   event.waitUntil(
     (async () => {
@@ -83,7 +83,7 @@ self.addEventListener("push", (event) => {
       const title =
         typeof payload.title === "string"
           ? payload.title.slice(0, 200)
-          : "SMA Stock Analyzer";
+          : "Crosspoints";
       const body =
         typeof payload.body === "string"
           ? payload.body.slice(0, 1000)

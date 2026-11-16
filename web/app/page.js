@@ -40,7 +40,7 @@ function Logo({ security }) {
 function MotionLogo() {
   return (
     <div className="motion-logo">
-      <img src="/app-icon.png" alt="SMA Stock Analyzer" />
+      <img src="/app-icon.png" alt="Crosspoints" />
     </div>
   );
 }
@@ -467,7 +467,7 @@ export default function App() {
     return (
       <main className="login">
         <MotionLogo />
-        <h1>Opening your SMA app…</h1>
+        <h1>Opening Crosspoints…</h1>
       </main>
     );
   return (

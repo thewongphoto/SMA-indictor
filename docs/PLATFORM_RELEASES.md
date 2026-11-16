@@ -164,3 +164,27 @@ Native Back and web browser/Finish navigation use their respective app controls;
 their OS keyboard/chrome differ. This establishes the reviewed guide flow, not
 global platform equivalence or physical-device scheduling. Native source/tag
 advances independently to 0.19.2; the web app remains 0.19.1.
+
+## Crosspoints 0.20.0 naming review
+
+Android and iPhone web display **Crosspoints** in the welcome/loading screens,
+application/browser title, launcher/Home Screen metadata, diagnostics and
+test/owner-email branding. The original icon is retained. Technical package and
+bundle identifiers, signing identity, local databases/storage keys, manifest ID,
+API routes, frozen email requests and notification keys remain compatible.
+SMA continues to name the moving-average indicator and saved lines.
+
+The affected native welcome/Settings captures and browser welcome are reviewed
+at phone widths. Actual Chromium/WebKit checks confirm the browser title, Apple
+Home Screen title, manifest name/short name, optional Skip and version display.
+Existing signup tests exercise add/modify/remove/retry with delivery mocked;
+server tests retain frozen-payload safety and fixed-recipient forwarding.
+The full native UI gates and existing guide/chart regressions remain required.
+This review covers the rename and retained flows, not physical-device launch or
+global UI equivalence. An existing Home Screen label can be cached by iOS.
+
+The requested `crosspoints.vercel.app` address is not claimed by a Git push.
+Assignment needs the owner's authenticated Vercel account and an available
+domain. The [migration guide](CROSSPOINTS_DOMAIN.md) retains the old APK contact
+endpoint, transfers saved web parameters explicitly, and updates Supabase's
+scheduled website URL with the existing keys.

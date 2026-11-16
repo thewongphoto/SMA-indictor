@@ -77,7 +77,7 @@ class MobileYahooSmoke(YahooSmoke):
             copy.dispatch("on_release")
             clipboard.assert_called_once()
             from sma_analyzer.version import APP_VERSION
-            assert f"SMA Stock Analyzer {APP_VERSION}" in clipboard.call_args.args[0]
+            assert f"Crosspoints {APP_VERSION}" in clipboard.call_args.args[0]
         refresh.dispatch("on_release")
         assert len(self.client.calls)==calls
         ui.api_log_popup.dismiss()

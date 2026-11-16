@@ -1,4 +1,9 @@
-# SMA Stock Analyzer
+# Crosspoints
+
+Crosspoints is the app's name from 0.20.0. Android package/signing identity and
+existing device storage are retained, so installing the matching signed APK
+updates the existing app. The icon and SMA calculations are unchanged.
+For the proposed website address, follow [the domain migration guide](docs/CROSSPOINTS_DOMAIN.md).
 
 A private Python/Kivy app for US and Singapore stocks and ETFs. It finds the
 SMA whose historical upward-crossing frequency is closest to a chosen target,
@@ -6,9 +11,9 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.2**. First-open email welcome renders before online checks. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.20.0**. First-open email welcome renders before online checks. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone web | Version **0.19.1**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
+| iPhone web | Version **0.20.0**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)

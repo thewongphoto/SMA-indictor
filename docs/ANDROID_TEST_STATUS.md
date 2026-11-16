@@ -1,9 +1,25 @@
 # Validation and build status
 
-Current source: **0.19.2**. The matching Android build tag is **apk-v0.19.2**.
+Current source: **0.20.0**. The matching Android build tag is **apk-v0.20.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Crosspoints 0.20.0 changes the display name on Android and iPhone web. It retains
+package/signing identity, device storage and notification identities. The affected
+review covers the welcome page at narrow widths, browser/Home Screen metadata,
+Skip, Settings version, diagnostics and owner-email branding. Controlled signup
+tests send no real email. See [the naming review](PLATFORM_RELEASES.md) and
+[the separate domain migration](CROSSPOINTS_DOMAIN.md).
+
+Local 0.20.0 validation passed all 13 native UI gates, 370 Python tests (two
+optional skips), 37 JavaScript tests and the production web build. Actual
+Chromium/WebKit checks passed the renamed welcome, browser/Apple/manifest names,
+320/390-width layouts, Skip and Settings version. Signup add/change/remove/retry
+fixtures passed; both browser guides still matched the native price/SMA/backtest
+observations. Native welcome and browser captures were reviewed. These are
+controlled checks; final native compilation/signing and a physical-phone launch
+remain separate from local validation.
 
 Android 0.19.2 replaces the simplified guide with the same detail/backtest
 components as the main native Charts screen. The affected review covers the

@@ -82,7 +82,7 @@ export default function EmailSetup() {
       <section className="card">
         <h2>2. Create an API key</h2>
         <p>
-          In Resend → API Keys → Create API Key, name it “SMA signups”. Choose
+          In Resend → API Keys → Create API Key, name it “Crosspoints signups”. Choose
           Sending access. Copy the key beginning with re_ into your password
           manager. Do not paste it into chat or GitHub.
         </p>

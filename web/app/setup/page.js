@@ -134,7 +134,7 @@ export default function Setup() {
   }
   return (
     <main className="setup-page">
-      <a href="/">‹ Back to SMA</a>
+      <a href="/">‹ Back to Crosspoints</a>
       <h1>Set up alerts for your iPhone</h1>
       <p>
         Calculations and saved lines stay on this phone. Supabase stores only

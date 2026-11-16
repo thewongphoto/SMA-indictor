@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { rpc, supabaseConfigured } from "./supabase.js";
 import { contactMessage } from "./contact-message.js";
 export const CONTACT_RECIPIENT = "kelwong98@gmail.com";
-const DEFAULT_FROM = "SMA Stock Analyzer <onboarding@resend.dev>";
+const DEFAULT_FROM = "Crosspoints <onboarding@resend.dev>";
 export function normalizeEmail(value) {
   if (typeof value !== "string")
     throw new Error("Enter a valid email address, like name@example.com.");

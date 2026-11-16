@@ -1,11 +1,11 @@
 import "./styles.css";
 export const metadata = {
-  title: "SMA Stock Analyzer",
+  title: "Crosspoints",
   description: "Your saved moving averages",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "SMA Stock Analyzer",
+    title: "Crosspoints",
     statusBarStyle: "black-translucent",
   },
   icons: { apple: "/icon-180.png", icon: "/app-icon.png" },

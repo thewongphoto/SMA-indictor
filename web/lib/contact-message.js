@@ -28,7 +28,7 @@ export function contactMessage(event, { from, to }) {
   const columns = "Email | Source | Version | Last change | Changed (SGT) | Reference";
   return {
     from, to: [to], reply_to: event.email,
-    subject: `SMA Stock Analyzer — email ${event.action}`,
+    subject: `Crosspoints — email ${event.action}`,
     text: ["Release-update email change", ...details.map(([key, value]) => `${key}: ${value}`), "", `EXISTING USERS (${active.length})`, columns, textRows(active), "", `REMOVED EMAILS (${removed.length})`, columns, textRows(removed), "", note, legacy].filter((line) => line !== "").join("\n"),
     html: `<div style="font-family:Arial,sans-serif;color:#16232a;max-width:1000px;margin:auto"><h1>Email ${escape(event.action)}</h1>${details.map(([key, value]) => `<p><strong>${key}:</strong> ${escape(value)}</p>`).join("")}<hr><h2>Existing users (${active.length})</h2>${table(active)}<h2>Removed emails (${removed.length})</h2>${table(removed)}<p style="color:#526570;font-size:12px">${escape(note)}</p>${legacy ? `<p style="color:#526570;font-size:12px">${escape(legacy)}</p>` : ""}</div>`,
   };

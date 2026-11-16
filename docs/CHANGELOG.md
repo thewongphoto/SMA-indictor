@@ -1,13 +1,14 @@
 # Release history
 
-Current Android source is **0.19.2**, with release tag **apk-v0.19.2**.
-The iPhone web app remains **0.19.1**; this release updates only native UI.
+Current Crosspoints Android and iPhone web source is **0.20.0**, with Android
+release tag **apk-v0.20.0**.
 A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.20.0 | Renames the app to Crosspoints on Android and iPhone web: launcher/Home Screen names, welcome/loading copy, browser metadata, diagnostics and test/owner-email branding. Keeps the icon, package/signing identities, stored parameters, notification keys and existing API address. Adds a domain migration guide; the new domain still requires assignment in the owner’s Vercel account. |
 | Android 0.19.2 | Replaces the reduced guide with the full Charts UI and introduction/Finish action: price/change/status, axes/legend/inspection, range and frequency/history controls, full backtest values/contributions/gain bars/random statistic/disclaimer and crossing list. Uses an isolated temporary lesson model; Finish/Back/cancel preserve real analysis, saved lines and alert settings. Adds native/browser guide observations over identical controlled prices. Web remains 0.19.1; calculation and notification rules are unchanged. |
 | 0.19.1 | Removes Android's duplicate Saved/Selected SMA card; orders Signals per year before Saved lines. Moves native name/colour editing to Saved lines with Archive line and Cancel; draft edits are discarded on either action and archived settings remain restorable. Custom preserves the current target/chart when opening preferences. Removes Market Data from both Settings pages and the web Owner server setup footer link; retains web backup/import/restore under Saved lines. No calculation, data/schema or alert-rule changes. |
 | 0.19.0 | Adds the custom price-history proposal on Android and web: upfront/history-refinement row, frozen 10/5/3-year presets and custom dates, preview/session validation using real engine limits, explicit stale/recalculate state, scoped labels and dimmed chart bracket. Update preserves a saved line's identity/name/colour/alerts; Save as a new line keeps both with alerts **on**. Migrates old saved data, retains scoped archive/backup/notification identities and default alert hashes, and adds native plus actual-Python Chromium/WebKit regressions. No new Supabase SQL or environment variables. |

@@ -36,7 +36,7 @@ The app does not submit old addresses automatically on upgrade.
 5. Copy the value beginning with `re_` into your password manager. Do not paste
    it into chat, GitHub, or a public screenshot.
 
-The default sender is `SMA Stock Analyzer <onboarding@resend.dev>`. Resend lets
+The default sender is `Crosspoints <onboarding@resend.dev>`. Resend lets
 that sender deliver only to the email address associated with your Resend
 account. That works here because every submission goes to your own Gmail.
 You need a verified custom domain if you later want to send to other recipients.

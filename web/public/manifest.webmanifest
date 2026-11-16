@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "SMA Stock Analyzer",
-  "short_name": "SMA",
+  "name": "Crosspoints",
+  "short_name": "Crosspoints",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

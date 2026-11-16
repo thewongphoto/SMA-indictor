@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.19.2**. Automatically publish completed, validated Android
+Current source: **0.20.0**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
 keep the native version unchanged and push main without an `apk-v` tag. Before
@@ -10,6 +10,7 @@ every UI release review the affected flow against both platform implementations.
 
 1. Match `sma_analyzer/version.py` and `buildozer.spec`. Preserve package
    `org.thewongphoto.smaanalyzer`, signing identity and saved-data compatibility.
+   From 0.20.0 the installed app's display name is **Crosspoints**.
 2. Run unit tests with host validation requirements, then every UI gate below.
    Do not omit the offline/default startup test just because live fixtures pass.
 3. Run `python -m scripts.check_repository_docs` and `git diff --check`.

@@ -10,7 +10,7 @@ from .presentation import display_text,endpoint_label
 def diagnostic_report(cache, platform_name, transport, dataset=None, limit=100, public_view=False):
     now = datetime.now(timezone.utc)
     lines = [
-        f"SMA Stock Analyzer {APP_VERSION}",
+        f"Crosspoints {APP_VERSION}",
         f"Generated: {now.astimezone(SGT):%Y-%m-%d %H:%M:%S} SGT",
         f"Platform: {platform_name}; Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         f"Transport: {transport}",

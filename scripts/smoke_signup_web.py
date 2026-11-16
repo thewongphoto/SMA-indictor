@@ -50,7 +50,7 @@ def main():
                         route.fulfill(json={'sent': True})
                 page.route('**/api/contact-email', deliver)
                 page.goto(ORIGIN+'/?welcome=1')
-                expect(page.get_by_role('heading', name='Welcome to SMA Stock Analyzer')).to_be_visible()
+                expect(page.get_by_role('heading', name='Welcome to Crosspoints')).to_be_visible()
                 page.get_by_role('button', name='Skip for now').click()
                 expect(page.get_by_text('No saved SMA lines yet')).to_be_visible()
                 assert not sends
@@ -61,7 +61,7 @@ def main():
                 page.get_by_label('Email address').fill('volunteer@example.com')
                 page.get_by_role('button', name='Continue', exact=True).click()
                 expect(page.locator('#contact-error')).to_contain_text('Fixture service unavailable')
-                expect(page.get_by_role('heading', name='Welcome to SMA Stock Analyzer')).to_be_visible()
+                expect(page.get_by_role('heading', name='Welcome to Crosspoints')).to_be_visible()
                 assert page.evaluate('localStorage.getItem("sma-contact-email")') is None
                 first = sends[0]
                 page.reload()

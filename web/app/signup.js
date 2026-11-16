@@ -122,7 +122,7 @@ export default function Signup({
       return (
         <main className="email-welcome email-loading">
           <img src="/app-icon.png" alt="" />
-          <p>Opening SMA Stock Analyzer…</p>
+          <p>Opening Crosspoints…</p>
           <button
             className="text"
             onClick={() => callbacks.current.onUnavailable?.()}
@@ -138,7 +138,7 @@ export default function Signup({
       {welcome ? (
         <>
           <img className="welcome-icon" src="/app-icon.png" alt="" />
-          <h1>Welcome to SMA Stock Analyzer</h1>
+          <h1>Welcome to Crosspoints</h1>
           <p className="welcome-intro">
             Before you start, you can leave your email. This is all it is used
             for.

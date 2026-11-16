@@ -185,7 +185,7 @@ export async function testPush(body) {
   if (!devices.length)
     throw new Error("Enable notifications for this phone first.");
   await sendPush(devices[0], {
-    title: "SMA test notification",
+    title: "Crosspoints test notification",
     body: "The server accepted this test for delivery. iPhone notification settings control its presentation.",
     url: "/",
   });

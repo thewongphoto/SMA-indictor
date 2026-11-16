@@ -34,13 +34,12 @@ class MotionSmoke(FlowSmoke):
         for width in (320,440):
             Window.size=(width,920)
             yield from self.frames()
-            assert abs(ui.rename_button.right-ui.line_name_row.right)<1
-            assert abs(ui.rename_button.center_y-ui.card_values["period"].center_y)<1
-            assert ui.selected_target_badge.top<=ui.line_name_row.y+.5
+            assert ui.optimal_panel.parent is None
+            assert ui.detail_signals.y>=ui.inline_lines.top
             assert ui.named_period_caption.text==f"SMA ({ui.model.result.period} days)"
             assert not any(re.search(r"\b\d+ sessions\b",getattr(widget,"text","")) for widget in ui.walk())
         self.capture("chart-header")
-        self.checked("pencil stays at the far right of the name at 320/440dp; target sits below and period labels use SMA (X days)")
+        self.checked("single inline editor and signals above saved lines at 320/440dp; period labels use SMA (X days)")
 
         calls=len(self.client.calls)
         ui.backtest_period._dropdown.select("Custom")

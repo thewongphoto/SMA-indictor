@@ -6,9 +6,9 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.0**. First-open email welcome renders before online checks. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.1**. First-open email welcome renders before online checks. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone web | Version **0.19.0**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
+| iPhone web | Version **0.19.1**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
@@ -34,10 +34,14 @@ shared dark/teal design, Manrope typography and platform adaptations.
 - Partial ticker/company search runs only on Enter or Submit. Selecting a match
   downloads history; typing does not make requests. Supported US/SG stocks and
   ETFs have bundled company/issuer logos or an initials fallback.
-- Full available history, persistent search/price caches, visible connection
-  errors and a copyable request log. Reopening the app does not clear data.
+- Full available history, persistent search/price caches and visible connection
+  errors. Reopening the app does not clear data.
 - Home, Charts, Alerts and Settings tabs with grouped saved SMAs, custom names, twelve
   persistent colours, Hide/Show, notification switches and a ten-entry archive.
+- Charts puts Signals per year above Saved lines. Edit names/colours, Archive
+  and Cancel all live in the Saved lines editor; the duplicate Android SMA card
+  is removed. Settings omits Market Data and the web owner-setup footer link;
+  web backup/import/restore remain under Saved lines.
 - Live targets use **365 calendar days per year**, including weekends/holidays.
   This is the closest historical annualized average, not a guaranteed annual
   quota. SMA (X days) means X trading observations. Saved periods stay fixed.

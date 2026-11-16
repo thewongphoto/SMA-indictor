@@ -1,9 +1,24 @@
 # Validation and build status
 
-Current source: **0.19.0**. The matching Android build tag is **apk-v0.19.0**.
+Current source: **0.19.1**. The matching Android build tag is **apk-v0.19.1**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.19.1 removes the duplicate native SMA card, places Signals per year
+before Saved lines, and adds Archive line/Cancel to the native combined editor.
+Native regression checks use the visible Saved lines editor for name/colour
+changes and verify that Cancel keeps the saved record unchanged and Archive
+discards drafts while preserving settings for restoration. Existing motion,
+colour, offline, library, transport and alert gates remain required. The web
+history suite checks the same section order on Chromium/WebKit, absence of the
+Market Data card and owner setup footer link, and retained backup controls.
+Host validation: 370 Python tests (368 passed, two optional skips), 37 JavaScript
+tests, 13 native UI gates, eight browser suites, production web build, SQL
+fixtures and the native/browser builder comparison. Captures of the affected
+native and browser screens were reviewed; physical-phone behaviour is not
+established by these fixtures. Data/schema, optimization and signal rules remain
+unchanged. [Affected UI review](PLATFORM_RELEASES.md).
 
 Release 0.19.0 host validation covers frozen custom history, real engine
 guardrails, slice-only optimizer scoring, cache separation, full-series chart

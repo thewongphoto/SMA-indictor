@@ -1273,8 +1273,10 @@ class AnalyzerScreen(Experience, FloatLayout):
             if self.model.editing_line_id==line.id:self.model.editing_line_id=None
             self.refresh()
             self.sync_notification_schedule()
+            return True
         except (sqlite3.Error, OSError) as error:
             self.message(f"Could not remove saved line: {error}", True)
+            return False
 
     def on_view_saved(self, line, *_):
         if self.manager.current != "results":
@@ -2284,6 +2286,13 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.edit_line_colors[index]=button
             grid.add_widget(button)
         fields.add_widget(grid)
+        self.rename_archive_button=LabButton(text="Archive line")
+        self.rename_archive_button.color=ERROR
+        self.rename_archive_button.fill=BG
+        self.rename_archive_button._draw()
+        self.rename_cancel_button=LabButton(text="Cancel")
+        fields.add_widget(self.rename_archive_button)
+        fields.add_widget(self.rename_cancel_button)
         scroll.add_widget(fields)
         content.add_widget(scroll)
         self.rename_popup=ScreenPopup(self,title="",title_size=0,separator_height=0,content=content,
@@ -2303,6 +2312,14 @@ class AnalyzerScreen(Experience, FloatLayout):
             except (ValueError,sqlite3.Error) as error:
                 self.rename_status.text=str(error)
         self.rename_save_button.bind(on_release=save_name)
+        def archive(*_):
+            if self.on_delete(saved):
+                self.rename_popup.dismiss()
+                self.message("Line archived. Restore it from Archive on Home.",quiet=True)
+            else:
+                self.rename_status.text="Could not archive this line. Please try again."
+        self.rename_archive_button.bind(on_release=archive)
+        self.rename_cancel_button.bind(on_release=lambda *_:self.rename_popup.dismiss())
         self.rename_editor.bind(on_text_validate=save_name,focus=self._editor_focus)
         self._position_rename_popup()
         self.rename_popup.open()

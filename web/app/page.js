@@ -6,7 +6,7 @@ import Dialog from "./dialog";
 import { localApi, remote } from "./local-service";
 import PushControls from "./push-controls";
 import { syncPush } from "./push-client";
-import { stored, clearSnapshots } from "./cache";
+import { stored } from "./cache";
 import CompanyLogo from "./company-logo";
 import TargetPreference from "./target-preference";
 import HistoryPicker from "./history-picker";
@@ -1090,23 +1090,7 @@ export default function App() {
               </div>
             </section>
             <section className="card">
-              <h3>MARKET DATA</h3>
-              <button className="setting" onClick={() => refresh().catch(fail)}>
-                Refresh connection status <span>›</span>
-              </button>
-              <button
-                className="setting"
-                onClick={async () => {
-                  try {
-                    setEvents((await api("log")).events);
-                    navigate("log");
-                  } catch (e) {
-                    fail(e);
-                  }
-                }}
-              >
-                Request log <span>View and copy ›</span>
-              </button>
+              <h3>SAVED LINES</h3>
               <button
                 className="setting"
                 onClick={async () => {
@@ -1172,22 +1156,6 @@ export default function App() {
                   />
                 </label>
               )}
-              <button
-                className="setting negative"
-                onClick={async () => {
-                  if (
-                    confirm(
-                      "Clear downloaded market data? Your saved SMA parameters are kept.",
-                    )
-                  ) {
-                    await clearSnapshots();
-                    await mutate("clear-cache", {});
-                    setChart(null);
-                  }
-                }}
-              >
-                Clear downloaded data <span>Keeps saved SMAs ›</span>
-              </button>
               <button className="setting" onClick={() => navigate("archive")}>
                 Archived lines <span>Restore ›</span>
               </button>
@@ -1202,7 +1170,6 @@ export default function App() {
               </p>
             </section>
             <p className="center">Version {state.version}</p>
-            <p className="center"><a href="/setup">Owner server setup</a></p>
           </>
         )}
         {tab === "archive" && (

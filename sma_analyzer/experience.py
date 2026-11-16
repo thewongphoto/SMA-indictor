@@ -220,8 +220,8 @@ class Experience(HistoryUI):
         self.detail_optimize_note = WrappedLabel(text='Matches signal frequency, not profit.', color=MUTED,
                                                  font_size=sp(12), halign='center')
         for widget in ((self.detail_hero, self.detail_status, self.plot_panel, self.timeline_strip,
-                                        self.inline_lines, self.optimal_panel, self.detail_signals,
-                                        self.detail_optimize_button, self.detail_optimize_note, self.table_panel)):
+                                        self.detail_signals, self.detail_optimize_button,
+                                        self.detail_optimize_note, self.inline_lines, self.table_panel)):
             content.add_widget(widget, index=below)
         # The two frequency cards are summarized in the status card; keep their
         # values current (search/builder flows read them) without showing them.
@@ -235,7 +235,12 @@ class Experience(HistoryUI):
 
     def choose_detail_frequency(self, value):
         if value == 'Custom':
-            self.target.text = 'Custom'
+            self._syncing_controls=True
+            try:
+                self.custom_target.text = str(self.model.target_frequency)
+                self.target.text = 'Custom'
+            finally:
+                self._syncing_controls=False
             self.show_parameters()
             return
         self.target.text = f'{value} / year'
@@ -318,7 +323,7 @@ class Experience(HistoryUI):
         return row
 
     def restructure_settings(self):
-        """Design 04 cards; every existing control keeps its behaviour and name."""
+        """User-facing settings; market diagnostics remain internal."""
         from .app import Panel, WrappedLabel
         from .notifications import signal_title
         from .version import APP_VERSION
@@ -380,24 +385,6 @@ class Experience(HistoryUI):
                 self.settings_panel.remove_widget(widget)
                 preview.add_widget(widget)
         cards = [types, check] + ([preview] if preview else []) + [appearance]
-        # Market data rows (live data only).
-        if hasattr(self, 'api_status'):
-            market = self._settings_card('MARKET DATA')
-            for name, title, value, danger in (
-                    ('api_check_button', 'Connection', 'Check', False),
-                    ('api_refresh_button', 'Refresh prices', 'This security', False),
-                    ('api_full_button', 'Refresh full history', 'This security', False),
-                    ('api_log_button', 'Request log', 'View and copy', False),
-                    ('api_clear_button', 'Clear downloaded data', 'Keeps saved SMAs', True)):
-                button = getattr(self, name)
-                if button.parent is not None:
-                    button.parent.remove_widget(button)
-                button.text = title
-                market.add_widget(self._setting_row(button, value, danger))
-                if name == 'api_check_button':
-                    self.api_status.parent.remove_widget(self.api_status)
-                    market.add_widget(self.api_status)
-            cards.append(market)
         legal = self._settings_card('LEGAL')
         legal.add_widget(WrappedLabel(text='This app is for personal use only and is not financial advice. It does not '
                                            'guarantee profits or future performance. Past results do not predict future '
@@ -748,6 +735,7 @@ class Experience(HistoryUI):
         from .widgets import LegendSymbol
         from .palette import line_color
         self.inline_lines.clear_widgets()
+        self.inline_line_controls={}
         lines=self.model.store.list_lines(self.model.dataset.counter,self.model.dataset.scenario)
         if not lines:
             self.inline_lines.height=0
@@ -770,6 +758,7 @@ class Experience(HistoryUI):
             switch=RuleSwitch(active=line.visible,pos_hint={'center_y':.5})
             switch.bind(active=lambda _,enabled,line=line:self.on_saved_visibility(line))
             row.add_widget(switch)
+            self.inline_line_controls[line.id]={'edit':edit,'visibility':switch}
             self.inline_lines.add_widget(row)
         self.inline_lines.add_widget(WrappedLabel(text='The switch shows or hides a line. Hidden lines can still send alerts.',color=MUTED))
 

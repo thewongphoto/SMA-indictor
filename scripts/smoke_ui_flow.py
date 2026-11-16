@@ -89,8 +89,8 @@ class FlowSmoke(MobileYahooSmoke):
         self.checked("new saved SMA and all three visible phone signal switches default to On")
         ui.saved_sheet.dismiss(animate=False)
         yield from self.frames()
-        assert ui.rename_button.parent is ui.line_name_row
-        self.tap(ui.rename_button)
+        assert ui.optimal_panel.parent is None
+        self.tap(ui.inline_line_controls[ui.model.current_saved_line().id]['edit'])
         yield from self.frames()
         assert ui.rename_popup._is_open
         ui.rename_editor.text="Recovery plan"
@@ -149,7 +149,7 @@ class FlowSmoke(MobileYahooSmoke):
         self.capture("archive",ui.history_popup)
         ui.restore_unsaved(archived)
         assert ui.model.current_saved_line().custom_name=="Recovery plan"
-        ui.change_parameters_button.dispatch("on_release")
+        ui.detail_frequency_buttons['Custom'].dispatch("on_release")
         yield from self.frames()
         assert ui.manager.current_screen is builder and ui.builder_selected
         assert ui.counter.security.name=="Apple Inc." and ui.preference_reveal.progress==1

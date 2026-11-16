@@ -1,13 +1,13 @@
 # Install and update the Android app
 
-Current source/build tag: **0.15.0 / apk-v0.15.0**. Android builds run on GitHub;
+Current source/build tag: **0.19.1 / apk-v0.19.1**. Android builds run on GitHub;
 your computer does not need to remain on. A queued or failed run is not an APK.
 
 ## Download
 
 1. Sign in to GitHub and open
    [Build Android APK](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
-2. Select the run for **apk-v0.15.0**. Wait for a successful result. If you are
+2. Select the run for **apk-v0.19.1**. Wait for a successful result. If you are
    testing an older successful build, record its version instead.
 3. Under **Artifacts**, download **sma-android-test** and extract its ZIP.
    Install the signed release `.apk` from the `bin` folder. The package report
@@ -17,7 +17,7 @@ your computer does not need to remain on. A queued or failed run is not an APK.
    to install unknown apps if Android asks. In-place updates require the same
    signing identity; check the [0.14.0 signing audit](ANDROID_PACKAGE_SECURITY.md)
    before updating an older installation with important saved data.
-5. Open Settings in SMA Stock Analyzer and check **DATA CONNECTION · 0.15.0**.
+5. Open Settings in SMA Stock Analyzer and check **Version 0.19.1**.
    If it shows another version, the installed artifact is different.
 
 Keep the same package/signing identity. Do not uninstall or clear app storage
@@ -31,10 +31,12 @@ hardening and a successful build do not establish that Google cleared the warnin
 
 ## First use
 
-The app opens in My SMA library without a selected company or fabricated prices.
-Tap New analysis, type Apple/VOO/DBS and press Enter or Submit. Select a matching
-company/ETF, choose the target frequency and Optimize SMA. Save with the heart;
-use Library or the Saved SMAs drawer to return to exact saved parameters.
+The app opens on Home without a selected company or fabricated prices.
+Tap + Find SMA, type Apple/VOO/DBS and press Search or Enter. Select a matching
+company/ETF, choose the target frequency/history and calculate. Tap Save; use
+Home or Saved lines to return to exact saved parameters. Edit names/colours or
+archive from Saved lines → Edit. Cancel discards edits; Home → Archive restores
+an archived line. Signals per year sits above Saved lines on Charts.
 
 Use [the current data/request-log guide](YAHOO_ANDROID_TESTING.md) to check
 network calls and persistence, [the app summary](../APP_SUMMARY.md) for chart

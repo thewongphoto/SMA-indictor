@@ -1,13 +1,14 @@
 # Release history
 
-The current Android and iPhone web source is **0.19.0**. The matching Android
-release tag is **apk-v0.19.0**; Vercel deploys the same feature through main.
+The current Android and iPhone web source is **0.19.1**. The matching Android
+release tag is **apk-v0.19.1**; Vercel deploys the same feature through main.
 A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.19.1 | Removes Android's duplicate Saved/Selected SMA card; orders Signals per year before Saved lines. Moves native name/colour editing to Saved lines with Archive line and Cancel; draft edits are discarded on either action and archived settings remain restorable. Custom preserves the current target/chart when opening preferences. Removes Market Data from both Settings pages and the web Owner server setup footer link; retains web backup/import/restore under Saved lines. No calculation, data/schema or alert-rule changes. |
 | 0.19.0 | Adds the custom price-history proposal on Android and web: upfront/history-refinement row, frozen 10/5/3-year presets and custom dates, preview/session validation using real engine limits, explicit stale/recalculate state, scoped labels and dimmed chart bracket. Update preserves a saved line's identity/name/colour/alerts; Save as a new line keeps both with alerts **on**. Migrates old saved data, retains scoped archive/backup/notification identities and default alert hashes, and adds native plus actual-Python Chromium/WebKit regressions. No new Supabase SQL or environment variables. |
 | Android 0.18.2 | Shows the email welcome on the first UI frame, before readiness/network replies, without an animated Home-to-welcome interruption. Typing and Skip work immediately; sending stays gated on server readiness. Isolates contact work from Yahoo requests, adds retry/offline/returning-user handling and first-frame regression captures. No web UI, calculation, stored-identity or server-schema changes. |
 | Web 0.18.2 | Keeps security selection and target crossing controls on Set your preference, using the native default and 4/6/12/Custom choices before explicit calculation. Shares the control with Charts, restores Back/cancel behaviour and guards stale selections/jobs. Adds Chromium/WebKit flow checks, native observation comparison and an independent web-release policy; no new APK tag. |

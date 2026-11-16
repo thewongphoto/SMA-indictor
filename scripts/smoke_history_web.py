@@ -66,6 +66,9 @@ def main():
                     expect(page.locator('.history-caption')).to_contain_text('dimmed prices were not used')
                     expect(page.locator('.history-dimming')).to_have_count(1)
                     page.get_by_role('button',name='Save',exact=True).click();expect(page.get_by_role('button',name='Saved',exact=True)).to_be_visible()
+                    signals=page.locator('.target-preference').bounding_box()
+                    saved=page.locator('section.card').filter(has=page.get_by_role('heading',name='SAVED LINES ·',exact=False)).bounding_box()
+                    assert signals['y']<saved['y']
                     page.get_by_role('button',name='Edit',exact=True).click();page.get_by_label('Name',exact=True).fill('Frozen plan');page.get_by_role('button',name='Rose',exact=True).click();page.get_by_role('button',name='Done',exact=True).click()
                     page.get_by_role('button',name='Alerts',exact=True).click();page.get_by_role('switch',name='Alerts for Frozen plan',exact=True).click()
                     page.get_by_role('button',name='Charts',exact=True).click()
@@ -103,6 +106,12 @@ def main():
                     page.get_by_role('button',name='Save',exact=True).click()
                     expect(page.get_by_role('dialog',name='This line is already saved',exact=True)).to_have_count(0)
                     expect(page.get_by_role('button',name='Saved',exact=True)).to_be_visible()
+                    page.get_by_role('button',name='Settings',exact=True).click()
+                    expect(page.get_by_role('heading',name='MARKET DATA',exact=True)).to_have_count(0)
+                    expect(page.get_by_role('link',name='Owner server setup',exact=True)).to_have_count(0)
+                    expect(page.get_by_role('heading',name='SAVED LINES',exact=True)).to_be_visible()
+                    expect(page.get_by_role('button',name='Export saved parameters')).to_be_visible()
+                    page.screenshot(path=str(OUT/f'{engine}-settings.png'))
                     assert not errors,errors
                     browser.close()
         finally:

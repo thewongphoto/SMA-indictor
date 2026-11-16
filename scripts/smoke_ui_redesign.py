@@ -6,6 +6,7 @@ from scripts.smoke_ui_flow import FlowSmoke, temporary
 from sma_analyzer.appearance import mapped
 from sma_analyzer.theme import TEXT, BG
 from kivy.graphics import Rectangle
+from dataclasses import replace
 
 
 class RedesignSmoke(FlowSmoke):
@@ -38,6 +39,11 @@ class RedesignSmoke(FlowSmoke):
                 assert ui.manager.y>=ui.tab_bar.top
                 assert len(ui.tab_buttons)==4
                 assert all(button.width>=dp(44) for button in ui.tab_buttons.values())
+                if destination=='results':
+                    assert ui.optimal_panel.parent is None
+                    assert ui.detail_signals.y>=ui.inline_lines.top
+                if destination=='settings':
+                    assert not any(getattr(w,'text','')=='MARKET DATA' for w in ui.settings_content.walk())
                 ui.export_to_png(str(out/f'{destination}-{width}.png'))
         Window.size=(390,844)
         ui.select_tab('results')
@@ -88,6 +94,30 @@ class RedesignSmoke(FlowSmoke):
         yield from self.frames()
         assert ui.alert_switches[(line.id,'monitor')].disabled
         ui.export_to_png(str(out/'alerts-line-types.png'))
+        ui.select_tab('results');yield from self.frames()
+        original=ui.model.store.get_line(line.id)
+        color=ui.model.store.line_color_index(original)
+        self.tap(ui.inline_line_controls[line.id]['edit']);yield from self.frames()
+        ui.rename_editor.text='Discard this draft';ui.edit_line_colors[0].dispatch('on_release')
+        ui.finish_editing();self.tap(ui.rename_cancel_button);yield from self.frames()
+        assert not ui.rename_popup._is_open
+        assert ui.model.store.get_line(line.id)==original
+        assert ui.model.store.line_color_index(original)==color
+        self.tap(ui.inline_line_controls[line.id]['edit']);yield from self.frames()
+        ui.rename_editor.text='Do not save before archiving';ui.edit_line_colors[1].dispatch('on_release')
+        ui.finish_editing()
+        ui.rename_cancel_button.parent.parent.scroll_to(ui.rename_cancel_button,animate=False)
+        yield from self.frames()
+        ui.rename_popup.content.export_to_png(str(out/'edit-line-actions.png'))
+        self.tap(ui.rename_archive_button);yield from self.frames()
+        assert not ui.rename_popup._is_open and line.id not in {x.id for x in ui.model.saved_lines()}
+        archived=ui.model.archive_lines()[0]
+        assert archived.custom_name==original.custom_name
+        ui.model.store.restore(archived.id);ui.refresh();yield from self.frames()
+        restored=next(x for x in ui.model.saved_lines() if x.custom_name==original.custom_name)
+        assert replace(restored,id=original.id)==original
+        assert ui.model.store.line_color_index(restored)==color
+        self.checked('single saved-lines editor, signals before saved lines, no Market Data card, Cancel discards draft, Archive preserves original settings for restore')
         self.checked('four reachable tabs at 320/390 widths, theme contrast, combined name/colour persistence, inline saved lines, per-line signal types and disabled unconfigured signup')
 
 if __name__=='__main__':

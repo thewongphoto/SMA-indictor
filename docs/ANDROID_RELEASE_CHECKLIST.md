@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.19.0**. Automatically publish completed, validated Android
+Current source: **0.19.1**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
 keep the native version unchanged and push main without an `apk-v` tag. Before
@@ -61,12 +61,13 @@ APT signature or TLS verification to work around a mirror/network failure.
 | Price history | All available default; presets/custom dates validate before applying; Cancel leaves dates unchanged; window changes stay stale until Recalculate. Update preserves settings; New keeps both with alerts on. |
 | Calculation | Continuous logo paths/plus, dimmed background, responsive native Back cancellation. |
 | Library | All companies/SMAs appear, start collapsed, and retain colours/visibility/preferences; View uses the exact period. |
+| Saved lines editor | Signals per year precedes Saved lines; no duplicate SMA card. Edit exposes all 12 colours and Archive/Cancel; Cancel discards drafts and Archive restores the last saved settings. |
 | Chart | Smooth pinch, EOD inspector, nonoverlapping month/year ticks, ranges and endpoint changes stay consistent. |
 | Backtest/guide | Independent horizons, Custom input, contribution/ending comparisons, VOO default 4/year and Max. |
 | Sheets/navigation | Settings top-right; archive/help/saved drawer animation; Back dismisses editor/sheet before page navigation. |
 | Persistence | Restart and offline saved View retain data; explicit market-cache clear keeps saved parameters. |
 | Notifications | All three types, manual test, bound-service background test and four SGT schedules; disabled settings respected. |
-| Diagnostics | Scroll/copy old and new data/notification rows; no raw secrets; duplicate/failure/expiry paths logged. |
+| Settings | Market Data card absent on both apps; web owner setup link absent. Web backup/import/restore remain in Saved lines. Maintainer diagnostic fixtures still exclude secrets and cover duplicate/failure/expiry paths. |
 
 Record the actual artifact version, device/Android version and observed results.
 Do not carry a result from an older APK forward as if the new build was tested.

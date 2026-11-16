@@ -52,32 +52,35 @@ class ColorLogoSmoke(MotionSmoke):
             Window.size=(width,920)
             ui.scroll.scroll_y=1
             yield from self.frames()
-            assert ui.color_button.right<=ui.rename_button.x+1
-            assert abs(ui.color_button.center_y-ui.rename_button.center_y)<1
-            self.tap(ui.color_button)
-            yield lambda:ui.color_popup.progress==1
-            assert len(ui.color_buttons)==12
-            assert len({tuple(button.swatch) for button in ui.color_buttons.values()})==12
-            assert all(button.width>=44 and button.height>=44 for button in ui.color_buttons.values())
-            for button in ui.color_buttons.values():
+            self.tap(ui.inline_line_controls[saved.id]['edit'])
+            yield lambda:ui.rename_popup._is_open
+            ui.finish_editing()
+            yield from self.frames()
+            assert len(ui.edit_line_colors)==12
+            assert len({tuple(button.swatch) for button in ui.edit_line_colors.values()})==12
+            assert all(button.width>=44 and button.height>=44 for button in ui.edit_line_colors.values())
+            for button in ui.edit_line_colors.values():
                 swatch=next(item for item in button.canvas.before.children if isinstance(item,Ellipse))
                 assert abs(swatch.pos[0]+swatch.size[0]/2-button.x-button.width/2)<.5
+                assert abs(swatch.pos[1]+swatch.size[1]/2-button.y-button.height/2-dp(8))<.5
                 assert swatch.pos[0]-dp(5)>=button.x and swatch.pos[0]+swatch.size[0]+dp(5)<=button.right
                 assert button.halign=="center" and abs(button.text_size[0]-button.width)<.5
             self.capture("colour-picker-"+str(width))
             ui.handle_back()
-            yield lambda:ui.color_popup.parent is None
-        self.tap(ui.color_button)
-        yield lambda:ui.color_popup.progress==1
-        self.tap(ui.color_buttons[10])
-        yield lambda:ui.color_popup.parent is None
+            yield lambda:not ui.rename_popup._is_open
+        self.tap(ui.inline_line_controls[saved.id]['edit'])
+        yield lambda:ui.rename_popup._is_open
+        ui.finish_editing()
+        self.tap(ui.edit_line_colors[10])
+        self.tap(ui.rename_save_button)
+        yield lambda:not ui.rename_popup._is_open
         assert tuple(ui.card_values["period"].color)==COLOR_CHOICES[10]
         assert tuple(ui.saved_rows[saved.id]["swatch"].ink)==COLOR_CHOICES[10]
         assert tuple(ui.landing_saved_rows[saved.id]["swatch"].ink)==COLOR_CHOICES[10]
         assert line_color(ui.model.plot_lines()[-1].color_index)==COLOR_CHOICES[10]
         assert ui.model.result is before_result and len(self.client.calls)==calls
         self.capture("chosen-sma-colour")
-        self.checked("palette icon sits left of pencil; 12 tappable colours fit 320/440dp and update chart, title and both menus without fetching or optimizing")
+        self.checked("Saved lines editor offers 12 tappable colours at 320/440dp; Done updates chart and menus without fetching or optimizing")
 
         ui.on_delete(saved)
         ui.open_unsaved_history()

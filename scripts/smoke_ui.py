@@ -168,16 +168,16 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("preview chart comparisons handle missing quote currency without inventing a denomination")
         assert "count" not in ui.card_values
         assert len(ui.cards.children) == 2  # values kept for flows; summarized by the status card
-        # Design 02: Save sits in the header bar; Show/Hide stays with the selected line.
+        # Save stays in the toolbar; saved-line edits live in the inline card.
         assert ui.save_button.parent is ui.saved_menu_label.parent
-        assert ui.hide_button.parent.parent is ui.optimal_panel
+        assert ui.optimal_panel.parent is None
         assert ui.detail_status.top > ui.chart.parent.top
         assert ui.save_button.disabled
         assert not ui.save_button.selected and ui.save_button.text == "Save"
         assert ui.manager.current == "library" and ui.library_state == "empty"
         ui.show_parameters()
         assert ui.controls.parent is ui.parameter_content
-        assert ui.optimal_panel.parent is ui.content
+        assert ui.optimal_panel.parent is None
         assert not ui.saved_sheet.is_open
         for _ in range(4): yield
         ui.export_to_png("artifacts/screen-1-parameters.png")
@@ -228,14 +228,14 @@ class SmokeApp(SMAStockAnalyzerApp):
         ui.backtest_period._dropdown.select("1Y")
         self.check("backtest period/custom controls, equal budgets, invalid input and visibility independence")
         old_result = ui.model.result
-        ui.scroll.scroll_to(ui.optimal_panel,animate=False)
+        ui.scroll.scroll_to(ui.detail_signals,animate=False)
         for _ in range(6): yield
-        pointer = Pointer(*ui.change_parameters_button.to_window(*ui.change_parameters_button.center))
+        pointer = Pointer(*ui.detail_frequency_buttons['Custom'].to_window(*ui.detail_frequency_buttons['Custom'].center))
         pointer.down(); pointer.up()
         for _ in range(8): yield
         assert ui.manager.current == "search"
         assert ui.model.result is old_result
-        assert ui.target.text == "1" and ui.counter.text == "DEMO-SGX"
+        assert ui.target.text == "Custom" and ui.custom_target.text == "1" and ui.counter.text == "DEMO-SGX"
         assert ui.scenario.text == "Oscillating"
         # Normal successful calculation returns to Results with a fresh five rows.
         ui.optimize_button.dispatch("on_release")
@@ -481,7 +481,7 @@ class SmokeApp(SMAStockAnalyzerApp):
         self.check("phone permission denial recovers controls; legacy email alerts cannot reach delivery")
 
         ui.show_results()
-        ui.scroll.scroll_to(ui.optimal_panel,animate=False)
+        ui.scroll.scroll_y=1
         for _ in range(6): yield
         pointer = Pointer(*ui.save_button.to_window(*ui.save_button.center))
         pointer.down()
@@ -533,8 +533,7 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert abs(ui.counter.x-ui.frequency_chips.x)<dp(1)
                 assert abs(ui.frequency_chips.x-ui.optimize_button.x)<dp(1)
                 assert ui.controls.height-ui.price_history_button.height-dp(12) < dp(450), "Existing controls stay compact with one added history row"
-                assert ui.optimal_panel.orientation == "vertical"
-                assert ui.card_values["period"].y >= ui.hide_button.top
+                assert ui.detail_signals.y>=ui.inline_lines.top
             elif ui.control_grid.cols == 1:
                 assert ui.counter.y > ui.frequency_chips.y > ui.optimize_button.y
                 assert ui.controls.height-ui.price_history_button.height-dp(12) < dp(360)
@@ -549,8 +548,8 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert widget.height >= dp(44)
             ui.show_results()
             for _ in range(4): yield
-            assert ui.hide_button.width == dp(88)
-            assert ui.change_parameters_button.width >= dp(44)
+            assert ui.optimal_panel.parent is None
+            assert ui.detail_frequency_buttons['Custom'].width >= dp(44)
             assert ui.saved_menu_label.height >= dp(44)
             assert ui.settings_button.right <= ui.width
             assert ui.save_button.width == dp(76) and ui.save_button.height >= dp(44)

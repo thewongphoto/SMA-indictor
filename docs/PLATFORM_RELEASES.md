@@ -115,3 +115,27 @@ runs the actual shared Python calculations in Chromium and WebKit. Native
 screenshots and browser captures were reviewed, including the absence of
 duplicate year labels on Home. Scope is this history journey and the existing
 chart/builder regressions, not every screen or physical OS behaviour.
+
+## Shared 0.19.1 editing and Settings review
+
+Native Charts now follows web's section order: chart/ranges, Signals per year,
+Saved lines and backtesting. The duplicate native Saved/Selected/Optimal SMA
+card is detached from the visible screen. Saved lines → Edit owns the name and
+12-colour choices, followed by Archive line and Cancel. Opening Custom preferences
+preserves the current target/result, while genuine parameter edits still require
+calculation. Existing chart gestures, markers and saved-window behaviour remain
+covered by the retained suites.
+
+The affected native flow was reviewed at 320/390 widths and in light/dark themes.
+Tests exercise the actual inline Edit control, Done, Cancel, Archive and restore;
+Cancel leaves the stored record/colour unchanged, and Archive keeps the last
+saved settings rather than its draft. The native editor scrolls on shorter
+viewports; web retains its own bottom-sheet/keyboard behaviour.
+
+Both Settings pages omit Market Data. Web export/import/restore remain in a
+Saved lines card; the Owner server setup footer link is removed. Owner setup
+continues to work directly at `/setup` with its existing authentication.
+Chromium/WebKit capture and check these removals, section order and backup
+availability. Native settings captures confirm the removed card. This review
+covers these edits and related existing flows, not global UI equivalence or
+physical-device notification delivery.

@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current Android/desktop source: **0.19.0**; iPhone web: **0.19.0**. Native iPhone
+Current Android/desktop source: **0.19.1**; iPhone web: **0.19.1**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -108,7 +108,7 @@ flowchart TD
     D --> C
     C --> X[All upward crossings]
     X --> C
-    L --> S[Settings and request log]
+    L --> S[Settings]
     C --> S
     D --> A[Recently unsaved archive]
 ```
@@ -118,6 +118,20 @@ accordions start collapsed each launch and share expansion state during the
 session. Saving, restoring, naming, colouring and hiding lines retain their
 identities. Viewing a saved SMA opens its exact period without retuning it.
 Hidden lines can still alert when enabled. The archive keeps ten recent unsaves.
+
+From 0.19.1, Charts orders Signals per year (including the history input and
+calculation action) before Saved lines on both platforms. Android's extra
+Saved/Selected/Optimal SMA card is detached from the visible page; saved-line
+name/colour edits use Saved lines → Edit. Its editor includes Archive line and
+Cancel below the colour choices, matching web. Cancel and Archive discard pending
+name/colour edits; archiving retains the last saved settings for restoration.
+Custom opens preferences with the current target and chart preserved until an
+actual parameter edit or calculation.
+
+Both Settings pages omit the Market Data card and its connection/log/cache
+actions. Web export/import and Archived lines remain under a Saved lines card.
+Home → Archive remains the native restore route. The web owner setup footer
+link is removed; authenticated owner setup still works at `/setup`.
 
 Home, Charts, Alerts and Settings are persistent bottom tabs. The chart's magnifier-plus starts a new security
 selection. Back dismisses the keyboard/sheets before traversing pages and exits
@@ -178,10 +192,12 @@ SGT jobs, stale/holiday handling, duplicate suppression and tests. Desktop runs
 interactive data requests only. The iPhone web app uses Supabase scheduling and Vercel Web Push after the owner
 completes setup; browser timers cannot preserve native background work.
 
-The copyable request log separates logical APP operations, actual HTTP calls,
+The internal request log separates logical APP operations, actual HTTP calls,
 CACHE hits and notification checks/triggers/delivery outcomes. Tokens, cookies,
 raw response bodies and private paths are excluded. An OS/push acceptance
 record is not proof that a user saw a banner.
+The Market Data UI for opening this log is removed in 0.19.1; diagnostic APIs
+and fixture tools remain available to maintainers.
 
 Legacy email market-alert delivery and Google authorization remain removed. Optional release-update signup is separate and sending requires a configured server. Legacy SQLite email
 columns/preferences remain solely for upgrade compatibility; old email events

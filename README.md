@@ -6,7 +6,7 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.1**. First-open email welcome renders before online checks. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.2**. First-open email welcome renders before online checks. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
 | iPhone web | Version **0.19.1**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 
@@ -56,7 +56,9 @@ shared dark/teal design, Manrope typography and platform adaptations.
   result of 500 random samples. It shows contributions, ending values and the
   requested comparisons. [Exact rules](APP_SUMMARY.md).
 - The live guided example uses Vanguard S&P 500 ETF (VOO), initially 4/year and
-  Max. The upward-crossing app logo draws continuously during optimization;
+  Max. Android reuses the full Charts screen, including the price/status, history
+  controls, comparison bars/gains and crossing list, matching the web guide.
+  Finish restores the original analysis without changing saved lines or alerts. The upward-crossing app logo draws continuously during optimization;
   Back/Escape cancels and cached targets open immediately.
 - Android has three phone signal types, daily scheduled checks and background
   diagnostics. [Schedules and testing](docs/ANDROID_DAILY_NOTIFICATIONS.md).

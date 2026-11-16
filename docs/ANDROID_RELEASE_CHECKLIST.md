@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.19.1**. Automatically publish completed, validated Android
+Current source: **0.19.2**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
 keep the native version unchanged and push main without an `apk-v` tag. Before
@@ -64,6 +64,7 @@ APT signature or TLS verification to work around a mirror/network failure.
 | Saved lines editor | Signals per year precedes Saved lines; no duplicate SMA card. Edit exposes all 12 colours and Archive/Cancel; Cancel discards drafts and Archive restores the last saved settings. |
 | Chart | Smooth pinch, EOD inspector, nonoverlapping month/year ticks, ranges and endpoint changes stay consistent. |
 | Backtest/guide | Independent horizons, Custom input, contribution/ending comparisons, VOO default 4/year and Max. |
+| Full guide | Intro/Finish, price/status, chart/ranges, signals/history, full comparison bars/gains/random statistic and crossing list match the web reference. Finish/Back/late completion preserve original analysis and alert settings. |
 | Sheets/navigation | Settings top-right; archive/help/saved drawer animation; Back dismisses editor/sheet before page navigation. |
 | Persistence | Restart and offline saved View retain data; explicit market-cache clear keeps saved parameters. |
 | Notifications | All three types, manual test, bound-service background test and four SGT schedules; disabled settings respected. |

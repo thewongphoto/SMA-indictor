@@ -30,14 +30,21 @@ class ColorLogoSmoke(MotionSmoke):
         ui=self.screen
         assert self.client.calls[0]==("history","VOO",{"period":"5d"})
         original_data,original_result=ui.model.dataset,ui.model.result
+        original_model=ui.model
+        original_bounds=ui.chart.viewport.bounds
+        original_horizon=ui.backtest_period.text
         ui.show_guide()
         yield lambda:not ui.guide_busy
         yield from self.settled()
         assert ui.guide_lesson.dataset.counter=="YAHOO:VOO"
         assert "Vanguard S&P 500 ETF (VOO)" in ui.guide_status.text
         assert ui.guide_identity.security.ticker=="VOO" and not ui.guide_identity.logo.is_fallback
-        assert ui.model.dataset is original_data and ui.model.result is original_result
+        assert ui._guide_return["model"].dataset is original_data and ui._guide_return["model"].result is original_result
         self.capture("voo-guide")
+        ui.finish_guide()
+        assert ui.model.dataset is original_data and ui.model.result is original_result
+        assert ui.model is original_model and ui.chart.viewport.bounds==original_bounds
+        assert ui.backtest_period.text==original_horizon
         self.checked("startup probes VOO; the guide always uses named Vanguard S&P 500 ETF data without changing the selected company/chart")
 
         ui.show_results()

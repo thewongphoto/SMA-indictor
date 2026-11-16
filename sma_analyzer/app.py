@@ -43,8 +43,8 @@ from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
 from .history_window import optimize_history
 from .engine import optimize_sma
 from .policy import maximum_sma_period,CALENDAR_DAYS_PER_YEAR
-from .model import AnalyzerModel, PlotLine
-from .guide import INTRODUCTION, RECOVERY_HELP, RISK_HELP, COMPARISON_HELP, calculate_lesson
+from .model import AnalyzerModel
+from .guide import INTRODUCTION
 from .settings import ALLOW_CUSTOM_TARGET, SCENARIOS, TARGET_FREQUENCIES
 from .storage import LineStore
 from .viewport import available_timelines
@@ -63,13 +63,13 @@ from .presentation import display_text
 from .line_names import sma_label
 from .palette import line_color as saved_color
 from .palette import COLOR_CHOICES, COLOR_NAMES
-from .reference_market import GUIDE_SYMBOL, GUIDE_NAME
 from .chart_comparison import visible_price_change, comparison_period
 from .widgets import ChartChangeSummary
 from .app_logo import APP_LOGO
 
 from .theme import BG, SURFACE as PANEL, TEXT, NEGATIVE as ERROR, ACCENT, CONTROL, ON_ACCENT, register_fonts
 from .experience import Experience
+from .guided_experience import GuidedExperience
 register_fonts()
 
 
@@ -212,7 +212,7 @@ class DeviceFrame(FloatLayout):
         self.screen.keep_editor_visible()
 
 
-class AnalyzerScreen(Experience, FloatLayout):
+class AnalyzerScreen(GuidedExperience, Experience, FloatLayout):
     def __init__(self, model, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.before:
@@ -618,119 +618,6 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.controls.remove_widget(self.custom_panel)
             self.custom_toggle.text = "Custom  +"
 
-    def _build_guide(self):
-        self.guide_content.add_widget(WrappedLabel(text=INTRODUCTION,bold=True,font_size=sp(22)))
-        if self.yahoo_enabled:
-            self.guide_identity=SecurityIdentity(Security("YAHOO:"+GUIDE_SYMBOL,GUIDE_SYMBOL,GUIDE_NAME,
-                "NYSE Arca","VA","vanguard",provider="yahoo",symbol=GUIDE_SYMBOL),show_ticker=True)
-            self.guide_content.add_widget(self.guide_identity)
-        for text in (RECOVERY_HELP,RISK_HELP):
-            self.guide_content.add_widget(WrappedLabel(text=text,color=MUTED))
-        self.guide_target = choice("4 / year",("1 / year","4 / year","6 / year","12 / year"))
-        self.guide_target.bind(on_select=self._load_guide)
-        self.guide_content.add_widget(WrappedLabel(text="Try a target upward crossing frequency"))
-        self.guide_content.add_widget(self.guide_target)
-        if self.yahoo_enabled:
-            self.guide_content.add_widget(WrappedLabel(text="1 year = 365 calendar days, including weekends and holidays.",
-                                                       color=MUTED,font_size=sp(11)))
-        self.guide_status = WrappedLabel(text="",color=MUTED)
-        self.guide_content.add_widget(self.guide_status)
-        self.guide_chart = PriceChart(size_hint_y=None,height=dp(280))
-        self.guide_scroll.chart = self.guide_chart
-        self.guide_content.add_widget(self.guide_chart)
-        self.guide_price_note = WrappedLabel(text="", color=MUTED, font_size=sp(11))
-        self.guide_content.add_widget(self.guide_price_note)
-        self.guide_content.add_widget(WrappedLabel(text=COMPARISON_HELP,color=MUTED))
-        (self.guide_backtest_heading, self.guide_backtest_period,
-         self.guide_backtest_years, self.guide_backtest_custom_holder) = self._add_investment_horizon(
-            self.guide_content, self._refresh_guide_backtest, default="Max")
-        self.guide_values = WrappedLabel(text="",bold=True)
-        self.guide_content.add_widget(self.guide_values)
-        self.guide_start_button = LabButton(text="Choose my own security",primary=True)
-        self.guide_start_button.bind(on_release=self.show_search)
-        self.guide_content.add_widget(self.guide_start_button)
-
-    def show_guide(self, *_):
-        self._navigate("guide")
-        self._load_guide()
-
-    def _load_guide(self, *_):
-        self._guide_job += 1
-        token = self._guide_job
-        self.guide_busy = True
-        self.guide_lesson = None
-        self.guide_values.text = ""
-        self.guide_status.text = "Loading the historical example…" if self.yahoo_enabled else "Calculating the educational example…"
-        target = int(self.guide_target.text.split()[0])
-        def work():
-            lesson_data=None
-            if self.yahoo_enabled:
-                provider = self.model.data_provider
-                matches = provider.search(GUIDE_SYMBOL)
-                security = next((match for match in matches if match.ticker == GUIDE_SYMBOL), None)
-                if security is None:
-                    raise ValueError("Example security unavailable. Select a company and try again.")
-                lesson_data = provider.historical_data(security)
-            return calculate_lesson(target,lesson_data if self.yahoo_enabled else None)
-        future = self.market_executor.submit(work)
-        future.add_done_callback(lambda done:Clock.schedule_once(lambda _:self._guide_complete(done,token),0))
-
-    def _guide_complete(self, future, token):
-        if self.closed or token != self._guide_job:
-            return
-        self.guide_busy = False
-        try:
-            lesson = self.guide_lesson = future.result()
-            result = lesson.result
-            self.guide_chart.update(lesson.dataset.prices,
-                [PlotLine("guide",result.period,result.target_frequency,result.sma,True)],
-                lesson.dataset.dates,(result.period,result.sma),calendar_dates=self.yahoo_enabled,
-                price_label="Adj. close" if self.yahoo_enabled else "EOD")
-            self.guide_chart.set_timeline("3Y" if "3Y" in available_timelines(
-                len(lesson.dataset.prices),lesson.dataset.dates if self.yahoo_enabled else ()) else "Max")
-            self.guide_price_note.text = (f"{lesson.dataset.currency} adjusted daily close\nDividends and splits included"
-                                         if self.yahoo_enabled else "Example daily close")
-            if self.yahoo_enabled:
-                self.guide_identity.set_security(replace(self.model.security(lesson.dataset.counter),name=GUIDE_NAME))
-            self._refresh_guide_backtest()
-            if self.yahoo_enabled:
-                self._update_api_status()
-        except Exception as error:
-            logging.exception("Guided example failed")
-            self.guide_lesson = None
-            self.guide_values.text = ""
-            self.guide_status.text = display_text(f"Could not load the example: {error}. Open it again to retry.")
-
-    def _refresh_guide_backtest(self, *_):
-        custom = self.guide_backtest_period.text == "Custom"
-        if not custom:
-            self.guide_backtest_years.focus = False
-        self.guide_backtest_custom_holder.show(custom, animate=True)
-        if self.guide_busy or self.guide_lesson is None:
-            return
-        try:
-            data, result = self.guide_lesson.dataset, self.guide_lesson.result
-            dates = data.dates if not getattr(data, "is_simulated", True) else None
-            sessions = period_sessions(self.guide_backtest_period.text, self.guide_backtest_years.text,
-                                       len(data.prices), dates)
-            report = compare_investments(data.prices, result.sma, result.events, sessions, dates)
-            self.guide_lesson = replace(self.guide_lesson, report=report)
-            name = f"{GUIDE_NAME} ({GUIDE_SYMBOL})" if self.yahoo_enabled else "Educational example"
-            self.guide_status.text = (f"{name} · {data.dates[report.start]} – {data.dates[report.end]}\n"
-                f"{sma_label(result.period)} · "
-                f"target {result.target_frequency}/yr · observed {result.actual_annual_frequency:.2f}/yr · "
-                f"{len(report.crossings.indices)} buys per comparison")
-            prefix = "$"
-            values = [f"a. Upward crossings: {prefix}{report.crossings.ending_value:,.2f}"]
-            for key,title in (("dca","b. Equal periods"),("random","c. Most common random")):
-                scenario = getattr(report,key)
-                delta = scenario.difference_percent(report.crossings)
-                difference = "N/A" if delta is None else f"{delta:+.2f}%"
-                values.append(f"{title}: {prefix}{scenario.ending_value:,.2f} ({difference} vs a)")
-            self.guide_values.text = "\n".join(values)
-        except ValueError as error:
-            self.guide_values.text = str(error)
-
     def show_parameters(self, *_):
         if self.yahoo_enabled and not self.model.dataset.prices:
             self.show_search()
@@ -773,6 +660,9 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     def _before_navigation(self, destination):
         """Back/Library must not be undone by an asynchronous completion."""
+        if getattr(self,'guide_active',False) and destination not in ('guide','results','crossovers') and not (
+                destination=='search' and self._guide_configuring):
+            self.finish_guide(navigate=False)
         self._close_selectors(animate=False)
         for child in list(self.children):
             if isinstance(child,BottomSheet):
@@ -796,6 +686,8 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.guide_busy = False
 
     def go_back(self, *_):
+        if getattr(self,'guide_active',False) and self.manager.current!='crossovers':
+            self.finish_guide();return
         self.finish_editing()
         self.saved_sheet.dismiss(animate=False)
         if len(self._page_stack) > 1:
@@ -853,6 +745,8 @@ class AnalyzerScreen(Experience, FloatLayout):
         self._job+=1
         self._cancel_optimization.set()
         self._set_busy(False)
+        if getattr(self,'guide_active',False):
+            self.refresh();self.show_results();return
         self.show_parameters()
         self.search_status.text="Optimization cancelled. Adjust the target and try again."
 
@@ -983,6 +877,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         self._set_busy(self.busy)
 
     def submit_security_search(self, *_, force=False):
+        if getattr(self,'guide_active',False):self.finish_guide(navigate=False)
         if self.manager.current != "search":
             self.show_search(reset=False)
         try:
@@ -1231,6 +1126,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.message("Calculation failed unexpectedly. Try another security; details are in the log.", True)
 
     def on_save(self, *_):
+        if getattr(self,'guide_active',False):return
         if self.model.history_stale:return
         try:
             if self.model.result and self.model.editing_line_id and not self.model.current_saved_line():
@@ -1581,7 +1477,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.validation_popup.open()
 
     def sync_notification_schedule(self,*_):
-        if self.closed or not self.yahoo_enabled:
+        if self.closed or not self.yahoo_enabled or getattr(self,'guide_active',False):
             return
         try:
             from .native_schedule import sync_schedules
@@ -2390,6 +2286,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.backtest_details.text = str(error)
             self.backtest_note.text = ""
             self._set_backtest_captions("—")
+        self.refresh_guide()
 
     def _set_backtest_captions(self, count):
         self.backtest_subcaptions["dca"].text = "Regular buys, evenly spaced"
@@ -2439,6 +2336,7 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     def close(self):
         self.closed = True
+        if hasattr(self,'_guide_temp'):self._guide_temp.cleanup()
         welcome=getattr(self,"welcome_popup",None)
         if welcome is not None and welcome._is_open:
             welcome.dismiss(animation=False)

@@ -139,3 +139,28 @@ Chromium/WebKit capture and check these removals, section order and backup
 availability. Native settings captures confirm the removed card. This review
 covers these edits and related existing flows, not global UI equivalence or
 physical-device notification delivery.
+
+## Android 0.19.2 full-guide review
+
+The iPhone web 0.19.1 guide is the reference. Native now reuses the normal Charts
+and backtest components with the same introductory text and Finish action:
+company/price/change, SMA status, full chart and inspection, range chips,
+signals/history and recalculation, three equal-budget comparisons, contribution
+and date summary, ending values/gains/bars, random-sample statistic, disclaimer
+and All upward crossings. Default target is 4/year, chart 1Y and horizon Max.
+Frequency/history edits calculate explicitly; horizon changes reuse data/SMA.
+
+The guide uses a temporary model/store and suppresses saving and notification
+schedule changes. Finish, Back and tab navigation restore the original analysis,
+target, zoom and horizon. A late loading completion cannot reopen a finished
+lesson. Native fixture checks cover these paths, chart-history refinement and
+opening/returning from the crossing list; existing full native gates remain.
+
+The native and actual-Pyodide Chromium/WebKit guides receive identical controlled
+adjusted prices. Their displayed SMA period, latest price, default horizon and
+three ending values are compared, alongside the information/controls present.
+Native dark/light guide captures and browser phone-width captures are reviewed.
+Native Back and web browser/Finish navigation use their respective app controls;
+their OS keyboard/chrome differ. This establishes the reviewed guide flow, not
+global platform equivalence or physical-device scheduling. Native source/tag
+advances independently to 0.19.2; the web app remains 0.19.1.

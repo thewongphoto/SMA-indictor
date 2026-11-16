@@ -842,16 +842,17 @@ class SmokeApp(SMAStockAnalyzerApp):
         original=ui.model.dataset
         ui.guide_button.dispatch('on_release')
         yield from settle()
-        assert ui.manager.current=='guide' and ui.model.dataset is original
-        assert ui.guide_chart.timeline=='3Y' and len(ui.guide_chart.prices)==756
+        assert ui.manager.current=='results' and ui._guide_return['model'].dataset is original
+        assert ui.guide_chart.timeline=='1Y' and len(ui.guide_chart.prices)==756
         assert ui.guide_target.text=='4 / year' and ui.guide_backtest_period.text=='Max'
-        assert ui.guide_lesson.result.events and 'vs a' in ui.guide_values.text
+        assert ui.guide_lesson.result.events and all(v.text.startswith('$') for v in ui.backtest_values.values())
         ui.guide_content.export_to_png('artifacts/library-guide-full.png')
         capture('06-guide')
         ui.guide_target._dropdown.select('6 / year')
+        ui.on_detail_optimize()
         yield from settle()
         assert ui.guide_lesson.result.target_frequency==6
-        assert ui.model.dataset is original and not ui.model.store.list_all_lines()
+        assert ui._guide_return['model'].dataset is original and not ui.model.store.list_all_lines()
         assert ui.handle_back() and ui.manager.current=='library'
         self.check('library flow: isolated three-year guide, real frequency/backtest calculations and return without changing analysis')
         ui.new_analysis_button.dispatch('on_release')

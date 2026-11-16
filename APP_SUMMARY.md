@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current Android/desktop source: **0.19.1**; iPhone web: **0.19.1**. Native iPhone
+Current Android/desktop source: **0.19.2**; iPhone web: **0.19.1**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -151,6 +151,21 @@ PAST 3M/etc, and pinch displays actual endpoint dates. No interpolation or
 network request is needed for this comparison.
 
 ## Backtesting
+
+Android 0.19.2 uses this same full Charts/backtesting interface for the guided
+example. Its introduction and Finish example action precede the VOO identity,
+latest price/change, SMA status, chart/legend/inspection, range chips, signals
+and history controls. The complete backtest shows equal-buy counts/date spans,
+contributions, ending values, gains, comparison bars, random-sample statistic,
+disclaimer and All upward crossings. The guide starts at 4/year, a 1Y chart and
+Max investment horizon; later frequency/history calculations are explicit.
+
+The lesson runs in a separate temporary model/store. It cannot save lines or
+change real notification jobs. Finish, Back, tab changes and cancelled loading
+restore the original model, target, chart bounds and investment controls;
+late lesson/calculation completions cannot replace it. VOO history remains cached
+by the normal provider. The browser guide remains the reference implementation
+at web 0.19.1; its screens are unchanged by this native-only release.
 
 The independent horizon selector offers 1Y/3Y/5Y/Max and Custom years.
 Each scenario contributes USD 100 per purchase and holds fractional units to

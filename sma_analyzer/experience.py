@@ -228,6 +228,8 @@ class Experience(HistoryUI):
         self.optimal_caption.text = 'SELECTED LINE'
 
     def leave_detail(self, *_):
+        if getattr(self,'guide_active',False):
+            self.finish_guide();return
         if len(self._page_stack) > 1:
             self.go_back()
         else:
@@ -241,7 +243,9 @@ class Experience(HistoryUI):
                 self.target.text = 'Custom'
             finally:
                 self._syncing_controls=False
-            self.show_parameters()
+            self._guide_configuring=True
+            try:self.show_parameters()
+            finally:self._guide_configuring=False
             return
         self.target.text = f'{value} / year'
         self.refresh_detail_frequency()
@@ -729,6 +733,7 @@ class Experience(HistoryUI):
         self.refresh_alerts()
         self.refresh_inline_lines()
         self.refresh_history_controls()
+        self.refresh_guide()
 
     def refresh_inline_lines(self):
         from .app import WrappedLabel, LabButton

@@ -51,20 +51,30 @@ class RefinementSmoke(MobileYahooSmoke):
                 assert ui.manager.y>=ui.tab_bar.top-.5
         self.checked("four labelled tabs stay accessible on every screen at phone widths")
         ui.show_library()
+        original_model=ui.model
         ui.show_guide()
         yield lambda:not ui.guide_busy
         assert not ui.guide_lesson.dataset.is_simulated
         assert ui.guide_lesson.dataset.counter=="YAHOO:VOO"
         assert "Vanguard S&P 500 ETF (VOO)" in ui.guide_status.text
-        assert ui.model.dataset.counter=="UNSELECTED"
+        assert original_model.dataset.counter=="UNSELECTED"
         assert ui.guide_chart.viewport.dates==ui.guide_lesson.dataset.dates
         assert ui.guide_chart.prices==tuple(b["adj_close"] for b in self.client.bars)
         assert ui.guide_chart.price_label=="Adj. close"
         assert ui.guide_lesson.result.calendar_days is not None
         assert ui.guide_target.text=="4 / year" and ui.guide_lesson.result.target_frequency==4
         assert ui.guide_backtest_period.text=="Max" and ui.guide_lesson.report.start==0
+        review=Path('artifacts/guide-ui');review.mkdir(parents=True,exist_ok=True)
+        (review/'reference.json').write_text(json.dumps(dict(target=4,period=ui.model.result.period,
+            horizon=ui.backtest_period.text,price=ui.detail_price.text,
+            ending_values=[ui.backtest_values[k].text for k in ('crossings','dca','random')],
+            intro=True,status=True,chart=True,ranges=True,history=True,signals=True,
+            backtest=True,gains=True,random_stat=True,crossing_list=True)))
         yield from self.frames()
         self.capture("guide-max",ui.guide_content)
+        ui.appearance_buttons['light'].dispatch('on_release');yield from self.frames()
+        self.capture('guide-light',ui.guide_content)
+        ui.appearance_buttons['dark'].dispatch('on_release');yield from self.frames()
         lesson_data,lesson_result=ui.guide_lesson.dataset,ui.guide_lesson.result
         calls=len(self.client.calls)
         with patch.object(ui.market_executor,"submit",side_effect=AssertionError("Horizon changes must reuse the lesson")):
@@ -92,15 +102,49 @@ class RefinementSmoke(MobileYahooSmoke):
                 yield from self.frames()
                 assert reveal.call_args.args[0] is ui.guide_backtest_years
                 assert ui.handle_back() and not ui.guide_backtest_years.focus
-                assert ui.manager.current=="guide"
+                assert ui.manager.current=="results"
             ui.guide_backtest_years.text="invalid"
             ui.guide_backtest_years.dispatch("on_text_validate")
             assert "positive number of years" in ui.guide_values.text
             ui.guide_backtest_period._dropdown.select("Max")
-        assert len(self.client.calls)==calls and ui.model.dataset.counter=="UNSELECTED"
+        assert len(self.client.calls)==calls and original_model.dataset.counter=="UNSELECTED"
         ui.guide_target._dropdown.select("6 / year")
-        yield lambda:not ui.guide_busy
+        ui.on_detail_optimize()
+        yield lambda:not ui.busy
         assert ui.guide_lesson.result.target_frequency==6 and ui.guide_backtest_period.text=="Max"
+        assert ui.manager.current=='results' and ui.guide_intro.parent is ui.content
+        assert ui.detail_price.text.startswith('$') and 'day line' in ui.detail_summary.text
+        assert ui.guide_gestures.parent is ui.plot_panel
+        assert ui.detail_signals.parent is ui.content and ui.table_panel.parent is ui.content
+        assert all(v.text.startswith('$') for v in ui.backtest_values.values())
+        assert all('gain' in v.text or 'loss' in v.text or 'change' in v.text for v in ui.backtest_gains.values())
+        assert 'random samples' in ui.backtest_note.text
+        assert ui.save_button.disabled and ui.save_button.opacity==0
+        before_lines=original_model.store.list_all_lines()
+        ui.on_save();assert original_model.store.list_all_lines()==before_lines
+        ui.show_more_crossings();yield from self.frames()
+        assert ui.manager.current=='crossovers'
+        ui.go_back();yield from self.frames()
+        assert ui.guide_active and ui.manager.current=='results'
+        ui.show_history_picker();yield lambda:ui.price_history_sheet.progress==1
+        ui.history_presets[3].dispatch('on_release');ui.history_apply.dispatch('on_release')
+        yield lambda:ui.price_history_sheet.parent is None
+        assert ui.model.history_stale
+        ui.on_detail_optimize();yield lambda:not ui.busy
+        assert ui.model.result.history_start and not ui.model.history_stale
+        assert len(self.client.calls)==calls
+        self.capture('guide-full-detail',ui.content)
+        ui.finish_guide()
+        assert ui.model is original_model
+        assert original_model.store.list_all_lines()==before_lines
+        from concurrent.futures import Future
+        pending=Future()
+        with patch.object(ui.market_executor,'submit',return_value=pending):
+            ui.show_guide();assert ui.guide_busy
+            ui.finish_guide()
+            pending.set_result(ui.guide_lesson)
+            yield from self.frames()
+            assert not ui.guide_active and ui.model is original_model and ui.guide_intro.parent is None
         self.checked("live guided lesson downloads actual provider data without changing selection")
         self.checked("guide starts at 4/year and Max; every horizon and Custom reuse cached data/SMA, and other frequencies remain selectable")
         ui.show_search()

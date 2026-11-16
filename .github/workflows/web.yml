@@ -33,6 +33,7 @@ jobs:
       - run: python -m scripts.smoke_local_web
       - run: python -m scripts.smoke_chart_webkit
       - run: python -m scripts.smoke_history_web
+      - run: python -m scripts.smoke_guide_web
       - run: python -m scripts.smoke_builder_web
       - run: python -m scripts.smoke_setup_feedback
       - run: python -m scripts.smoke_signup_web
@@ -46,6 +47,7 @@ jobs:
             artifacts/local-web/
             artifacts/chart-webkit/
             artifacts/history-web/
+            artifacts/guide-web/
             artifacts/builder-web/
             artifacts/setup-feedback/
             artifacts/signup-web/

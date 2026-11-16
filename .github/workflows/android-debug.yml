@@ -147,6 +147,8 @@ jobs:
             artifacts/mobile-yahoo-ui-smoke.json
             artifacts/ui-refinements.log
             artifacts/ui-refinements-smoke.json
+            artifacts/guide-ui/
+            artifacts/ui-0.9/guide-*.png
             artifacts/ui-flow.log
             artifacts/ui-flow-smoke.json
             artifacts/ui-history.log

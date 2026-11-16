@@ -1,9 +1,27 @@
 # Validation and build status
 
-Current source: **0.19.1**. The matching Android build tag is **apk-v0.19.1**.
+Current source: **0.19.2**. The matching Android build tag is **apk-v0.19.2**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Android 0.19.2 replaces the simplified guide with the same detail/backtest
+components as the main native Charts screen. The affected review covers the
+introduction/Finish action, price/change/status, chart/ranges/legend/gestures,
+signals and history selection, complete comparisons/gains/random statistic and
+crossing list. Native tests exercise explicit frequency/history recalculation,
+independent horizons, Custom, save protection, restore of the original analysis
+and cancellation before loading completes. Chromium/WebKit guide fixtures use
+the same adjusted closing prices and compare their actual displayed SMA period,
+price and ending values with the native observations. Captures are retained in
+`guide-ui`, `guide-web` and the native guide captures in `ui-0.9` diagnostics.
+Physical-phone behaviour is separate from these controlled fixtures.
+Local validation passed all 13 native UI gates and all 370 Python tests (two
+optional skips). The final guide rerun also passed after the Android-private
+temporary-storage check and light/dark captures. Actual Chromium and WebKit
+guide observations matched the native SMA period, price and three ending values.
+The web guide UI stays at 0.19.1; its new observation test does not change web
+behaviour. See [the platform review](PLATFORM_RELEASES.md).
 
 Release 0.19.1 removes the duplicate native SMA card, places Signals per year
 before Saved lines, and adds Archive line/Cancel to the native combined editor.

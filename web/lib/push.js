@@ -1,3 +1,4 @@
+import {checkedHistory,historyKey,historyLabel,sameHistory} from "./history-window.js";
 import webpush from "web-push";
 import { createHash, createECDH } from "node:crypto";
 import { database, rpc, readiness } from "./supabase.js";
@@ -123,6 +124,7 @@ export function cleanDevice(body) {
       /[\u0000-\u001f\u007f]/.test(line.custom_name)
     )
       throw new Error("Invalid saved alert line");
+    const scope = checkedHistory(line);
     const result = {
       counter: line.counter,
       symbol,
@@ -131,6 +133,7 @@ export function cleanDevice(body) {
       target_frequency: line.target_frequency,
       custom_name: line.custom_name,
       name: String(line.name || symbol).slice(0, 160),
+      ...(scope.history_start ? scope : {}),
     };
     for (const key of SIGNAL_FIELDS) {
       if (typeof line[key] !== "boolean")
@@ -365,7 +368,7 @@ export async function runAlerts(
           (old) =>
             old.counter === line.counter &&
             old.period === line.period &&
-            old.target_frequency === line.target_frequency,
+            old.target_frequency === line.target_frequency && sameHistory(old,line),
         );
         if (!originalLine) continue;
         checked++;
@@ -387,6 +390,7 @@ export async function runAlerts(
               line.target_frequency,
               kind,
               session,
+              ...(line.history_start?[historyKey(line)]:[]),
             ]),
           )
           .digest("hex");
@@ -394,7 +398,7 @@ export async function runAlerts(
           !(await call("sma_claim_event", { p_key: key, p_device: current.id }))
         )
           continue;
-        const label = line.custom_name || `SMA (${line.period} days)`,
+        const label = (line.custom_name || `SMA (${line.period} days)`)+(line.history_start?` · ${historyLabel(line,true)}`:""),
           title =
             kind === "buy"
               ? "Buy signal"

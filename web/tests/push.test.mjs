@@ -35,6 +35,37 @@ const SETTINGS = {
   phone_monitor_start: true,
 };
 
+test('old APK/web payloads remain valid and custom history survives notification sync validation',()=>{
+  const body={device_id:'00000000-0000-4000-8000-000000000001',revision:1,settings:SETTINGS,
+    subscription:{endpoint:'https://web.push.apple.com/fixture',keys:{p256dh:'a'.repeat(87),auth:'b'.repeat(22)}},lines:[LINE]};
+  assert.equal(cleanDevice(body).p_lines[0].history_start,undefined);
+  const scope={history_start:'2019-01-01',history_end:'2024-12-31'};
+  assert.equal(cleanDevice({...body,lines:[{...LINE,...scope}]}).p_lines[0].history_end,scope.history_end);
+  assert.throws(()=>cleanDevice({...body,lines:[{...LINE,history_end:'2024-01-01'}]}));
+});
+
+test('same SMA with different training windows sends distinct events and retains old default hashes',async()=>{
+  const f=fixture(),keys=[],messages=[];
+  f.device.lines.push({...LINE,history_start:'2019-01-01',history_end:'2024-12-31',custom_name:'Plan'});
+  const call=f.call;
+  f.call=async(name,body)=>{if(name==='sma_claim_event')keys.push(body.p_key);return call(name,body);};
+  f.send=async(_,payload)=>messages.push(payload);
+  assert.equal((await runAlerts('SG',f)).posted,2);
+  assert.equal(new Set(keys).size,2);
+  assert.equal(keys[0],createHash('sha256').update(JSON.stringify([f.device.id,LINE.counter,LINE.period,LINE.target_frequency,'buy','2026-11-12'])).digest('hex'));
+  assert.ok(messages[1].body.includes('Plan · 2019–2024'));
+});
+
+test('a changed custom window during retrieval cannot send from the old snapshot',async()=>{
+  const f=fixture();
+  f.device.lines=[{...LINE,history_start:'2019-01-01',history_end:'2024-12-31'}];
+  const original=structuredClone(f.device),db=f.db,history=f.history;
+  let reads=0;
+  f.db=async(path,options)=>path.startsWith('sma_push_devices')&&!options&&reads++===0 ? [original]:db(path,options);
+  f.history=async()=>{f.device.lines[0].history_start='2020-01-01';return history();};
+  assert.equal((await runAlerts('SG',f)).posted,0);
+});
+
 test("scheduled signal rules match the native Python engine across equality, gaps and type switches", () => {
   const source = `
 import json

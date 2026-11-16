@@ -94,3 +94,24 @@ Its form timing is unchanged in this Android-only fix. Field purposes, optional
 Skip, confirmation before completion, data retention and API protocol remain the
 same. The Android system splash and Python/SDL initialization still precede its
 first UI frame; these fixtures do not measure physical-device startup speed.
+
+## Shared 0.19.0 custom-history review
+
+Both clients now expose the same history input before the first calculation and
+after a result. The reviewed journey covers All available, 10/5/3-year presets,
+invalid/custom dates, mini-chart/readout, cancel/reset, no automatic requests or
+calculations, stale Save protection, explicit recalculation and screen 24's two
+save choices. Update retains identity/name/colour/alert choices; New retains both
+and starts the new line's alert/type switches on. Home, saved lists, Alerts,
+chart/status and notification labels distinguish frozen custom windows while
+leaving default lines untagged.
+
+The native picker uses the shared scrolling bottom sheet and text date fields;
+the web picker uses the browser's native date input/keyboard. Both use standard
+app styling, readable phone layouts and explicit Cancel/Apply. The existing
+chart regressions retain markers, touch inspection and zoom checks; full-price
+charts and independent investment horizons are preserved. The new browser test
+runs the actual shared Python calculations in Chromium and WebKit. Native
+screenshots and browser captures were reviewed, including the absence of
+duplicate year labels on Home. Scope is this history journey and the existing
+chart/builder regressions, not every screen or physical OS behaviour.

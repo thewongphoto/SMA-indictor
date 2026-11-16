@@ -56,6 +56,7 @@ jobs:
           xvfb-run -a python -m scripts.smoke_mobile_yahoo_ui 2>&1 | tee artifacts/mobile-yahoo-ui.log
           xvfb-run -a python -m scripts.smoke_ui_refinements 2>&1 | tee artifacts/ui-refinements.log
           xvfb-run -a python -m scripts.smoke_ui_flow 2>&1 | tee artifacts/ui-flow.log
+          xvfb-run -a python -m scripts.smoke_history_ui 2>&1 | tee artifacts/ui-history.log
           xvfb-run -a python -m scripts.smoke_ui_redesign 2>&1 | tee artifacts/ui-redesign.log
           xvfb-run -a python -m scripts.smoke_ui_signup 2>&1 | tee artifacts/ui-signup.log
           xvfb-run -a python -m scripts.smoke_startup_signup 2>&1 | tee artifacts/ui-startup-signup.log
@@ -148,6 +149,8 @@ jobs:
             artifacts/ui-refinements-smoke.json
             artifacts/ui-flow.log
             artifacts/ui-flow-smoke.json
+            artifacts/ui-history.log
+            artifacts/history-ui/
             artifacts/ui-signup.log
             artifacts/signup-ui/
             artifacts/ui-startup-signup.log

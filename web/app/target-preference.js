@@ -1,8 +1,9 @@
 "use client";
+import {HistoryRow} from "./history-picker";
 import CompanyLogo from "./company-logo";
 
 // The builder and chart edit the same target, just as Android's two controls do.
-export default function TargetPreference({ security, onSecurity, target, custom, onTarget, onCustom, onOptimize, disabled, calendar }) {
+export default function TargetPreference({ security, onSecurity, target, custom, onTarget, onCustom, onOptimize, disabled, calendar, data, history, onHistory, stale }) {
   return (
     <section className={`card target-preference${security ? " preference-builder" : ""}`}>
       {security && <>
@@ -27,7 +28,8 @@ export default function TargetPreference({ security, onSecurity, target, custom,
             step="1" required value={target} onChange={(event) => onTarget(event.target.value, true)} />
         </label>}
         {calendar && <p className="small">1 year = 365 calendar days, including weekends and holidays.</p>}
-        <button className="primary" disabled={disabled}>Find best SMA for {target} signals / year</button>
+        <HistoryRow data={data} value={history} onOpen={onHistory}/>
+        <button className="primary" disabled={disabled}>{stale ? "Recalculate for" : "Find best SMA for"} {target} signals / year</button>
       </form>
       <p className="small center">Matches signal frequency, not profit.</p>
     </section>

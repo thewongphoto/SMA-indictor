@@ -532,17 +532,18 @@ class SmokeApp(SMAStockAnalyzerApp):
                 assert ui.frequency_chips.y > ui.optimize_button.top
                 assert abs(ui.counter.x-ui.frequency_chips.x)<dp(1)
                 assert abs(ui.frequency_chips.x-ui.optimize_button.x)<dp(1)
-                assert ui.controls.height < dp(450), "Merged controls stay compact while stacked"
+                assert ui.controls.height-ui.price_history_button.height-dp(12) < dp(450), "Existing controls stay compact with one added history row"
                 assert ui.optimal_panel.orientation == "vertical"
                 assert ui.card_values["period"].y >= ui.hide_button.top
             elif ui.control_grid.cols == 1:
                 assert ui.counter.y > ui.frequency_chips.y > ui.optimize_button.y
-                assert ui.controls.height < dp(360)
+                assert ui.controls.height-ui.price_history_button.height-dp(12) < dp(360)
             else:
                 assert abs(ui.counter.y - ui.scenario.y) < dp(1)
                 assert ui.counter.y > ui.frequency_chips.y
                 assert ui.controls.height < dp(185)
-            for widget in [ui.counter, ui.frequency_chips, ui.optimize_button]:
+            assert ui.frequency_chips.y > ui.price_history_button.y > ui.optimize_button.y
+            for widget in [ui.counter, ui.frequency_chips, ui.price_history_button, ui.optimize_button]:
                 assert widget.width >= dp(110)
                 assert widget.x >= ui.content.x and widget.right <= ui.content.right
                 assert widget.height >= dp(44)

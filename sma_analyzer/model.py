@@ -9,6 +9,7 @@ from .market_data import PreviewMarketDataProvider
 from .securities import security_by_key
 from .policy import observable_comparisons,calendar_weights,observable_calendar_days
 from .storage import LineStore, SavedLine
+from .history_window import optimize_history, scoped_result, window_dates, label as history_label
 from .line_names import sma_label
 
 
@@ -21,6 +22,8 @@ class PlotLine:
     active: bool = False
     color_index: int | None = None
     name: str = ""
+    history_start: str = ""
+    history_end: str = ""
 
 
 class AnalyzerModel:
@@ -29,6 +32,8 @@ class AnalyzerModel:
         self.data_provider = data_provider or PreviewMarketDataProvider()
         self.dataset = (self.data_provider.initial_dataset() if hasattr(self.data_provider, "initial_dataset")
                         else self.data_provider.historical_data(security_by_key("DEMO-SGX"), "Oscillating"))
+        self.history_start = self.history_end = ""
+        self.editing_line_id = None
         self.target_frequency = 12
         self.result: OptimizationResult | None = None
         self.active_visible = True
@@ -65,6 +70,8 @@ class AnalyzerModel:
 
     def apply_dataset(self, dataset):
         self.dataset = dataset
+        self.history_start = self.history_end = ""
+        self.editing_line_id = None
         self.result = None
         self.active_visible = True
         self.viewing_saved = False
@@ -75,7 +82,7 @@ class AnalyzerModel:
         if self._fingerprint_cache is None or self._fingerprint_cache[0] is not self.dataset:
             data = self.dataset
             policy_version = 2 if getattr(data,"is_simulated",True) else 3
-            payload = json.dumps((policy_version,data.version,getattr(data,"price_basis","example-close"),data.dates,
+            payload = json.dumps((policy_version,self.history_start,self.history_end,data.version,getattr(data,"price_basis","example-close"),data.dates,
                 [float(p) if p is not None and math.isfinite(p) else None for p in data.prices]),
                 separators=(",",":"),allow_nan=False).encode()
             self._fingerprint_cache = (data,hashlib.sha256(payload).hexdigest())
@@ -86,10 +93,10 @@ class AnalyzerModel:
                                 self.data_fingerprint(),result.period)
 
     def reuse_result(self):
-        saved = [line for line in self.saved_lines() if line.target_frequency == self.target_frequency]
+        saved = [line for line in self.saved_lines() if line.target_frequency == self.target_frequency and (line.history_start,line.history_end)==(self.history_start,self.history_end)]
         for line in reversed(saved):
             try:
-                result = self.result_for_dataset(self.dataset,line.period,line.target_frequency)
+                result = self.result_for_dataset(self.dataset,line.period,line.target_frequency,line.history_start,line.history_end)
             except ValueError:
                 continue
             self.apply_result(result)
@@ -98,7 +105,7 @@ class AnalyzerModel:
         period = self.store.cached_choice(self.dataset.counter,self.dataset.scenario,
                                           self.target_frequency,self.data_fingerprint())
         if period is not None:
-            self.apply_result(self.result_for_dataset(self.dataset,period,self.target_frequency))
+            self.apply_result(self.result_for_dataset(self.dataset,period,self.target_frequency,self.history_start,self.history_end))
             return True
         return False
 
@@ -119,8 +126,9 @@ class AnalyzerModel:
 
     def calculate(self) -> OptimizationResult:
         """Synchronous route for tests and non-UI clients."""
-        result = optimize_sma(self.dataset.prices, self.target_frequency,
-                              dates=None if getattr(self.dataset,"is_simulated",True) else self.dataset.dates)
+        result = optimize_history(self.dataset.prices,self.target_frequency,dates=self.dataset.dates,
+            history_start=self.history_start,history_end=self.history_end,
+            simulated=getattr(self.dataset,'is_simulated',True))
         self.remember_result(result)
         self.apply_result(result)
         return result
@@ -142,26 +150,37 @@ class AnalyzerModel:
         self.apply_saved_line(prepared)
         return prepared[0]
 
+    @property
+    def history_stale(self):
+        return self.result is not None and (self.result.history_start,self.result.history_end)!=(self.history_start,self.history_end)
+
+    def set_history(self,start='',end=''):
+        from .history_window import validate
+        start,end=window_dates(start,end)
+        validate(self.dataset.prices,self.dataset.dates,start,end)
+        current=self.current_saved_line()
+        if current:self.editing_line_id=current.id
+        self.history_start,self.history_end=start,end
+        self._fingerprint_cache=None
+
     @staticmethod
-    def result_for_dataset(data, period, target):
-        average = tuple(simple_moving_average(data.prices, period))
-        comparisons = observable_comparisons(data.prices, average)
-        if not comparisons:
-            raise ValueError("Not enough observable history to display this saved SMA.")
-        return OptimizationResult(period, target, len(data.prices), comparisons,
-            average, crossover_events(data.prices, average),observable_calendar_days(data.prices,average,
-                calendar_weights(None if getattr(data,"is_simulated",True) else data.dates,len(data.prices))))
+    def result_for_dataset(data,period,target,history_start='',history_end=''):
+        return scoped_result(data.prices,data.dates,period,target,history_start,history_end,
+            simulated=getattr(data,'is_simulated',True))
 
     def prepare_saved_line(self, line_id):
         line = self.store.get_line(line_id)
         data = self.data_provider.historical_data(self.security(line.counter), line.scenario)
-        result = self.result_for_dataset(data, line.period, line.target_frequency)
+        result = self.result_for_dataset(data, line.period, line.target_frequency,line.history_start,line.history_end)
         return line, data, result
 
     def apply_saved_line(self, prepared):
         line, data, result = prepared
         self.dataset = data
         self.target_frequency = line.target_frequency
+        self.history_start,self.history_end=line.history_start,line.history_end
+        self._fingerprint_cache=None
+        self.editing_line_id=line.id
         self.result = result
         self.active_visible = True
         self.viewing_saved = True
@@ -170,46 +189,59 @@ class AnalyzerModel:
     def saved_lines(self) -> list[SavedLine]:
         return self.store.list_lines(self.dataset.counter, self.dataset.scenario)
 
-    def save_current(self) -> None:
+    def save_current(self,update=False) -> None:
         if self.result is None:
             raise ValueError("Press Optimize SMA before saving a line.")
-        self.store.save(self.dataset.counter, self.dataset.scenario,
-                        self.result.period, self.result.target_frequency)
+        if self.history_stale:raise ValueError('Recalculate to match the selected price history before saving.')
+        if update and self.editing_line_id:
+            self.store.update_analysis(self.editing_line_id,self.result.period,self.result.target_frequency,self.result.history_start,self.result.history_end)
+        else:
+            as_new=self.editing_line_id is not None
+            self.store.save(self.dataset.counter, self.dataset.scenario,
+                        self.result.period, self.result.target_frequency,self.result.history_start,self.result.history_end)
+            if as_new:
+                line=self.current_saved_line()
+                self.store.rename(line.id,'')
+                self.store.set_notifications(line.id,'phone',True)
+                for kind in ('buy','monitor','monitor_start'):self.store.set_line_alert(line.id,kind,True)
+        self.editing_line_id=None
 
     def current_saved_line(self) -> SavedLine | None:
         if self.result is None:
             return None
         return next((line for line in self.saved_lines()
-                     if (line.period, line.target_frequency) ==
-                     (self.result.period, self.result.target_frequency)), None)
+                     if (line.period, line.target_frequency,line.history_start,line.history_end) ==
+                     (self.result.period, self.result.target_frequency,self.result.history_start,self.result.history_end)), None)
 
     def toggle_current_saved(self) -> bool:
         saved = self.current_saved_line()
         if saved is not None:
             self.store.delete(saved.id)
+            if self.editing_line_id==saved.id:self.editing_line_id=None
             return False
         self.save_current()
         return True
 
     def plot_lines(self) -> list[PlotLine]:
-        # One visual line per period, with its persistent security-specific color.
-        lines: dict[int, PlotLine] = {}
+        # Separate custom windows keep their own identities and colours.
+        lines: dict[tuple, PlotLine] = {}
         for saved in self.saved_lines():
             if saved.visible and saved.period <= len(self.dataset.prices):
-                lines[saved.period] = PlotLine(
+                lines[(saved.period,saved.history_start,saved.history_end)] = PlotLine(
                     f"saved-{saved.id}", saved.period, saved.target_frequency,
                     tuple(simple_moving_average(self.dataset.prices, saved.period)),
-                    color_index=self.store.color_index(saved.counter,saved.scenario,saved.period),
-                    name=saved.display_name,
+                    color_index=self.store.line_color_index(saved),
+                    name=saved.display_name,history_start=saved.history_start,history_end=saved.history_end,
                 )
         if self.result is not None:
             # Active visibility controls this period even if it was also saved.
-            lines.pop(self.result.period, None)
+            scope=(self.result.period,self.result.history_start,self.result.history_end)
+            lines.pop(scope, None)
             if self.active_visible:
-                lines[self.result.period] = PlotLine(
+                lines[scope] = PlotLine(
                     "active", self.result.period, self.result.target_frequency, self.result.sma, True,
-                    self.store.color_index(self.dataset.counter,self.dataset.scenario,self.result.period),
-                    self.current_line_name(),
+                    self.store.line_color_index(self.current_saved_line()) if self.current_saved_line() else self.store.color_index(self.dataset.counter,self.dataset.scenario,self.result.period),
+                    self.current_line_name(), self.result.history_start,self.result.history_end,
                 )
         return list(lines.values())
 
@@ -218,7 +250,7 @@ class AnalyzerModel:
             return {"period": "—", "target": f"{self.target_frequency} / yr", "actual": "—", "count": "—"}
         saved = self.current_saved_line()
         return {
-            "period": saved.custom_name if saved and saved.custom_name else sma_label(self.result.period),
+            "period": saved.display_name if saved else self.current_line_name(),
             "target": f"{self.result.target_frequency} / yr",
             "actual": f"{self.result.actual_annual_frequency:.2f} / yr",
             "count": str(self.result.crossing_count),
@@ -226,7 +258,12 @@ class AnalyzerModel:
 
     def current_line_name(self):
         saved = self.current_saved_line()
-        return saved.display_name if saved else sma_label(self.result.period) if self.result else "SMA"
+        if saved:
+            return saved.display_name
+        if self.result is None:
+            return "SMA"
+        years = history_label(self.result.history_start, self.result.history_end, short=True)
+        return sma_label(self.result.period) + (f" · {years}" if years else "")
 
     def event_rows(self) -> list[tuple[str, str, str]]:
         if self.result is None:

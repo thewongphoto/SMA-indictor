@@ -1,6 +1,6 @@
 # Current app behaviour and calculation rules
 
-Current Android/desktop source: **0.18.2**; iPhone web: **0.18.2**. Native iPhone
+Current Android/desktop source: **0.19.0**; iPhone web: **0.19.0**. Native iPhone
 releases are paused; [the Vercel/PWA app supports local Python and configurable Web Push](docs/PRIVATE_IPHONE_INSTALLATION.md).
 This document describes the current app, including its material limitations.
 
@@ -64,6 +64,35 @@ approximation. The period cap still measures history in trading observations;
 it does not redefine a live calendar year.
 
 ## Navigation and chart controls
+
+### Custom price history (0.19.0)
+
+The **Price history used** row sits between target frequency and Calculate on
+both the preference screen and chart. All available preserves previous behaviour.
+The picker offers All available, Last 10/5/3 years and Custom dates, a highlighted
+mini chart, live session count, actual usable dates and reset/cancel. Presets use
+365-day years and resolve to fixed dates; saved windows do not roll forward.
+
+Only optimizer scoring uses the selected slice, including its own warm-up and
+gap exclusions. It uses the existing candidate cap, coverage checks, exact ties
+and live 365-day annualization. At least four sessions are necessary; incomplete
+windows may require more. The proposal's two-year placeholder is not a new rule.
+The selected SMA is drawn across the complete downloaded history. Chart zoom,
+investment horizon and future daily alerts remain independent of training dates.
+
+Changing a window retains the earlier result, dims it, disables Save and asks for
+Recalculate. It makes no request/calculation until submitted. Saving a recalculated
+saved line asks Update this line or Save as a new line. Update preserves ID, name,
+colour, visibility and alert choices. New keeps the original and starts the new
+line's phone/type switches on; master switches and OS permissions still apply.
+
+Custom lines carry neutral year tags on Home, year-qualified fallback names,
+full dates in Saved lines/Alerts and scoped notification labels. Default lines
+gain no tags. The detail chart dims prices outside the calculation window and
+labels its bracket. Scoped identities persist through restart, archive/restore,
+browser backup and notification sync. Existing SQLite rows are migrated without
+changing their IDs or preferences; default alert deduplication keys are unchanged.
+See [feature contract and review](docs/CUSTOM_PRICE_HISTORY.md).
 
 ```mermaid
 flowchart TD

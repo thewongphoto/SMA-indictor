@@ -30,6 +30,7 @@ await mkdir(join(out, "sma_analyzer"), { recursive: true });
 const files = [
   "__init__",
   "engine",
+  "history_window",
   "policy",
   "settings",
   "backtest",

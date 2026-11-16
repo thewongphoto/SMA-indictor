@@ -85,12 +85,13 @@ class BottomSheet(FloatLayout):
     progress = NumericProperty(0)
     is_open = BooleanProperty(False)
 
-    def __init__(self, host, panel, title="",height_ratio=.7,results_only=False,**kwargs):
+    def __init__(self, host, panel, title="",height_ratio=.7,results_only=False,max_height=dp(600),**kwargs):
         super().__init__(size_hint=(None,None), **kwargs)
         self.host = host
         self.content=panel
         self.title=title
         self.height_ratio=height_ratio
+        self.max_height=max_height
         self.results_only=results_only
         self._host_bound=False
         self.backdrop = Button(background_normal="", background_down="",
@@ -124,7 +125,7 @@ class BottomSheet(FloatLayout):
     def _layout(self, *_):
         self.backdrop.pos, self.backdrop.size = self.pos, self.size
         self.backdrop.background_color = (0, 0, 0, .4*self.progress)
-        self.body.size = (min(self.width-dp(16), dp(968)), min(self.height*self.height_ratio, dp(600)))
+        self.body.size = (min(self.width-dp(16), dp(968)), min(self.height*self.height_ratio, self.max_height))
         self.body.pos = (self.center_x-self.body.width/2,
                          self.y-self.body.height*(1-self.progress))
         self._background.pos, self._background.size = self.body.pos, self.body.size

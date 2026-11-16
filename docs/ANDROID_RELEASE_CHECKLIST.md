@@ -1,6 +1,6 @@
 # Android release checklist
 
-Current source: **0.18.2**. Automatically publish completed, validated Android
+Current source: **0.19.0**. Automatically publish completed, validated Android
 changes unless the user asks to hold them. Native iOS releases are paused.
 For web-only changes use the [platform release guide](PLATFORM_RELEASES.md):
 keep the native version unchanged and push main without an `apk-v` tag. Before
@@ -30,6 +30,7 @@ python -m scripts.smoke_ui --library-flow-only
 python -m scripts.smoke_mobile_yahoo_ui
 python -m scripts.smoke_ui_refinements
 python -m scripts.smoke_ui_flow
+python -m scripts.smoke_history_ui
 python -m scripts.smoke_ui_redesign
 python -m scripts.smoke_ui_signup
 python -m scripts.smoke_startup_signup
@@ -57,6 +58,7 @@ APT signature or TLS verification to work around a mirror/network failure.
 | Upgrade | Install over the existing app; saved periods, colours, names, cache and alert choices survive. |
 | Search | No keystroke requests; Enter/Submit searches; selection loads real adjusted history; stale responses cannot replace newer selections. |
 | Parameters | Selection and target share one page; keyboard stays usable; matching saved/cached choices open immediately. |
+| Price history | All available default; presets/custom dates validate before applying; Cancel leaves dates unchanged; window changes stay stale until Recalculate. Update preserves settings; New keeps both with alerts on. |
 | Calculation | Continuous logo paths/plus, dimmed background, responsive native Back cancellation. |
 | Library | All companies/SMAs appear, start collapsed, and retain colours/visibility/preferences; View uses the exact period. |
 | Chart | Smooth pinch, EOD inspector, nonoverlapping month/year ticks, ranges and endpoint changes stay consistent. |

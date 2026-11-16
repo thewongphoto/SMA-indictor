@@ -29,23 +29,41 @@ class SavedLine:
     alert_monitor: bool = True
     alert_start: bool = True
 
+    history_start: str = ""
+    history_end: str = ""
+    line_color: int | None = None
+
+    @property
+    def history_label(self):
+        from .history_window import label
+        return label(self.history_start,self.history_end)
+
+    @property
+    def history_years(self):
+        from .history_window import label
+        return label(self.history_start,self.history_end,short=True)
+
     def alert_enabled(self, kind):
         return {"buy": self.alert_buy, "monitor": self.alert_monitor,
                 "monitor_start": self.alert_start}[kind]
 
     @property
+    def notification_name(self):
+        return self.display_name+(f" · {self.history_years}" if self.custom_name and self.history_start else "")
+
+    @property
     def display_name(self):
-        return self.custom_name or sma_label(self.period)
+        return self.custom_name or (sma_label(self.period)+(f" · {self.history_years}" if self.history_start else ""))
 
 
 ALERT_COLUMNS = ("alert_buy", "alert_monitor", "alert_start")
 ALERT_KIND_COLUMNS = {"buy": "alert_buy", "monitor": "alert_monitor", "monitor_start": "alert_start"}
 LINE_COLUMNS = ("id,counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name,"
-                + ",".join(ALERT_COLUMNS))
+                + ",".join(ALERT_COLUMNS)+",history_start,history_end,line_color")
 
 
 def _line(row):
-    return SavedLine(*row[:5], *map(bool, row[5:8]), row[8], *map(bool, row[9:12]))
+    return SavedLine(*row[:5], *map(bool, row[5:8]), row[8], *map(bool, row[9:12]), *row[12:15])
 
 
 class LineStore:
@@ -87,6 +105,23 @@ class LineStore:
                 for name in ALERT_COLUMNS:
                     if name not in columns:
                         connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} INTEGER NOT NULL DEFAULT 1 CHECK({name} IN (0,1))")
+            for table in ("saved_lines","unsaved_lines"):
+                fields={r[1] for r in connection.execute(f"PRAGMA table_info({table})")}
+                for name,definition in (("history_start","TEXT NOT NULL DEFAULT ''"),("history_end","TEXT NOT NULL DEFAULT ''"),("line_color","INTEGER")):
+                    if name not in fields:connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+            # SQLite cannot change a UNIQUE constraint in place. Copy every
+            # existing column/ID atomically; history defaults preserve old saves.
+            import re
+            sql=connection.execute("SELECT sql FROM sqlite_master WHERE name='saved_lines'").fetchone()[0]
+            old=r"UNIQUE\s*\(counter,\s*scenario,\s*period,\s*target_frequency,\s*data_version\)"
+            if re.search(old,sql):
+                upgraded=re.sub(old,"UNIQUE(counter,scenario,period,target_frequency,data_version,history_start,history_end)",sql)
+                upgraded=upgraded.replace("saved_lines","saved_lines_window",1)
+                connection.execute(upgraded)
+                fields=",".join('"'+r[1]+'"' for r in connection.execute("PRAGMA table_info(saved_lines)"))
+                connection.execute(f"INSERT INTO saved_lines_window ({fields}) SELECT {fields} FROM saved_lines")
+                connection.execute("DROP TABLE saved_lines")
+                connection.execute("ALTER TABLE saved_lines_window RENAME TO saved_lines")
             connection.execute("CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             connection.execute("CREATE TABLE IF NOT EXISTS deliveries (event_key TEXT PRIMARY KEY)")
             connection.execute("""CREATE TABLE IF NOT EXISTS notification_runs (
@@ -141,23 +176,41 @@ class LineStore:
             raise ValueError("This SMA is no longer saved. Choose another saved line.")
         return line
 
-    def save(self, counter: str, scenario: str, period: int, target: int) -> None:
-        with self._connect() as connection:
-            self._allocate_color(connection,counter,scenario,period)
-            archived = connection.execute("SELECT custom_name,push_enabled,"+",".join(ALERT_COLUMNS)+
-                " FROM unsaved_lines WHERE counter=? AND scenario=? "
-                "AND period=? AND target_frequency=? AND data_version=?",(counter,scenario,period,target,DATA_VERSION)).fetchone()
-            connection.execute(
-                "INSERT INTO saved_lines(counter, scenario, period, target_frequency, data_version,custom_name,push_enabled,"
-                + ",".join(ALERT_COLUMNS) + ") "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(counter, scenario, period, target_frequency, "
-                "data_version) DO NOTHING",
-                (counter, scenario, period, target, DATA_VERSION, *(archived or ("", 1, 1, 1, 1))),
-            )
+    def save(self, counter, scenario, period, target, history_start='', history_end=''):
+        from .history_window import window_dates
+        start,end=window_dates(history_start,history_end)
+        with self._connect() as db:
+            self._allocate_color(db,counter,scenario,period)
+            old=db.execute("SELECT custom_name,push_enabled,"+",".join(ALERT_COLUMNS)+",line_color FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? AND target_frequency=? AND data_version=? AND history_start=? AND history_end=?",
+                (counter,scenario,period,target,DATA_VERSION,start,end)).fetchone()
+            color=self.color_index(counter,scenario,period) if not start else self._next_line_color(db,counter,scenario)
+            values=old or ("",1,1,1,1,color if start else None)
+            db.execute("INSERT INTO saved_lines(counter,scenario,period,target_frequency,data_version,history_start,history_end,custom_name,push_enabled,alert_buy,alert_monitor,alert_start,line_color) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(counter,scenario,period,target_frequency,data_version,history_start,history_end) DO NOTHING",
+                (counter,scenario,period,target,DATA_VERSION,start,end,*values))
+            db.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? AND target_frequency=? AND data_version=? AND history_start=? AND history_end=?",
+                (counter,scenario,period,target,DATA_VERSION,start,end))
 
-            connection.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? "
-                               "AND target_frequency=? AND data_version=?",
-                               (counter, scenario, period, target, DATA_VERSION))
+    @staticmethod
+    def _next_line_color(db,counter,scenario):
+        existing=[r[0] for r in db.execute("SELECT color_index FROM sma_colors WHERE counter=? AND scenario=?",(counter,scenario))]
+        existing += [r[0] for r in db.execute("SELECT line_color FROM saved_lines WHERE counter=? AND scenario=? AND line_color>=0",(counter,scenario))]
+        return max(existing,default=-1)+1
+
+    def line_color_index(self,line):
+        return line.line_color if line.line_color is not None else self.color_index(line.counter,line.scenario,line.period)
+
+    def update_analysis(self,line_id,period,target,start='',end=''):
+        from .history_window import window_dates
+        start,end=window_dates(start,end)
+        original=self.get_line(line_id)
+        color=self.line_color_index(original)
+        with self._connect() as db:
+            try:
+                changed=db.execute("UPDATE saved_lines SET period=?,target_frequency=?,history_start=?,history_end=?,line_color=? WHERE id=?",
+                    (period,target,start,end,color,line_id)).rowcount
+            except sqlite3.IntegrityError:raise ValueError('That exact line is already saved. Choose another history or open it.') from None
+            if not changed:raise ValueError('This SMA is no longer saved.')
+        return self.get_line(line_id)
 
     def set_visible(self, line_id: int, visible: bool) -> None:
         with self._connect() as connection:
@@ -175,14 +228,14 @@ class LineStore:
         with self._connect() as connection:
             row = connection.execute(
                 "SELECT counter,scenario,period,target_frequency,visible,push_enabled,email_enabled,custom_name,"
-                + ",".join(ALERT_COLUMNS) + ",data_version FROM saved_lines WHERE id=?", (line_id,)).fetchone()
+                + ",".join(ALERT_COLUMNS) + ",history_start,history_end,line_color,data_version FROM saved_lines WHERE id=?", (line_id,)).fetchone()
             if row is None:
                 return
             connection.execute("DELETE FROM unsaved_lines WHERE counter=? AND scenario=? AND period=? "
-                               "AND target_frequency=? AND data_version=?", (*row[:4], row[-1]))
+                               "AND target_frequency=? AND data_version=? AND history_start=? AND history_end=?", (*row[:4], row[-1],row[-4],row[-3]))
             connection.execute("INSERT INTO unsaved_lines(counter,scenario,period,target_frequency,visible,"
                                "push_enabled,email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
-                               ",data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", row)
+                               ",history_start,history_end,line_color,data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", row)
             connection.execute("DELETE FROM unsaved_lines WHERE id NOT IN "
                                "(SELECT id FROM unsaved_lines ORDER BY id DESC LIMIT 10)")
             connection.execute("DELETE FROM saved_lines WHERE id=?", (line_id,))
@@ -198,7 +251,7 @@ class LineStore:
         with self._connect() as connection:
             row = connection.execute("SELECT counter,scenario,period,target_frequency,visible,push_enabled,"
                                      "email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
-                                     ",data_version FROM unsaved_lines WHERE id=? AND data_version=?",
+                                     ",history_start,history_end,line_color,data_version FROM unsaved_lines WHERE id=? AND data_version=?",
                                      (history_id, DATA_VERSION)).fetchone()
             if row is None:
                 raise ValueError("This unsaved line is no longer in the last 10 entries.")
@@ -206,8 +259,8 @@ class LineStore:
                 raise ValueError("Save your email address in Settings before restoring an email-enabled line.")
             connection.execute("INSERT INTO saved_lines(counter,scenario,period,target_frequency,visible,"
                                "push_enabled,email_enabled,custom_name," + ",".join(ALERT_COLUMNS) +
-                               ",data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
-                               "ON CONFLICT(counter,scenario,period,target_frequency,data_version) DO NOTHING", row)
+                               ",history_start,history_end,line_color,data_version) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                               "ON CONFLICT(counter,scenario,period,target_frequency,data_version,history_start,history_end) DO NOTHING", row)
             connection.execute("DELETE FROM unsaved_lines WHERE id=?", (history_id,))
             self._allocate_color(connection,*row[:3])
 
@@ -240,6 +293,9 @@ class LineStore:
                                    (line_id,DATA_VERSION)).fetchone()
             if row is None:
                 raise ValueError("This SMA is no longer saved.")
+            if self.get_line(line_id).history_start or self.get_line(line_id).line_color is not None:
+                connection.execute("UPDATE saved_lines SET line_color=? WHERE id=?",(-choice-1,line_id))
+                return
             self._allocate_color(connection,*row)
             connection.execute("UPDATE sma_colors SET custom_color=? WHERE counter=? AND scenario=? AND period=?",
                                (choice,*row))

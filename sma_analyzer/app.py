@@ -40,6 +40,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from .navigation import SavedLinesSheet, BottomSheet, SoftPageTransition, OptimizationOverlay
 
 from .chart import ACTIVE_COLOR, MUTED, PRICE_COLOR, ChartScrollView, PriceChart
+from .history_window import optimize_history
 from .engine import optimize_sma
 from .policy import maximum_sma_period,CALENDAR_DAYS_PER_YEAR
 from .model import AnalyzerModel, PlotLine
@@ -807,7 +808,7 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     @property
     def editors(self):
-        return (self.security_search, self.custom_target, self.alert_session, self.guide_backtest_years) + tuple(getattr(self,name) for name in ("backtest_years","rename_editor","contact_editor","welcome_editor") if hasattr(self,name))
+        return (self.security_search, self.custom_target, self.alert_session, self.guide_backtest_years) + tuple(getattr(self,name) for name in ("backtest_years","rename_editor","contact_editor","welcome_editor","history_from","history_to") if hasattr(self,name))
 
     def finish_editing(self):
         for editor in self.editors:
@@ -820,7 +821,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             return True
         if self._close_selectors():
             return True
-        for name in ("rename_popup","color_popup","history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
+        for name in ("price_history_sheet","history_save_sheet","rename_popup","color_popup","history_popup", "validation_popup", "backtest_help_popup", "api_log_popup", "clear_data_popup"):
             popup = getattr(self, name, None)
             if popup is not None and (popup._is_open or isinstance(popup,BottomSheet) and popup.parent is not None):
                 popup.dismiss()
@@ -875,6 +876,10 @@ class AnalyzerScreen(Experience, FloatLayout):
                     popup=getattr(self,'welcome_popup',None)
                     if popup is not None and popup._is_open:
                         self.welcome_scroll.scroll_to(editor,padding=dp(20),animate=False)
+                    return
+                if editor in (getattr(self,'history_from',None),getattr(self,'history_to',None)):
+                    sheet=getattr(self,'price_history_sheet',None)
+                    if sheet is not None and sheet.parent is not None:sheet.scroll.scroll_to(editor,padding=dp(20),animate=False)
                     return
                 scroll = (self.search_scroll if editor is self.security_search else
                           self.parameter_scroll if editor is self.custom_target else
@@ -1157,7 +1162,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.optimize_button.disabled = True
         for button in self.security_match_buttons:
             button.disabled = busy
-        self.save_button.disabled = busy or self.model.result is None
+        self.save_button.disabled = busy or self.model.result is None or self.model.history_stale
         self.hide_button.disabled = busy or self.model.result is None
         if hasattr(self,"refresh_detail_frequency"):
             self.refresh_detail_frequency()
@@ -1192,12 +1197,16 @@ class AnalyzerScreen(Experience, FloatLayout):
         self._job += 1
         token = self._job
         self._set_busy(True)
-        self.message("Calculating all candidate periods across the full history…")
+        self.message("Calculating all candidate periods across the selected history…" if self.model.history_start else "Calculating all candidate periods across the full history…")
         self._cancel_optimization.set()
         self._cancel_optimization = Event()
-        future = self.executor.submit(optimize_sma, self.model.dataset.prices, self.model.target_frequency,
-            cancel=self._cancel_optimization,
-            dates=None if getattr(self.model.dataset,"is_simulated",True) else self.model.dataset.dates)
+        scope=dict(history_start=self.model.history_start,history_end=self.model.history_end)
+        if self.model.history_start:
+            future=self.executor.submit(optimize_history,self.model.dataset.prices,self.model.target_frequency,
+                dates=self.model.dataset.dates,simulated=getattr(self.model.dataset,'is_simulated',True),cancel=self._cancel_optimization,**scope)
+        else:
+            future=self.executor.submit(optimize_sma,self.model.dataset.prices,self.model.target_frequency,
+                dates=None if getattr(self.model.dataset,'is_simulated',True) else self.model.dataset.dates,cancel=self._cancel_optimization)
         future.add_done_callback(lambda completed: Clock.schedule_once(
             lambda _dt: self._complete(completed, token), 0))
 
@@ -1222,7 +1231,10 @@ class AnalyzerScreen(Experience, FloatLayout):
             self.message("Calculation failed unexpectedly. Try another security; details are in the log.", True)
 
     def on_save(self, *_):
+        if self.model.history_stale:return
         try:
+            if self.model.result and self.model.editing_line_id and not self.model.current_saved_line():
+                self.confirm_history_save();return
             saved = self.model.toggle_current_saved()
             self.refresh()
             self.message("SMA line saved on this device." if saved else "SMA line unsaved. Restore it from the last-10 history.")
@@ -1242,6 +1254,8 @@ class AnalyzerScreen(Experience, FloatLayout):
         try:
             current = line.visible
             active = (self.model.result is not None and line.period == self.model.result.period
+                      and (line.history_start, line.history_end) ==
+                          (self.model.result.history_start, self.model.result.history_end)
                       and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
             if active:
                 current = self.model.active_visible
@@ -1256,6 +1270,7 @@ class AnalyzerScreen(Experience, FloatLayout):
     def on_delete(self, line, *_):
         try:
             self.model.store.delete(line.id)
+            if self.model.editing_line_id==line.id:self.model.editing_line_id=None
             self.refresh()
             self.sync_notification_schedule()
         except (sqlite3.Error, OSError) as error:
@@ -1491,12 +1506,14 @@ class AnalyzerScreen(Experience, FloatLayout):
 
     def _add_saved_row(self, panel, line):
         label = f"{line.display_name}" + (f" · {sma_label(line.period)}" if line.custom_name else "") + f" · target {line.target_frequency}/yr"
+        if line.history_start:label+=f"\nCalculated from {line.history_label}"
         if len(self.model.dataset.prices) >= 4 and line.period > maximum_sma_period(len(self.model.dataset.prices)):
             label += " · saved previously; outside current search limit"
         title = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(5))
         active = (self.model.result is not None and self.model.result.period == line.period
+                  and (line.history_start,line.history_end)==(self.model.result.history_start,self.model.result.history_end)
                   and (line.counter, line.scenario) == (self.model.dataset.counter, self.model.dataset.scenario))
-        swatch = LegendSymbol(saved_color(self.model.store.color_index(line.counter,line.scenario,line.period)))
+        swatch = LegendSymbol(saved_color(self.model.store.line_color_index(line)))
         title.add_widget(swatch)
         title_label = Button(text=label, color=TEXT, font_size=sp(13), halign="left",
                              background_normal="", background_down="", background_color=(0,0,0,0))
@@ -1596,7 +1613,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             result=self.model.result
             was_saved=self.model.viewing_saved
             was_visible=self.model.active_visible
-            prepared=self.model.result_for_dataset(data,result.period,result.target_frequency) if result else None
+            prepared=self.model.result_for_dataset(data,result.period,result.target_frequency,result.history_start,result.history_end) if result else None
             self.model.apply_dataset(data)
             if prepared:
                 self.model.apply_result(prepared)
@@ -1622,6 +1639,7 @@ class AnalyzerScreen(Experience, FloatLayout):
             entry.add_widget(identity)
             entry.add_widget(WrappedLabel(text=f"{line.display_name}" + (f" · {sma_label(line.period)}" if line.custom_name else "") + f" · target {line.target_frequency}/yr",
                                            color=MUTED, font_size=sp(12)))
+            if line.history_start:entry.add_widget(WrappedLabel(text='Calculated from '+line.history_label,color=MUTED,font_size=sp(12)))
             restore = LabButton(text="Restore saved line")
             restore.bind(on_release=lambda _, entry=line: self.restore_unsaved(entry))
             entry.add_widget(restore)
@@ -1803,7 +1821,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         security = self.model.security(data.counter)
         def work():
             updated = self.model.data_provider.historical_data(security, force=True, full=full)
-            updated_result = (self.model.result_for_dataset(updated, result.period, result.target_frequency)
+            updated_result = (self.model.result_for_dataset(updated, result.period, result.target_frequency,result.history_start,result.history_end)
                               if result else None)
             return updated, updated_result
         future = self.market_executor.submit(work)
@@ -2190,7 +2208,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         content.add_widget(WrappedLabel(text=f"{saved.display_name} · choose a colour for this SMA.",color=MUTED))
         grid=GridLayout(cols=4,spacing=dp(8),size_hint_y=None)
         grid.bind(minimum_height=grid.setter("height"))
-        current=saved_color(self.model.store.color_index(saved.counter,saved.scenario,saved.period))
+        current=saved_color(self.model.store.line_color_index(saved))
         self.color_buttons={}
         self.color_status=WrappedLabel(text="",color=ERROR,font_size=sp(11))
         for index,(name,rgba) in enumerate(zip(COLOR_NAMES,COLOR_CHOICES)):
@@ -2254,7 +2272,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         grid=GridLayout(cols=4,spacing=dp(8),size_hint_y=None)
         grid.bind(minimum_height=grid.setter('height'))
         self.edit_line_color = None
-        current=saved_color(self.model.store.color_index(saved.counter,saved.scenario,saved.period))
+        current=saved_color(self.model.store.line_color_index(saved))
         self.edit_line_colors={}
         def choose_color(index):
             self.edit_line_color=index
@@ -2396,7 +2414,7 @@ class AnalyzerScreen(Experience, FloatLayout):
         self.full_table_panel.clear_widgets()
         data, result = self.model.dataset, self.model.result
         self.full_table_panel.add_widget(WrappedLabel(
-            text=f"{self.model.security(data.counter).name} · {self.model.current_line_name()} · {sma_label(result.period)} · target {result.target_frequency}/yr · {result.crossing_count} upward crossings", bold=True))
+            text=f"{self.model.security(data.counter).name} · {self.model.current_line_name()} · {sma_label(result.period)} · target {result.target_frequency}/yr · {len(result.events)} upward crossings", bold=True))
         self.full_crossover_table = self._crossing_table(self.model.event_rows())
         self.full_table_panel.add_widget(self.full_crossover_table)
         self._navigate("crossovers")

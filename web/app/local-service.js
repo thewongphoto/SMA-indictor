@@ -3,6 +3,7 @@ import { localValue, clearHistories } from "./local-store";
 import { calculate, cancelCalculations } from "./python";
 import catalog from "../lib/catalog.json";
 import packageInfo from "../package.json";
+import {checkedHistory,historyKey,historyLabel,sameHistory,historyReadout} from "../lib/history-window";
 let core,
   initializing,
   mutations = Promise.resolve();
@@ -108,13 +109,14 @@ function colorHex(index) {
   );
 }
 function allocationKey(line) {
-  return `${line.counter}|${line.scenario}|${line.period}`;
+  return `${line.counter}|${line.scenario}|${line.period}${historyKey(line)}`;
 }
 function renderLine(line) {
   const color = core.allocations[allocationKey(line)] ?? 0;
   return {
     ...line,
-    name: line.custom_name || `SMA (${line.period} days)`,
+    name: line.custom_name || `SMA (${line.period} days)${line.history_start ? ` · ${historyLabel(line,true)}` : ""}`,
+    history_label: historyLabel(line),
     color,
     color_hex: colorHex(color),
   };
@@ -237,6 +239,7 @@ async function chart(body) {
     target: body.target || 4,
     horizon: body.horizon || "Max",
     years: body.years || "3",
+    ...checkedHistory(body),
   });
 }
 function lineById(id) {
@@ -306,11 +309,12 @@ async function handle(path, body = {}, method) {
         const hash = Array.from(new Uint8Array(fingerprint), (x) =>
           x.toString(16).padStart(2, "0"),
         ).join("");
-        const key = `${packageInfo.version}|${body.key}|${target}|${hash}`;
+        const scope=checkedHistory(body);
+        const key = `${packageInfo.version}|${body.key}|${target}|${hash}${historyKey(scope)}`;
         if (job.status !== "running" || activeJob !== id) return;
         const saved = core.lines
             .filter(
-              (x) => x.counter === body.key && x.target_frequency === target,
+              (x) => x.counter === body.key && x.target_frequency === target && sameHistory(x,scope),
             )
             .at(-1),
           period = saved?.period || core.choices[key];
@@ -322,6 +326,7 @@ async function handle(path, body = {}, method) {
           target,
           period,
           optimize: true,
+          ...scope,
         });
         if (job.status !== "running") return;
         core.choices[key] = result.result.period;
@@ -355,40 +360,23 @@ async function handle(path, body = {}, method) {
     return { ...job };
   }
   if (path === "save") {
-    const data = await history(body.key, true);
-    integer(body.period, "SMA period", 2, data.prices.length);
-    integer(body.target, "Frequency");
-    if (
-      !core.lines.some(
-        (x) =>
-          x.counter === body.key &&
-          x.period === body.period &&
-          x.target_frequency === body.target,
-      )
-    ) {
-      const old = core.archive.find(
-        (x) =>
-          x.counter === body.key &&
-          x.period === body.period &&
-          x.target_frequency === body.target,
-      );
-      const line = old || {
-        id: core.nextId++,
-        counter: body.key,
-        scenario: data.scenario,
-        period: body.period,
-        target_frequency: body.target,
-        visible: true,
-        push_enabled: true,
-        email_enabled: false,
-        custom_name: "",
-        alert_buy: true,
-        alert_monitor: true,
-        alert_start: true,
-      };
-      core.lines.push(line);
-      core.archive = core.archive.filter((x) => x.id !== line.id);
-      allocate(line);
+    const data=await history(body.key,true),scope=checkedHistory(body);
+    if(scope.history_start)historyReadout(data,scope);
+    integer(body.period,"SMA period",2,data.prices.length);integer(body.target,"Frequency");
+    const duplicate=core.lines.find(x=>x.counter===body.key && x.period===body.period && x.target_frequency===body.target && sameHistory(x,scope));
+    if(body.update_id!==undefined) {
+      const old=lineById(body.update_id);
+      if(old.counter!==body.key)throw new Error("Choose the original security before updating this line.");
+      if(duplicate && duplicate.id!==old.id)throw new Error("That exact line is already saved. Open it or choose another history.");
+      const color=core.allocations[allocationKey(old)] ?? 0;
+      Object.assign(old,{period:body.period,target_frequency:body.target,...scope});
+      core.allocations[allocationKey(old)]=color;
+    } else if(!duplicate) {
+      const archived=core.archive.find(x=>x.counter===body.key && x.period===body.period && x.target_frequency===body.target && sameHistory(x,scope));
+      const line=archived || {id:core.nextId++,counter:body.key,scenario:data.scenario,period:body.period,target_frequency:body.target,
+        visible:true,push_enabled:true,email_enabled:false,custom_name:"",alert_buy:true,alert_monitor:true,alert_start:true,...scope};
+      if(body.as_new)Object.assign(line,{custom_name:"",push_enabled:true,alert_buy:true,alert_monitor:true,alert_start:true});
+      core.lines.push(line);core.archive=core.archive.filter(x=>x.id!==line.id);allocate(line);
     }
   } else if (path === "line") {
     const line = lineById(body.id);
@@ -503,6 +491,7 @@ async function importBackup(backup) {
           period,
           target_frequency: target,
           custom_name,
+          ...checkedHistory(source),
           ...switches,
           email_enabled: false,
         },
@@ -517,7 +506,7 @@ async function importBackup(backup) {
         (x) =>
           x.counter === source.counter &&
           x.period === source.period &&
-          x.target_frequency === source.target_frequency,
+          x.target_frequency === source.target_frequency && sameHistory(x,source),
       )
     )
       continue;
@@ -533,7 +522,7 @@ async function importBackup(backup) {
       (old) =>
         old.counter !== line.counter ||
         old.period !== line.period ||
-        old.target_frequency !== line.target_frequency,
+        old.target_frequency !== line.target_frequency || !sameHistory(old,line),
     );
     core.allocations[allocationKey(line)] = color;
   }

@@ -14,7 +14,9 @@ from kivy.graphics import Line, Rectangle
 from .appearance import Color
 
 
-class Experience:
+from .history_ui import HistoryUI
+
+class Experience(HistoryUI):
     def build_experience(self):
         from .app import Panel, LabButton, WrappedLabel
         page = Screen(name='alerts')
@@ -118,6 +120,7 @@ class Experience:
         self.build_appearance()
         self.restructure_settings()
         self.build_signup()
+        self.build_history_controls()
         self.layout_tabs()
         self.update_tabs()
 
@@ -599,6 +602,7 @@ class Experience:
         for line in self.model.library_lines():
             panel = Panel()
             panel.add_widget(WrappedLabel(text=f'{self.model.security(line.counter).ticker} · {line.display_name}',bold=True,font_size=sp(17)))
+            if line.history_start:panel.add_widget(WrappedLabel(text='Calculated from '+line.history_label,color=MUTED))
             row = BoxLayout(size_hint_y=None,height=dp(48))
             row.add_widget(WrappedLabel(text='Phone alerts',pos_hint={'center_y':.5},bold=True))
             switch = RuleSwitch(active=line.push_enabled)
@@ -705,12 +709,15 @@ class Experience:
             body.bind(minimum_height=body.setter('height'))
             for line in card['lines']:
                 row=BoxLayout(size_hint_y=None,height=dp(64),spacing=dp(8))
-                view=SavedLineRow(line.display_name,
+                view=SavedLineRow(line.custom_name or f'SMA ({line.period} days)',
                     f'{line.target_frequency} signals / year · Alert '+('on' if line.push_enabled else 'off'),
-                    line_color(self.model.store.color_index(line.counter,line.scenario,line.period)),
+                    line_color(self.model.store.line_color_index(line)),
                     pos_hint={'center_y':.5})
                 view.bind(height=lambda widget,height,row=row:setattr(row,'height',max(dp(56),height)))
                 view.bind(on_release=lambda _,line=line:self.on_view_saved(line))
+                if line.history_start:
+                    from .history_ui import HistoryTag
+                    view.history_tag=HistoryTag(line.history_years);view.add_widget(view.history_tag,index=1)
                 swatch=view.swatch
                 row.add_widget(view)
                 state_label=Pill(text=card['states'][line.id].upper(),negative=card['states'][line.id]=='Below',
@@ -734,6 +741,7 @@ class Experience:
         self.refresh_detail()
         self.refresh_alerts()
         self.refresh_inline_lines()
+        self.refresh_history_controls()
 
     def refresh_inline_lines(self):
         from .app import WrappedLabel, LabButton
@@ -751,8 +759,8 @@ class Experience:
         self.inline_lines.add_widget(WrappedLabel(text=f'SAVED LINES · {sum(line.visible for line in lines)} OF {len(lines)} SHOWN',color=MUTED,bold=True))
         for line in lines:
             row=BoxLayout(size_hint_y=None,height=dp(76),spacing=dp(6))
-            row.add_widget(LegendSymbol(line_color(self.model.store.color_index(line.counter,line.scenario,line.period)),pos_hint={'center_y':.5}))
-            name=WrappedLabel(text=f'{line.display_name}\n{line.target_frequency} signals / year',pos_hint={'center_y':.5})
+            row.add_widget(LegendSymbol(line_color(self.model.store.line_color_index(line)),pos_hint={'center_y':.5}))
+            name=WrappedLabel(text=f'{line.display_name}\n{line.target_frequency} signals / year'+(f'\nCalculated from {line.history_label}' if line.history_start else ''),pos_hint={'center_y':.5})
             row.add_widget(name)
             edit=LabButton(text='Edit',size_hint_x=None,width=dp(48),pos_hint={'center_y':.5})
             def edit_line(_,line=line):

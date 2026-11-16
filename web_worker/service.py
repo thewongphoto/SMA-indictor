@@ -14,6 +14,7 @@ import time
 from sma_analyzer.model import AnalyzerModel
 from sma_analyzer.storage import LineStore
 from sma_analyzer.providers import create_provider
+from sma_analyzer.history_window import optimize_history,window_dates
 from sma_analyzer.engine import optimize_sma
 from sma_analyzer.backtest import compare_investments, period_sessions
 from sma_analyzer.watchlist import watchlist, line_state
@@ -54,7 +55,7 @@ class Service:
     def line(self, line):
         value = asdict(line)
         value['name'] = line.display_name
-        value['color'] = self.model.store.color_index(line.counter,line.scenario,line.period)
+        value['color'] = self.model.store.line_color_index(line)
         value['color_hex'] = '#'+''.join(f'{round(v*255):02x}' for v in line_color(value['color'])[:3])
         return value
 
@@ -64,7 +65,7 @@ class Service:
         lines = []
         for line in model.store.list_lines(data.counter,data.scenario):
             try:
-                saved_result = model.result_for_dataset(data,line.period,line.target_frequency)
+                saved_result = model.result_for_dataset(data,line.period,line.target_frequency,line.history_start,line.history_end)
                 lines.append(dict(**self.line(line),sma=saved_result.sma,
                                   events=[asdict(e) for e in saved_result.events]))
             except ValueError:
@@ -82,10 +83,10 @@ class Service:
         return dict(security=self.security(model.security(data.counter)),prices=data.prices,dates=data.dates,
                     currency=getattr(data,'currency',''),stale=getattr(data,'stale',False),scenario=data.scenario,
                     preview=getattr(data,'is_simulated',True),lines=lines,backtest=report,
-                    result=(dict(period=result.period,target=result.target_frequency,frequency=result.actual_annual_frequency,
+                    result=(dict(history_start=result.history_start,history_end=result.history_end,period=result.period,target=result.target_frequency,frequency=result.actual_annual_frequency,
                                  sma=result.sma,events=[asdict(e) for e in result.events],state=line_state(data.prices,result.period)) if result else None))
 
-    def calculate_job(self, key, target):
+    def calculate_job(self, key, target, history_start="",history_end=""):
         # Snapshot inputs; concurrent browser navigation cannot change this job.
         security = self.model.security(key)
         data = self.model.data_provider.historical_data(security,'Oscillating')
@@ -95,8 +96,7 @@ class Service:
         self.jobs[identifier] = job
         def calculate():
             try:
-                result = optimize_sma(data.prices,target,dates=None if getattr(data,'is_simulated',True) else data.dates,
-                                      cancel=cancel)
+                result = optimize_history(data.prices,target,dates=data.dates,simulated=getattr(data,'is_simulated',True),history_start=history_start,history_end=history_end,cancel=cancel)
                 with self.lock:
                     if cancel.is_set():
                         job['status']='cancelled'
@@ -130,14 +130,14 @@ class Service:
             if path == 'chart':
                 security = model.security(body['key'])
                 data = (model.data_provider.cached_data(security) if body.get('cached') and hasattr(model.data_provider,'cached_data') else model.data_provider.historical_data(security,'Oscillating'))
-                result = model.result_for_dataset(data,int(body['period']),int(body.get('target',4))) if body.get('period') else None
+                result = model.result_for_dataset(data,int(body['period']),int(body.get('target',4)),*window_dates(body.get('history_start',''),body.get('history_end',''))) if body.get('period') else None
                 return self.chart(data,result,body.get('horizon','Max'),str(body.get('years','3')))
             if path == 'optimize':
                 target = int(body['target'])
                 if isinstance(body['target'],bool) or target != float(body['target']) or target < 1 or target > 2**63-1:
                     raise ValueError('Enter a positive whole-number frequency.')
                 if any(job['status']=='running' for job in self.jobs.values()): raise ValueError('A calculation is already running. Cancel it or wait for it to finish.')
-                return self.calculate_job(body['key'],target)
+                return self.calculate_job(body['key'],target,*window_dates(body.get('history_start',''),body.get('history_end','')))
             if path.startswith('jobs/'):
                 job = self.jobs.get(path.split('/')[-1])
                 if not job: raise ValueError('Calculation expired or worker restarted. Please run it again.')
@@ -145,8 +145,18 @@ class Service:
                 return {k:v for k,v in job.items() if k not in ('cancel','created')}
             if path == 'save':
                 data=model.data_provider.cached_data(model.security(body['key'])) if hasattr(model.data_provider,'cached_data') else model.data_provider.historical_data(model.security(body['key']),'Oscillating')
-                model.result_for_dataset(data,int(body['period']),int(body['target']))
-                model.store.save(data.counter,data.scenario,int(body['period']),int(body['target']))
+                scope=window_dates(body.get('history_start',''),body.get('history_end',''))
+                model.result_for_dataset(data,int(body['period']),int(body['target']),*scope)
+                if 'update_id' in body:
+                    old=model.store.get_line(int(body['update_id']))
+                    if old.counter!=data.counter:raise ValueError('Choose the original security before updating this line.')
+                    model.store.update_analysis(old.id,int(body['period']),int(body['target']),*scope)
+                else:
+                    model.store.save(data.counter,data.scenario,int(body['period']),int(body['target']),*scope)
+                    if body.get('as_new'):
+                        line=next(x for x in model.store.list_lines(data.counter,data.scenario) if (x.period,x.target_frequency,x.history_start,x.history_end)==(int(body['period']),int(body['target']),*scope))
+                        model.store.rename(line.id,'');model.store.set_notifications(line.id,'phone',True)
+                        for kind in ('buy','monitor','monitor_start'):model.store.set_line_alert(line.id,kind,True)
             elif path == 'line':
                 identifier=int(body['id']); model.store.get_line(identifier)
                 if 'name' in body: model.store.rename(identifier,body['name'])

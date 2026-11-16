@@ -17,7 +17,7 @@ from .axis import date_ticks
 from .line_names import sma_label
 from .palette import line_color as palette_color
 
-from .theme import MUTED, PRICE
+from .theme import MUTED, PRICE, BG
 PRICE_COLOR = PRICE
 ACTIVE_COLOR = (1.0, 0.74, 0.36, 1)
 SAVED_COLORS = ((0.59, 0.64, 1, 1), (1, 0.49, 0.62, 1), (0.42, 0.76, 1, 1))
@@ -73,6 +73,7 @@ class PriceChart(Widget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.history_window=("","")
         self.prices = ()
         self.series = []
         self.marker_events = {}
@@ -366,6 +367,18 @@ class PriceChart(Widget):
                         continue
                     x, y = point(event.plot_index, event.price)
                     draw_plus(x, y, dp(5), color)
+            if self.history_window[0] and self.dates:
+                from bisect import bisect_left,bisect_right
+                a=bisect_left(self.dates,self.history_window[0]);b=bisect_right(self.dates,self.history_window[1])-1
+                ax=max(left,min(left+width,point(a,low)[0]));bx=max(left,min(left+width,point(b,low)[0]))
+                Color(*BG[:3],.72)
+                Rectangle(pos=(left,bottom),size=(ax-left,height));Rectangle(pos=(bx,bottom),size=(left+width-bx,height))
+                Color(*MUTED)
+                Line(points=[ax,bottom+height-dp(6),bx,bottom+height-dp(6)],width=dp(1))
+                Line(points=[ax,bottom+height-dp(11),ax,bottom+height-dp(6),bx,bottom+height-dp(6),bx,bottom+height-dp(11)],width=dp(.7))
+                if bx-ax>dp(90):
+                    from .history_window import label
+                    self._text(label(*self.history_window,short=True),(ax+bx)/2,bottom+height-dp(24),center=True)
             StencilUnUse()
             Rectangle(pos=(left,bottom),size=(width,height))
             StencilPop()

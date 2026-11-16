@@ -1,9 +1,29 @@
 # Validation and build status
 
-Current source: **0.18.2**. The matching Android build tag is **apk-v0.18.2**.
+Current source: **0.19.0**. The matching Android build tag is **apk-v0.19.0**.
 Native build completion must be checked in
 [GitHub Actions](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml).
 A published tag or uploaded diagnostic ZIP alone does not prove an APK exists.
+
+Release 0.19.0 host validation covers frozen custom history, real engine
+guardrails, slice-only optimizer scoring, cache separation, full-series chart
+reconstruction, old SQLite migration/IDs, independent colours, archive/restore
+and unchanged default alert keys. **370 Python tests completed (368 passed,
+two optional skips)** and **37 JavaScript tests passed**. All 13 local native
+UI gates pass, including the new history flow and the updated compact-layout
+check accounting for exactly one additional row. Native/WebKit/Chromium captures
+review the default/picker, narrow dates, stale result, Update preservation, New
+alerts on, Home labels and restart state. The observed builder parity check
+also passes.
+
+The web production build, contact SQL fixtures and all eight browser smoke
+suites pass. The new custom-history suite uses actual Pyodide/NumPy on both
+engines, with intercepted market responses and no service-worker interception;
+separate existing tests retain offline-runtime coverage. Existing chart fixtures
+continue to check named saved lines, touch inspection, pluses and shared styles.
+These checks send no real email/push and do not establish physical-phone keyboard,
+launch performance, signing or scheduled delivery. Final APK verification remains
+a separate required Actions step. [Feature and review](CUSTOM_PRICE_HISTORY.md).
 
 Android 0.18.2 adds cold-lifecycle startup checks with held email/Yahoo workers:
 the first rendered frame is an opaque, topmost welcome before readiness completes;

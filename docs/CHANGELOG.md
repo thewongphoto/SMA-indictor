@@ -1,14 +1,14 @@
 # Release history
 
-The latest iPhone web release is **0.18.2**, deployed through Vercel without a new
-Android build for that web release. Native source/latest requested tag are now
-**0.18.2** / **apk-v0.18.2** for the separate Android welcome-startup fix.
+The current Android and iPhone web source is **0.19.0**. The matching Android
+release tag is **apk-v0.19.0**; Vercel deploys the same feature through main.
 A tag or source commit does not prove native compilation passed.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
 for the run matching the desired tag and its downloadable artifact.
 
 | Version | Changes retained in the current app |
 | --- | --- |
+| 0.19.0 | Adds the custom price-history proposal on Android and web: upfront/history-refinement row, frozen 10/5/3-year presets and custom dates, preview/session validation using real engine limits, explicit stale/recalculate state, scoped labels and dimmed chart bracket. Update preserves a saved line's identity/name/colour/alerts; Save as a new line keeps both with alerts **on**. Migrates old saved data, retains scoped archive/backup/notification identities and default alert hashes, and adds native plus actual-Python Chromium/WebKit regressions. No new Supabase SQL or environment variables. |
 | Android 0.18.2 | Shows the email welcome on the first UI frame, before readiness/network replies, without an animated Home-to-welcome interruption. Typing and Skip work immediately; sending stays gated on server readiness. Isolates contact work from Yahoo requests, adds retry/offline/returning-user handling and first-frame regression captures. No web UI, calculation, stored-identity or server-schema changes. |
 | Web 0.18.2 | Keeps security selection and target crossing controls on Set your preference, using the native default and 4/6/12/Custom choices before explicit calculation. Shares the control with Charts, restores Back/cancel behaviour and guards stale selections/jobs. Adds Chromium/WebKit flow checks, native observation comparison and an independent web-release policy; no new APK tag. |
 | 0.18.1 | Removes the shared password from normal web app opening, market lookup and per-device alert controls. Saved lines remain device-local. Moves owner sign-in to `/setup/login`; setup diagnostics, the legacy worker library and scheduler stay protected. Existing environment values and database schemas remain compatible. |

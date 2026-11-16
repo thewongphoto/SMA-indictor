@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {sameHistory,historyLabel} from "../lib/history-window";
 import CompanyLogo from "./company-logo";
 import { PLOT, finite, ranges, presetBounds, plottedLines, limits, visibleChange, nearestSession, pinchBounds, dateTicks, fullDate } from "../lib/chart-math";
 const format = (value, digits = 2) => finite(value) ? value.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "—";
@@ -45,8 +46,8 @@ export default function Chart({ chart }) {
     for (let i = chart.prices.length - 1; i >= 0; i--) if (finite(chart.prices[i])) return chart.prices[i];
     return null;
   }, [chart.prices]);
-  const selectedName = chart.lines.find((line) => line.period === active?.period)?.name || `SMA (${active?.period} days)`;
-  const inspectionLines = active ? [{ key: "selected", name: selectedName, sma: active.sma, color: lines.find((line) => line.period === active.period)?.color || "#FFBD5C" }, ...lines.filter((line) => line.period !== active.period)] : lines;
+  const selectedName = chart.lines.find((line) => line.period === active?.period && sameHistory(line,active))?.name || `SMA (${active?.period} days)${active?.history_start?` · ${historyLabel(active,true)}`:""}`;
+  const inspectionLines = active ? [{ key: "selected", name: selectedName, sma: active.sma, color: lines.find((line) => line.period === active.period && sameHistory(line,active))?.color || "#FFBD5C" }, ...lines.filter((line) => line.period !== active.period || !sameHistory(line,active))] : lines;
   function point(clientX, clientY) {
     const matrix = svg.current?.getScreenCTM();
     if (!matrix) return null;
@@ -93,7 +94,7 @@ export default function Chart({ chart }) {
       {change ? <><span><Arrow direction={direction} />${format(Math.abs(change.delta))}</span><span className="change-percent"><Arrow direction={direction} />{format(Math.abs(change.percent))}%</span></> : <span>No comparable closes</span>}
       <small className="change-period">{range === "Custom" ? `${fullDate(chart.dates[lo])} – ${fullDate(chart.dates[hi])}` : range === "Max" ? "ALL HISTORY" : `PAST ${range}`}</small>
     </div>
-    {active && <div className="card status"><strong>Price is {active.state === "On line" ? "on" : active.state.toLowerCase()} its {active.period}-day line</strong><p>{crossingDate ? `It crossed above on ${fullDate(crossingDate)}. ` : ""}This line has been crossed upward about {active.frequency.toFixed(1)} times a year.</p></div>}
+    {active && <div className="card status"><strong>Price is {active.state === "On line" ? "on" : active.state.toLowerCase()} its {active.period}-day line</strong><p>{crossingDate ? `It crossed above on ${fullDate(crossingDate)}. ` : ""}This line has been crossed upward about {active.frequency.toFixed(1)} times a year{active.history_start ? ` between ${active.history_start.slice(0,4)} and ${active.history_end.slice(0,4)}`:""}.</p></div>}
     <div className="card chart-panel">
       <p className="chart-caption">{chart.preview ? "Example daily prices" : `${chart.currency || ""} adjusted daily close`}<br />{chart.preview ? "Simulated data" : "Dividends and splits included"}</p>
       <svg className="chart-plot" ref={svg} viewBox="0 0 640 430" role="img" aria-label="Adjusted daily closing prices and saved SMA lines"
@@ -118,11 +119,16 @@ export default function Chart({ chart }) {
           <text x="343" y="416" textAnchor="middle">Date</text><text transform="translate(17 185) rotate(-90)" textAnchor="middle">Price</text>
         </g>}
         {extrema ? <g clipPath={`url(#${clip})`}>
-          {paths.map((line) => <path key={line.key} data-series={line.key} d={line.path} fill="none" stroke={line.color} strokeWidth={line.key === "price" ? 2.4 : line.period === active?.period ? 3.2 : 2} />)}
+          {paths.map((line) => <path key={line.key} data-series={line.key} d={line.path} fill="none" stroke={line.color} strokeWidth={line.key === "price" ? 2.4 : line.period === active?.period && sameHistory(line,active) ? 3.2 : 2} />)}
           {lines.flatMap((line) => (line.events || []).map((event, index) => {
             const at = event.position ?? event.index;
             return at >= start && at <= end && finite(event.price) ? <path data-crossing={line.key} data-position={at} key={`${line.key}-${index}`} d={PLUS} transform={`translate(${x(at)} ${y(event.price)})`} fill={line.color} stroke="#000" strokeWidth=".9" /> : null;
           }))}
+          {active?.history_start && (()=>{
+            const a=chart.dates.findIndex(d=>d>=active.history_start);let b=chart.dates.length-1;while(b>=0 && chart.dates[b]>active.history_end)b--;
+            const left=Math.max(PLOT.left,Math.min(PLOT.left+PLOT.width,x(a))),right=Math.max(PLOT.left,Math.min(PLOT.left+PLOT.width,x(b)));
+            return <g className="history-dimming" aria-label="Calculation window"><rect x={PLOT.left} y={PLOT.top} width={left-PLOT.left} height={PLOT.height} fill="var(--bg)" opacity=".75"/><rect x={right} y={PLOT.top} width={PLOT.left+PLOT.width-right} height={PLOT.height} fill="var(--bg)" opacity=".75"/><path d={`M${left} ${PLOT.top+10}v-6H${right}v6`} fill="none" stroke="var(--text-muted)"/><text x={(left+right)/2} y={PLOT.top+28} textAnchor="middle">{historyLabel(active,true)}</text></g>;
+          })()}
           {inspect !== null && <g className="inspection-points"><line x1={inspectX} x2={inspectX} y1={PLOT.top} y2={PLOT.bottom} stroke="var(--text-muted)" /><circle cx={inspectX} cy={inspectY} r="5" fill="var(--price)" />{inspectionLines.map((line) => finite(line.sma[inspect]) && <circle key={line.key} cx={inspectX} cy={y(line.sma[inspect])} r="5" fill={line.color} />)}</g>}
         </g> : <text x="343" y="185" textAnchor="middle" className="chart-empty">No prices loaded. Choose a security to begin.</text>}
         {inspect !== null && <g className="chart-tooltip" aria-hidden="true" transform={`translate(${tipX} ${tipY})`}>
@@ -136,6 +142,7 @@ export default function Chart({ chart }) {
       {inspect !== null && <div className="chart-inspection" role="status" aria-live="polite"><strong>{fullDate(chart.dates[inspect])}</strong><span>Adj. close: ${format(chart.prices[inspect], 4)}</span>{inspectionLines.map((line) => <span key={line.key}>{line.name}: {finite(line.sma[inspect]) ? `$${format(line.sma[inspect], 4)}` : "Unavailable (warm-up/gap)"}</span>)}</div>}
       <p className="small chart-touch-hint">Drag one finger to inspect closing and SMA values. Pinch with two fingers to zoom.</p>
     </div>
+    {active?.history_start && <p className="history-caption">Calculated from {historyLabel(active)} · dimmed prices were not used</p>}
     <div className="segments ranges">{ranges(count, calendarDates).map((value) => <button key={value} aria-pressed={range === value} disabled={!count} onClick={() => preset(value)}>{value}</button>)}</div>
     {range === "Custom" && <button className="text chart-zoom-reset" onClick={() => preset(baseRange.current)}>Zoom out</button>}
   </section>;

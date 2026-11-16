@@ -9,6 +9,8 @@ import { syncPush } from "./push-client";
 import { stored, clearSnapshots } from "./cache";
 import CompanyLogo from "./company-logo";
 import TargetPreference from "./target-preference";
+import HistoryPicker from "./history-picker";
+import {historyOf,historyKey,sameHistory,historyLabel} from "../lib/history-window";
 import packageInfo from "../package.json";
 
 const labels = {
@@ -85,6 +87,10 @@ export default function App() {
     [searching, setSearching] = useState(false);
   const [chart, setChart] = useState(null),
     [builder, setBuilder] = useState(null),
+    [priceHistory,setPriceHistory]=useState(historyOf()),
+    [historyPicker,setHistoryPicker]=useState(false),
+    [editingLine,setEditingLine]=useState(null),
+    [saveChoice,setSaveChoice]=useState(false),
     [target, setTarget] = useState(12),
     [custom, setCustom] = useState(false),
     [job, setJob] = useState(null),
@@ -138,6 +144,7 @@ export default function App() {
         cancel();
         setLoading(false);
         setEdit(null);
+        setHistoryPicker(false);setSaveChoice(false);
         setGuide(false);
         setTab(event.state?.tab || "library");
         setError("");
@@ -233,7 +240,7 @@ export default function App() {
     const token = ++generation.current;
     setError("");
     setLoading(true);
-    const cacheKey = `chart:${security.key}:${line?.period || 0}:${line?.target_frequency || 4}`;
+    const cacheKey = `chart:${security.key}:${line?.period || 0}:${line?.target_frequency || 4}${historyKey(line)}`;
     try {
       const value =
         offline || cached
@@ -241,6 +248,7 @@ export default function App() {
           : await api("chart", {
               key: security.key,
               period: line?.period,
+              ...historyOf(line),
               target: line?.target_frequency,
             });
       if (!value)
@@ -248,6 +256,8 @@ export default function App() {
           "Download this chart while online before opening it offline.",
         );
       if (token !== generation.current) return;
+      setPriceHistory(historyOf(line || value.result));
+      setEditingLine(line || null);
       if (destination === "search") {
         setBuilder(value);
         setChart(value);
@@ -325,6 +335,7 @@ export default function App() {
       const result = await api("optimize", {
         key: source.security.key,
         target: frequency,
+        ...priceHistory,
       });
       if (token !== generation.current) {
         await api("jobs/" + result.job, null, "DELETE");
@@ -344,7 +355,7 @@ export default function App() {
             history.pushState({ tab: "results" }, "", "#results");
           }
           await stored(
-            `chart:${source.security.key}:${next.data.result.period}:${frequency}`,
+            `chart:${source.security.key}:${next.data.result.period}:${frequency}${historyKey(next.data.result)}`,
             next.data,
           );
           break;
@@ -371,6 +382,7 @@ export default function App() {
   async function mutate(path, body) {
     try {
       const value = await api(path, body);
+      if(path==='line' && body.archive && editingLine?.id===body.id)setEditingLine(null);
       setState(value);
       await stored("state", value);
       return value;
@@ -387,13 +399,14 @@ export default function App() {
         key: chart.security.key,
         period: chart.result?.period,
         target: chart.result?.target,
+        ...historyOf(chart.result),
         horizon,
         years,
         cached: true,
       });
       if (token === generation.current) setChart(next);
       await stored(
-        `chart:${next.security.key}:${next.result?.period || 0}:${next.result?.target || 4}`,
+        `chart:${next.security.key}:${next.result?.period || 0}:${next.result?.target || 4}${historyKey(next.result)}`,
         next,
       );
     }
@@ -407,6 +420,7 @@ export default function App() {
         key: chart.security.key,
         period: chart.result.period,
         target: chart.result.target,
+        ...historyOf(chart.result),
         horizon: value,
         years: newYears,
         cached: true,
@@ -416,31 +430,24 @@ export default function App() {
       if (token === generation.current) fail(e);
     }
   }
-  async function save() {
-    if (!chart?.result) return;
-    const token = generation.current;
-    await mutate("save", {
-      key: chart.security.key,
-      period: chart.result.period,
-      target: chart.result.target,
-    });
-    const next = await api("chart", {
-      key: chart.security.key,
-      period: chart.result.period,
-      target: chart.result.target,
-      cached: true,
-    });
-    if (token === generation.current) setChart(next);
-    await stored(
-      `chart:${next.security.key}:${next.result.period}:${next.result.target}`,
-      next,
-    );
+  async function save(mode) {
+    if (!chart?.result || !sameHistory(priceHistory,chart.result)) return;
+    if(editingLine && !mode && !(chart.lines||[]).some(line=>line.period===chart.result.period && line.target_frequency===chart.result.target && sameHistory(line,chart.result))) {setSaveChoice(true);return;}
+    const token=generation.current;
+    const value=await mutate("save",{key:chart.security.key,period:chart.result.period,target:chart.result.target,...historyOf(chart.result),
+      ...(mode==='update'?{update_id:editingLine.id}:{}),as_new:mode==='new'});
+    if(!value)return;
+    setSaveChoice(false);setEditingLine(null);
+    const next=await api("chart",{key:chart.security.key,period:chart.result.period,target:chart.result.target,...historyOf(chart.result),cached:true});
+    if(token===generation.current)setChart(next);
+    await stored(`chart:${next.security.key}:${next.result.period}:${next.result.target}${historyKey(next.result)}`,next);
   }
   const selected = chart?.lines.find(
     (line) =>
       line.period === chart.result?.period &&
-      line.target_frequency === chart.result?.target,
+      line.target_frequency === chart.result?.target && sameHistory(line,chart.result),
   );
+  const historyStale=Boolean(chart?.result && !sameHistory(priceHistory,chart.result));
   const below = state.cards.reduce((sum, card) => sum + card.below, 0);
   if (welcome)
     return (
@@ -486,7 +493,7 @@ export default function App() {
             + Find SMA
           </button>
         ) : tab === "results" && chart?.result && !guide ? (
-          <button className="text" onClick={save} disabled={Boolean(selected)}>
+          <button className="text" onClick={() => save()} disabled={Boolean(selected)||historyStale}>
             {selected ? "Saved" : "Save"}
           </button>
         ) : null}
@@ -619,9 +626,9 @@ export default function App() {
                           onClick={() => openChart(card.security, line)}
                         >
                           <span>
-                            <strong>{line.name}</strong>
+                            <strong>{line.history_start && !line.custom_name ? `SMA (${line.period} days)` : line.name}</strong>
                             <small>
-                              {line.target_frequency} signals / year · Alert{" "}
+                              {line.history_start && <span className="history-tag">{historyLabel(line,true)}</span>}{line.target_frequency} signals / year · Alert{" "}
                               {line.push_enabled ? "on" : "off"}
                             </small>
                           </span>
@@ -726,7 +733,7 @@ export default function App() {
                 </p>
               </>
             )}
-            {builder && <TargetPreference security={builder.security} target={target} custom={custom}
+            {builder && <TargetPreference data={builder} history={priceHistory} onHistory={()=>setHistoryPicker(true)} stale={historyStale} security={builder.security} target={target} custom={custom}
               onSecurity={() => securitySearch.current?.focus()}
               onTarget={(value, isCustom = false) => { setTarget(value); setCustom(isCustom); }}
               onCustom={() => setCustom(true)} onOptimize={() => optimize(builder)}
@@ -754,8 +761,9 @@ export default function App() {
                   </button>
                 </section>
               )}
-              <Chart chart={chart} colors={state.colors} />
-              <TargetPreference target={target} custom={custom}
+              {historyStale && <section className="notice" role="status"><strong>The period has changed</strong><p>The line below uses {historyLabel(chart.result)||'all available history'}. Recalculate to match {historyLabel(priceHistory)||'all available history'}.</p><p>Showing the earlier result. Nothing is recalculated until you press the button.</p></section>}
+              <div className={historyStale?'history-stale':undefined}><Chart chart={chart} colors={state.colors} /></div>
+              <TargetPreference data={chart} history={priceHistory} onHistory={()=>setHistoryPicker(true)} stale={historyStale} target={target} custom={custom}
                 onTarget={(value, isCustom = false) => { setTarget(value); setCustom(isCustom); }}
                 onCustom={() => {
                   setCustom(true); setBuilder(chart); setTab("search");
@@ -779,7 +787,7 @@ export default function App() {
                         <strong>{line.name}</strong>
                         <small>
                           SMA ({line.period} days) · {line.target_frequency}{" "}
-                          signals / year
+                          signals / year{line.history_start && <small>Calculated from {historyLabel(line)}</small>}
                         </small>
                       </span>
                       <button
@@ -882,7 +890,7 @@ export default function App() {
                                   `Your ${
                                     chart.lines.find(
                                       (saved) =>
-                                        saved.period === chart.result.period,
+                                        saved.period === chart.result.period && sameHistory(saved,chart.result),
                                     )?.name ||
                                     `SMA (${chart.result.period} days)`
                                   } signals`,
@@ -979,6 +987,7 @@ export default function App() {
                   <h2>
                     {card.security.ticker} · {line.name}
                   </h2>
+                  {line.history_start && <p className="small">Calculated from {historyLabel(line)}</p>}
                   <div className="line-row">
                     <span>
                       <strong>Enable this line for alerts</strong>
@@ -1202,6 +1211,7 @@ export default function App() {
             {state.archive.map((line) => (
               <section className="card" key={line.id}>
                 <h2>{line.name}</h2>
+                {line.history_start && <p className="small">Calculated from {historyLabel(line)}</p>}
                 <p>
                   {line.counter} · {line.target_frequency} signals / year
                 </p>
@@ -1268,6 +1278,13 @@ export default function App() {
           </section>
         </Dialog>
       )}
+      {historyPicker && (builder || chart) && <HistoryPicker data={tab==='search'?builder:chart} value={priceHistory} onApply={draft=>{if(selected)setEditingLine(selected);setPriceHistory(draft);}} onClose={()=>setHistoryPicker(false)}/>}
+      {saveChoice && <Dialog label="This line is already saved" sheet onClose={()=>setSaveChoice(false)}><section className="sheet save-history-choice">
+        <h2>This line is already saved</h2><p>You recalculated it with a different period. Choose what to do with the new result.</p>
+        <button className="primary" onClick={()=>save('update')}>Update this line</button><p>Replaces {editingLine?.name} with SMA ({chart.result.period} days) · {historyLabel(chart.result)||'all available history'}. Its name, colour and alerts stay.</p>
+        <button onClick={()=>save('new')}>Save as a new line</button><p>Keeps both. The new line starts with alerts on.</p>
+        <button onClick={()=>setSaveChoice(false)}>Cancel</button>
+      </section></Dialog>}
       {edit && (
         <Dialog label="Edit line" sheet onClose={() => setEdit(null)}>
           <section className="sheet">

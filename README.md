@@ -6,9 +6,9 @@ plots dividend/split-adjusted closes and compares three investment strategies.
 
 | Platform | Current status |
 | --- | --- |
-| Android | Signed release APK distribution through GitHub Actions. Source version **0.18.2**. First-open email welcome renders before online checks. |
+| Android | Signed release APK distribution through GitHub Actions. Source version **0.19.0**. First-open email welcome renders before online checks. |
 | Mac / desktop | Active Kivy app with real data and persistent local storage. |
-| iPhone web | Version **0.18.2**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
+| iPhone web | Version **0.19.0**. Local Python/saved data in Safari/Home Screen; Vercel + Supabase enables scheduled Web Push. Native releases remain paused. |
 
 A published tag requests a build; it does not establish that an APK is ready.
 Check the [Android workflow](https://github.com/thewongphoto/SMA-indictor/actions/workflows/android-debug.yml)
@@ -41,6 +41,10 @@ shared dark/teal design, Manrope typography and platform adaptations.
 - Live targets use **365 calendar days per year**, including weekends/holidays.
   This is the closest historical annualized average, not a guaranteed annual
   quota. SMA (X days) means X trading observations. Saved periods stay fixed.
+- [Price history used](docs/CUSTOM_PRICE_HISTORY.md) defaults to All available.
+  Choose a preset or custom dates before calculation or refine an existing result.
+  Custom dates are frozen when saved; Update preserves settings, while Save as a
+  new line keeps both and starts the new line with alerts on.
 - Charts offer 3M/6M/9M/1Y/3Y/5Y/Max, smooth two-finger pinch and one-finger EOD
   inspection. Visible endpoint changes show currency/% values and direction
   arrows; a pinched view shows actual endpoint dates.

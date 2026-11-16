@@ -71,9 +71,14 @@ class Alert:
     source: str = "preview"
     presentation: NotificationPresentation = NotificationPresentation()
     reference_date: str = ""
+    history_start: str = ""
+    history_end: str = ""
 
     @property
     def key(self) -> str:
+        if self.history_start:
+            from dataclasses import replace
+            return repr((replace(self,history_start="",history_end="").key,self.history_start,self.history_end))
         if self.source != "preview":
             return repr((self.source, self.channel, self.kind, self.counter,
                          self.scenario, self.period, self.target, self.session_date))
@@ -119,12 +124,12 @@ def evaluate_eod(prices, line: "SavedLine", settings: NotificationSettings,
             body = f"Monitor: {line.counter} has closed below {sma_label(line.period)}, target {line.target_frequency} /year"
         else:
             continue
-        if line.custom_name:
-            subject=f"{line.display_name} · {subject}"
-            body=f"{line.display_name} · {body}"
+        if line.custom_name or line.history_start:
+            subject=f"{line.notification_name} · {subject}"
+            body=f"{line.notification_name} · {body}"
         result.append(Alert(channel, kind, line.counter, line.scenario, line.period,
                             line.target_frequency, session, subject,
-                            body + f"\nSIMULATED DATA · {line.scenario} · Trading day {session}. Research alert only."))
+                            body + f"\nSIMULATED DATA · {line.scenario} · Trading day {session}. Research alert only.",history_start=line.history_start,history_end=line.history_end))
     return tuple(result)
 
 
@@ -140,8 +145,8 @@ def evaluate_dataset_eod(dataset, line, settings, session=None):
         title=signal_title(alert.kind)
         movement="crossed above" if alert.kind=="buy" else "closed below"
         result.append(replace(alert,source=dataset.source,session_date=dataset.dates[alert.session-1],
-            subject=f"{line.display_name} · {title} for {symbol}",
-            body=f"{line.display_name} · {symbol} has {movement} {sma_label(line.period)}, target {line.target_frequency}/year."
+            history_start=line.history_start,history_end=line.history_end,subject=f"{line.notification_name} · {title} for {symbol}",
+            body=f"{line.notification_name} · {symbol} has {movement} {sma_label(line.period)}, target {line.target_frequency}/year."
                  f"\nAdjusted daily close · {dataset.dates[alert.session-1]} · {dataset.currency}. "
                  "Research signal; not an observed intraday execution."))
     return tuple(result)
@@ -167,13 +172,13 @@ def evaluate_dataset_start(dataset, line, settings, trading_date, security_name,
             not math.isfinite(average) or price <= average):
         return ()
     market = "US" if region == "US" else "SGX"
-    label = f"{line.display_name} · {sma_label(line.period)}" if line.custom_name else sma_label(line.period)
+    label = f"{line.notification_name} · {sma_label(line.period)}" if line.custom_name else line.notification_name
     body = (f"{market} trading is starting soon! {label} for {security_name} may cross today. "
             "App does not feature live prices, so monitor online.")
     return (Alert("phone", "monitor_start", line.counter, line.scenario, line.period,
         line.target_frequency, len(dataset.prices),
-        f"{line.display_name} · {signal_title('monitor_start')} for {security_name}", body,
-        session_date=trading_date, source=dataset.source, reference_date=dataset.dates[-1]),)
+        f"{line.notification_name} · {signal_title('monitor_start')} for {security_name}", body,
+        session_date=trading_date, source=dataset.source, reference_date=dataset.dates[-1],history_start=line.history_start,history_end=line.history_end),)
 
 
 class AndroidNotifier:

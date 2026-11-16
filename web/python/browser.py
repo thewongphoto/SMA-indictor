@@ -13,16 +13,13 @@ def calculate(payload):
     dates = None if data.get('preview') else data['dates']
     target = int(payload.get('target', 4))
     period = payload.get('period')
+    from sma_analyzer.history_window import optimize_history, scoped_result
+    start,end=payload.get('history_start',''),payload.get('history_end','')
     result = None
     if payload.get('optimize') and not period:
-        result = optimize_sma(prices, target, dates=dates)
+        result=optimize_history(prices,target,dates=data['dates'],history_start=start,history_end=end,simulated=bool(data.get('preview')))
     elif period:
-        sma = tuple(simple_moving_average(prices, int(period)))
-        comparisons = observable_comparisons(prices, sma)
-        if not comparisons:
-            raise ValueError('Not enough observable history to display this SMA.')
-        result = OptimizationResult(int(period), target, len(prices), comparisons, sma,
-            crossover_events(prices, sma), observable_calendar_days(prices, sma, calendar_weights(dates,len(prices))))
+        result=scoped_result(prices,data['dates'],int(period),target,start,end,simulated=bool(data.get('preview')))
     lines = []
     for line in payload.get('lines', []):
         try:
@@ -46,5 +43,5 @@ def calculate(payload):
         state = ('Unknown' if price is None or average is None else
                  'Above' if price>average else 'Below' if price<average else 'On line')
     return dict(data,lines=lines,backtest=report,
-        result=dict(period=result.period,target=result.target_frequency,frequency=result.actual_annual_frequency,
+        result=dict(history_start=result.history_start,history_end=result.history_end,period=result.period,target=result.target_frequency,frequency=result.actual_annual_frequency,
                     sma=result.sma,events=[asdict(e) for e in result.events],state=state) if result else None)

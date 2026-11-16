@@ -121,10 +121,13 @@ class OptimizationResult:
     sma: tuple[Price, ...]
     events: tuple[Crossover, ...]
     calendar_days: int | None = None
+    history_start: str = ""
+    history_end: str = ""
+    scoring_crossings: int | None = None
 
     @property
     def crossing_count(self) -> int:
-        return len(self.events)
+        return len(self.events) if self.scoring_crossings is None else self.scoring_crossings
 
     @property
     def frequency(self):

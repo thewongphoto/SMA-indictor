@@ -1,3 +1,4 @@
+import {sameHistory,historyLabel} from "./history-window.js";
 // Display/gesture math only. SMA values and intersections come from shared Python.
 export const PLOT = { left: 68, top: 20, width: 550, height: 330, bottom: 350 };
 export const finite = (value) => typeof value === "number" && Number.isFinite(value);
@@ -30,8 +31,8 @@ export function plottedLines(chart) {
     color: line.color_hex || "#FFBD5C",
     events: line.events || (result?.period === line.period ? result.events : []) || [],
   }));
-  if (result && !chart.lines.some((line) => line.period === result.period))
-    lines.push({ ...result, key: "active", name: `SMA (${result.period} days)`, color: "#FFBD5C" });
+  if (result && !chart.lines.some((line) => line.period === result.period && sameHistory(line,result)))
+    lines.push({ ...result, key: "active", name: `SMA (${result.period} days)${result.history_start?` · ${historyLabel(result,true)}`:""}`, color: "#FFBD5C" });
   return lines;
 }
 export function limits(prices, lines, [start, end]) {
